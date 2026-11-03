@@ -1,0 +1,101 @@
+<UserControl x:Class="SempaPumpStation.Screens.UsersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
+             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
+    <UserControl.Resources>
+        <inf:BoolBrushConverter x:Key="MessageBrush" OnBrush="{StaticResource B.Alarm}" OffBrush="{StaticResource B.Run}"/>
+        <DataTemplate x:Key="LevelChoice">
+            <Button Style="{StaticResource Choice}" Tag="{Binding State}" Command="{Binding Command}" Padding="14,7">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="20" sec:Access.Requires="Users.Manage" DataContext="{Binding Manager}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.4*"/>
+            <ColumnDefinition Width="14"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ============ User list ============ -->
+        <Border Grid.Column="0" Style="{StaticResource Card}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="KULLANICILAR" Style="{StaticResource T.Section}"/>
+                    <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="Operatör bölgeleri kullanır ve enstrüman takar; Mühendis ayrıca kütüphane ve reçeteleri düzenler ve uygulamayı kapatabilir; Yönetici kullanıcıları yönetir. Girişsiz ekran yalnızca izleme içindir (pompa durdurma her zaman açıktır)."/>
+                </StackPanel>
+                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Users}" SelectedItem="{Binding Selected, Mode=TwoWay}" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Kullanıcı" Binding="{Binding Username}" Width="120"/>
+                        <DataGridTextColumn Header="Ad Soyad" Binding="{Binding DisplayName}" Width="*"/>
+                        <DataGridTextColumn Header="Seviye" Binding="{Binding LevelName}" Width="90"/>
+                        <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="110"/>
+                        <DataGridTextColumn Header="Son giriş" Binding="{Binding LastLogin}" Width="115"/>
+                        <DataGridTextColumn Header="Şifre" Binding="{Binding PasswordChanged}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Grid.Column="2">
+            <!-- ============ Selected user ============ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14" IsEnabled="{Binding HasSelection}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource T.Section}">
+                        <Run Text="SEÇİLİ KULLANICI  "/><Run Text="{Binding Selected.Username, Mode=OneWay}" Foreground="{StaticResource B.Text}"/>
+                    </TextBlock>
+
+                    <TextBlock Text="Seviye" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,4"/>
+                    <ItemsControl ItemsSource="{Binding SelectedLevels}" ItemTemplate="{StaticResource LevelChoice}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+
+                    <TextBlock Text="Geçici şifre (kullanıcı ilk girişte değiştirir)" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,6,0,3"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Şifre Sıfırla" Style="{StaticResource Btn}" Command="{Binding ResetPasswordCommand}" Margin="8,0,0,0"/>
+                        <TextBox Style="{StaticResource Tb}" Text="{Binding ResetPasswordText, UpdateSourceTrigger=PropertyChanged}"/>
+                    </DockPanel>
+
+                    <UniformGrid Columns="3" Margin="0,12,0,0">
+                        <Button Content="Kilidi Aç" Style="{StaticResource Btn}" Command="{Binding UnlockCommand}" Margin="0,0,6,0"/>
+                        <Button Content="{Binding ToggleEnabledText}" Style="{StaticResource Btn.Warn}" Command="{Binding ToggleEnabledCommand}" Margin="3,0,3,0"/>
+                        <Button Content="Sil" Style="{StaticResource Btn.Danger}" Command="{Binding DeleteCommand}" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- ============ New user ============ -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="YENİ KULLANICI" Style="{StaticResource T.Section}"/>
+
+                    <TextBlock Text="Kullanıcı adı" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,3"/>
+                    <TextBox Style="{StaticResource Tb}" Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Ad Soyad" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,3"/>
+                    <TextBox Style="{StaticResource Tb}" Text="{Binding NewDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Seviye" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,4"/>
+                    <ItemsControl ItemsSource="{Binding NewLevels}" ItemTemplate="{StaticResource LevelChoice}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+
+                    <TextBlock Text="Geçici şifre" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,6,0,3"/>
+                    <TextBox Style="{StaticResource Tb}" Text="{Binding NewPassword, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+
+                    <Button Content="Kullanıcı Ekle" Style="{StaticResource Btn.Primary}" Command="{Binding AddCommand}" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="13"
+                       Foreground="{Binding MessageIsError, Converter={StaticResource MessageBrush}}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

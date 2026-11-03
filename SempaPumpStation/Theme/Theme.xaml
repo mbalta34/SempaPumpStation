@@ -56,6 +56,22 @@
     <SolidColorBrush x:Key="B.Alarm"   Color="{StaticResource C.Alarm}"/>
     <SolidColorBrush x:Key="B.Idle"    Color="{StaticResource C.Idle}"/>
 
+    <!-- TerakkiUI user views and modal windows (UserTheme) in this palette -->
+    <SolidColorBrush x:Key="TerakkiUser.Backdrop"    Color="#B0060A0E"/>
+    <SolidColorBrush x:Key="TerakkiUser.Card"        Color="{StaticResource C.Card}"/>
+    <SolidColorBrush x:Key="TerakkiUser.CardBorder"  Color="{StaticResource C.BorderHi}"/>
+    <SolidColorBrush x:Key="TerakkiUser.Field"       Color="{StaticResource C.Field}"/>
+    <SolidColorBrush x:Key="TerakkiUser.FieldBorder" Color="{StaticResource C.Border}"/>
+    <SolidColorBrush x:Key="TerakkiUser.Header"      Color="{StaticResource C.Card2}"/>
+    <SolidColorBrush x:Key="TerakkiUser.RowAlt"      Color="#121C25"/>
+    <SolidColorBrush x:Key="TerakkiUser.Text"        Color="{StaticResource C.Text}"/>
+    <SolidColorBrush x:Key="TerakkiUser.TextDim"     Color="{StaticResource C.TextDim}"/>
+    <SolidColorBrush x:Key="TerakkiUser.Accent"      Color="{StaticResource C.Accent}"/>
+    <SolidColorBrush x:Key="TerakkiUser.AccentText"  Color="#04222A"/>
+    <SolidColorBrush x:Key="TerakkiUser.Success"     Color="{StaticResource C.Run}"/>
+    <SolidColorBrush x:Key="TerakkiUser.Warn"        Color="{StaticResource C.Warn}"/>
+    <SolidColorBrush x:Key="TerakkiUser.Error"       Color="{StaticResource C.Alarm}"/>
+
     <FontFamily x:Key="F.Ui">Segoe UI</FontFamily>
     <sys:Double x:Key="S.Radius">8</sys:Double>
 
@@ -238,6 +254,39 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource B.Accent}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- PasswordBox in the Tb look (applied implicitly inside the login dialogs) -->
+    <Style x:Key="Pb" TargetType="PasswordBox">
+        <Setter Property="FontFamily" Value="{StaticResource F.Ui}"/>
+        <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource B.Accent}"/>
+        <Setter Property="Background" Value="{StaticResource B.Field}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="9,7"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
                     <Border x:Name="bd" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">

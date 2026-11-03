@@ -1,7 +1,8 @@
 <UserControl x:Class="SempaPumpStation.Screens.InstrumentsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:SempaPumpStation.Controls">
+             xmlns:c="clr-namespace:SempaPumpStation.Controls"
+             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
     <Grid Margin="20">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*"/>
@@ -25,7 +26,8 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding PhDeviceTag}" WriteTag="{Binding DeviceTag}" Format="0"
-                                                  IsEnabled="{Binding Enabled}" Height="26" Padding="6,0"/>
+                                                  IsEnabled="{Binding Enabled}" Height="26" Padding="6,0"
+                                                  sec:Access.Requires="Instruments.Mount"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -45,8 +47,10 @@
                         <DataGridTemplateColumn Header="" Width="62">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Content="Yükle" Style="{StaticResource Btn}" Padding="8,2" FontSize="11.5"
-                                            Command="{Binding LoadCommand}" IsEnabled="{Binding Enabled}"/>
+                                    <Border sec:Access.Requires="Instruments.Mount">
+                                        <Button Content="Yükle" Style="{StaticResource Btn}" Padding="8,2" FontSize="11.5"
+                                                Command="{Binding LoadCommand}" IsEnabled="{Binding Enabled}"/>
+                                    </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -73,9 +77,10 @@
                     </ItemsControl>
                     <TextBlock Text="{Binding LibraryTitle}" Style="{StaticResource T.Section}" Margin="0,4,0,4"/>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
-                               Text="Hücreye çift tıklayıp düzenleyin. Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer."/>
+                               Text="Hücreye çift tıklayıp düzenleyin (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer."/>
                 </StackPanel>
-                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2">
+                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2"
+                          sec:Access.Requires="Instruments.Library">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="No" Binding="{Binding Device}" IsReadOnly="True" Width="40"/>
                         <DataGridTextColumn Header="Tanım" Binding="{Binding Description}" Width="180"/>

@@ -49,7 +49,7 @@
     <Reference Include="PresentationFramework" />
     <!-- The S7 connection logs through Serilog (same package as TerakkiFramework) -->
     <Reference Include="Serilog, Version=4.1.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
-      <HintPath>..\..\..\..\..\VS Projects\Terakki\packages\Serilog.4.1.0\lib\net471\Serilog.dll</HintPath>
+      <HintPath>..\Terakki\packages\Serilog.4.1.0\lib\net471\Serilog.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -93,11 +93,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\VS Projects\Terakki\TerakkiFramework\TerakkiFramework.csproj">
+    <ProjectReference Include="..\Terakki\TerakkiFramework\TerakkiFramework.csproj">
       <Project>{503e5b29-b2dc-462e-b88d-0b4d1a83b7df}</Project>
       <Name>TerakkiFramework</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\VS Projects\Terakki\TerakkiUI\TerakkiUI.csproj">
+    <ProjectReference Include="..\Terakki\TerakkiUI\TerakkiUI.csproj">
       <Name>TerakkiUI</Name>
     </ProjectReference>
   </ItemGroup>
@@ -109,8 +109,8 @@
        through the ProjectReference automatically, so copy them into our output. -->
   <Target Name="CopyTerakkiDependencies" AfterTargets="Build">
     <ItemGroup>
-      <TerakkiDeps Include="..\..\..\..\..\VS Projects\Terakki\TerakkiFramework\bin\$(Configuration)\*.dll" />
-      <TerakkiDeps Include="..\..\..\..\..\VS Projects\Terakki\TerakkiUI\bin\$(Configuration)\*.dll" />
+      <TerakkiDeps Include="..\Terakki\TerakkiFramework\bin\$(Configuration)\*.dll" />
+      <TerakkiDeps Include="..\Terakki\TerakkiUI\bin\$(Configuration)\*.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(TerakkiDeps)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
   </Target>

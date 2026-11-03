@@ -8,7 +8,7 @@
             <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="KULLANICI KAYDI" Style="{StaticResource T.H1}"/>
-                    <TextBlock Text="Sisteme giriş / çıkış ve operatör değişim kayıtları."
+                    <TextBlock Text="Giriş / çıkış, hatalı giriş ve kullanıcı yönetimi kayıtları (en yeni üstte)."
                                Style="{StaticResource T.Label}" Margin="0,4,0,0"/>
                 </StackPanel>
             </Border>
@@ -41,7 +41,7 @@
                                             <ColumnDefinition Width="180"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{Binding Time}" Foreground="{StaticResource B.TextDim}" FontSize="13"/>
+                                        <TextBlock Grid.Column="0" Text="{Binding TimeText}" Foreground="{StaticResource B.TextDim}" FontSize="13"/>
                                         <TextBlock Grid.Column="1" Text="{Binding User}" Foreground="{StaticResource B.Accent}" FontSize="13" FontWeight="SemiBold"/>
                                         <TextBlock Grid.Column="2" Text="{Binding Action}" Foreground="{StaticResource B.Text}" FontSize="13"/>
                                     </Grid>

@@ -19,6 +19,14 @@ namespace SempaPumpStation.Shell
 
         public string TagState => _isActive ? "active" : "";
 
+        private bool _isVisible = true;
+        /// <summary>False hides the entry, e.g. user management for anyone but an administrator.</summary>
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set { if (_isVisible != value) { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
     }

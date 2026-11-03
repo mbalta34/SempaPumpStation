@@ -4,6 +4,8 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using SempaPumpStation.Infrastructure;
+using SempaPumpStation.Infrastructure.Security;
+using TerakkiUI.Components.User;
 using SempaPumpStation.Shell;
 using TerakkiFramework.Utils;
 
@@ -35,8 +37,17 @@ namespace SempaPumpStation
                     return;
                 }
 
+                // The smoke test logs in, changes passwords and locks accounts: keep that away from the real users.xml
+                bool smoke = Environment.GetEnvironmentVariable("SMOKETEST") == "1";
+                if (smoke)
+                {
+                    StationSecurity.DataFolder = Path.Combine(Path.GetTempPath(), "SempaPumpStationSmoke");
+                    if (Directory.Exists(StationSecurity.DataFolder)) Directory.Delete(StationSecurity.DataFolder, true);
+                }
+
+                // The smoke scenario writes station commands, so it always runs on the simulation
                 _context = new HmiContext();
-                await _context.InitializeAsync();
+                await _context.InitializeAsync(forceSimulation: smoke);
 
                 var vm = new ShellViewModel(_context);
                 var shell = new ShellWindow { DataContext = vm };
@@ -63,6 +74,8 @@ namespace SempaPumpStation
 
             try { RunScenario(sb); }
             catch (Exception ex) { sb.AppendLine("FAIL scenario : " + ex); }
+            try { RunSecurityScenario(sb); }   // ends logged in as admin, so the captures show every screen unlocked
+            catch (Exception ex) { sb.AppendLine("FAIL security : " + ex); }
 
             var groups = new[] { vm.MainNav, vm.RecipeNav, vm.DiagNav };
             foreach (var g in groups)
@@ -82,6 +95,28 @@ namespace SempaPumpStation
                         sb.AppendLine("FAIL " + entry.Key + " : " + ex.GetType().Name + " — " + ex.Message);
                     }
                 }
+
+            // The login modal blocks until closed: capture it from inside, then cancel it
+            vm.NavigateCommand.Execute(vm.MainNav[1]);
+            bool shown = false;
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                var login = System.Linq.Enumerable.FirstOrDefault(System.Linq.Enumerable.OfType<LoginWindow>(Windows));
+                if (login == null) return;
+                shown = true;
+                login.UpdateLayout();
+                Capture(login, Path.Combine(dir, "LoginDialog.png"));
+                ((LoginViewModel)login.DataContext).CancelCommand.Execute(null);
+            }));
+            vm.LoginCommand.Execute(null);
+            sb.AppendLine((shown ? "OK   " : "FAIL ") + "LoginDialog");
+
+            // TerakkiUI's default views (this HMI has its own; they are rendered here with its TerakkiUser.* colours)
+            var sec = _context.Security;
+            CaptureDefault(new LoginView { DataContext = new LoginViewModel(sec, "op1") }, dir, "Default_Login", sb);
+            CaptureDefault(new ChangePasswordView { DataContext = new ChangePasswordViewModel(sec, forced: true) }, dir, "Default_ChangePassword", sb);
+            CaptureDefault(new UserManagementView { DataContext = new UserManagementViewModel(sec, _context.Dialogs), Width = 1150, Height = 620 },
+                           dir, "Default_UserManagement", sb);
             File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screens_ok.log"), sb.ToString());
             Shutdown(0);
         }
@@ -178,6 +213,61 @@ namespace SempaPumpStation
             Steps(10);
         }
 
+        // ---------------------------------------------------------------- login system
+        private void RunSecurityScenario(System.Text.StringBuilder sb)
+        {
+            var sec = _context.Security;
+            var auth = sec.Auth;
+            void Check(string what, bool ok) => sb.AppendLine((ok ? "PASS " : "FAIL ") + what);
+
+            var probe = new System.Windows.Controls.Border();
+            Access.SetRequires(probe, StationSecurity.Operate);
+            Check("view-only without login", !sec.User.IsAuthenticated && !probe.IsEnabled);
+
+            Check("wrong password refused", !Await(auth.LoginAsync("admin", "yanlis")).Success);
+            Check("default admin logs in and must change the password",
+                  Await(auth.LoginAsync("admin", TerakkiFramework.Security.UserStore.DefaultAdminPassword)).Success && auth.PasswordChangeRequired);
+            Check("too short a new password refused", !Await(auth.ChangePasswordAsync("admin", "kisa")).Success);
+            Check("password changed", Await(auth.ChangePasswordAsync("admin", "Sempa.2026")).Success && !auth.PasswordChangeRequired);
+            Check("controls unlock after login", probe.IsEnabled);
+
+            Check("admin adds an operator", Await(sec.Admin.AddAsync("op1", "Test Operatör", StationSecurity.Operator, "gecici123")) == null);
+            Check("duplicate user name refused", Await(sec.Admin.AddAsync("OP1", "", StationSecurity.Operator, "gecici123")) != null);
+            Check("last admin cannot be demoted", sec.Admin.SetLevel(sec.User.Account, StationSecurity.Operator) != null);
+            Check("own account cannot be deleted", sec.Admin.Delete(sec.User.Account) != null);
+
+            auth.Logout("Çıkış");
+            Check("logout locks controls again", !probe.IsEnabled);
+
+            Check("new operator must set a password", Await(auth.LoginAsync("op1", "gecici123")).Success && auth.PasswordChangeRequired);
+            Await(auth.ChangePasswordAsync("gecici123", "operator.1"));
+            Check("operator may operate but not edit the library or manage users",
+                  sec.User.Has(StationSecurity.Operate) && !sec.User.Has(StationSecurity.EditLibrary) && !sec.User.Has(TerakkiFramework.Security.SecurityPermissions.ManageUsers));
+            auth.Logout("Çıkış");
+
+            for (int i = 0; i < sec.Auth.Options.MaxFailedAttempts; i++) Await(auth.LoginAsync("op1", "yanlis"));
+            Check("wrong passwords lock the account, even against the right one",
+                  !Await(auth.LoginAsync("op1", "operator.1")).Success && sec.Store.Find("op1").IsLocked);
+
+            Check("admin unlocks it", Await(auth.LoginAsync("admin", "Sempa.2026")).Success
+                                      && sec.Admin.Unlock(sec.Store.Find("op1")) == null && !sec.Store.Find("op1").IsLocked);
+
+            var reloaded = new TerakkiFramework.Security.UserStore(sec.Store.Path, StationSecurity.Admin);
+            reloaded.Load();
+            Check("users.xml round-trips", reloaded.LoadError == null && reloaded.Accounts.Count == 2
+                                          && TerakkiFramework.Security.PasswordHasher.Verify("operator.1", reloaded.Find("op1").PasswordHash));
+            Check("user log recorded", sec.Log.Entries.Count >= 10);
+        }
+
+        /// <summary>Waits for an async call while keeping the dispatcher running, as its continuations need it.</summary>
+        private T Await<T>(System.Threading.Tasks.Task<T> task)
+        {
+            var frame = new DispatcherFrame();
+            task.ContinueWith(_ => frame.Continue = false, System.Threading.Tasks.TaskScheduler.Default);
+            Dispatcher.PushFrame(frame);
+            return task.Result;
+        }
+
         private void Steps(int n)
         {
             for (int i = 0; i < n; i++)
@@ -199,6 +289,28 @@ namespace SempaPumpStation
             Steps(2);
         }
 
+        private void CaptureDefault(FrameworkElement view, string dir, string name, System.Text.StringBuilder sb)
+        {
+            try
+            {
+                var host = new Window
+                {
+                    Content = view, SizeToContent = SizeToContent.WidthAndHeight, WindowStyle = WindowStyle.None,
+                    ShowInTaskbar = false, ShowActivated = false, Left = -20000, Top = 0, Background = (System.Windows.Media.Brush)FindResource("B.App"),
+                };
+                host.Show();
+                host.UpdateLayout();
+                Steps(3);
+                Capture(host, Path.Combine(dir, name + ".png"));
+                host.Close();
+                sb.AppendLine("OK   " + name);
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine("FAIL " + name + " : " + ex.GetType().Name + " — " + ex.Message);
+            }
+        }
+
         private static void Capture(Window shell, string path)
         {
             var root = shell.Content as FrameworkElement;
@@ -207,7 +319,11 @@ namespace SempaPumpStation
             if (w <= 0 || h <= 0) return;
             var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
                 w, h, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
-            rtb.Render(root);
+            // Drawn through a brush so an element centred in its window (a modal's card) lands at the origin
+            var visual = new System.Windows.Media.DrawingVisual();
+            using (var dc = visual.RenderOpen())
+                dc.DrawRectangle(new System.Windows.Media.VisualBrush(root), null, new Rect(0, 0, w, h));
+            rtb.Render(visual);
             var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
             enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
             using (var fs = File.Create(path)) enc.Save(fs);

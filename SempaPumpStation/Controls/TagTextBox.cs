@@ -111,6 +111,7 @@ namespace SempaPumpStation.Controls
         {
             var target = WriteTag ?? PlcTag;
             if (target == null || _updatingFromTag) return;
+            if (IsReadOnly) { PullFromTag(); return; }   // locked for this user: losing focus must not write
 
             if (IsStringType(target.DataType))
             {

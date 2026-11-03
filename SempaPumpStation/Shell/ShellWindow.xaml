@@ -4,6 +4,7 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
         xmlns:s="clr-namespace:SempaPumpStation.Screens"
+        xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
         Title="SEMPA — Pompa Test Standı" Height="1000" Width="1600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         WindowStyle="None" Background="{StaticResource B.App}"
@@ -34,6 +35,7 @@
         <DataTemplate DataType="{x:Type s:EventsViewModel}"><s:EventsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:TrendViewModel}"><s:TrendView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:UserLogViewModel}"><s:UserLogView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:UsersViewModel}"><s:UsersView/></DataTemplate>
 
         <!-- Nav rail section header -->
         <Style x:Key="NavHeader" TargetType="TextBlock" BasedOn="{StaticResource T.Base}">
@@ -46,6 +48,7 @@
         <!-- Nav item -->
         <DataTemplate x:Key="NavItemTemplate">
             <Button Style="{StaticResource NavBtn}" Tag="{Binding TagState}"
+                    Visibility="{Binding IsVisible, Converter={StaticResource BoolVis}}"
                     Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                     CommandParameter="{Binding}">
                 <StackPanel Orientation="Horizontal">
@@ -99,13 +102,20 @@
                     <TextBlock Text="{Binding Context.Tags[TARIH_SAAT].TagValue}" Style="{StaticResource T.Value}"
                                Foreground="{StaticResource B.TextDim}" Margin="10,0" FontSize="13"/>
                     <Border Width="1" Background="{StaticResource B.Border}" Margin="6,12"/>
-                    <TextBlock Text="{Binding UserName}" Style="{StaticResource T.Value}" Margin="10,0"/>
-                    <Button Content="Giriş" Style="{StaticResource IconBtn}" Command="{Binding LoginCommand}"/>
-                    <Button Content="Alarm Reset" Style="{StaticResource IconBtn}" Command="{Binding AlarmResetCommand}"/>
+                    <TextBlock Text="{Binding User.DisplayText}" Style="{StaticResource T.Value}" Margin="10,0" VerticalAlignment="Center"/>
+                    <Button Content="Giriş" Style="{StaticResource IconBtn}" Command="{Binding LoginCommand}"
+                            Visibility="{Binding User.IsAuthenticated, Converter={StaticResource BoolVis}, ConverterParameter=invert}"/>
+                    <Button Content="Şifre" Style="{StaticResource IconBtn}" Command="{Binding ChangePasswordCommand}"
+                            Visibility="{Binding User.IsAuthenticated, Converter={StaticResource BoolVis}}"/>
+                    <Button Content="Çıkış" Style="{StaticResource IconBtn}" Command="{Binding LogoutCommand}"
+                            Visibility="{Binding User.IsAuthenticated, Converter={StaticResource BoolVis}}"/>
+                    <Button Content="Alarm Reset" Style="{StaticResource IconBtn}" Command="{Binding AlarmResetCommand}"
+                            sec:Access.Requires="Alarms.Reset"/>
                     <Border Width="1" Background="{StaticResource B.Border}" Margin="6,12"/>
                     <Button x:Name="BtnMin" Content="—" Style="{StaticResource IconBtn}" Click="Min_Click" FontSize="15"/>
                     <Button x:Name="BtnMax" Content="▢" Style="{StaticResource IconBtn}" Click="Max_Click" FontSize="13"/>
-                    <Button x:Name="BtnClose" Content="✕" Style="{StaticResource IconBtn}" Click="Close_Click" FontSize="14"/>
+                    <Button x:Name="BtnClose" Content="✕" Style="{StaticResource IconBtn}" Click="Close_Click" FontSize="14"
+                            sec:Access.Requires="App.Exit"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -121,7 +131,8 @@
             <Border Grid.Column="0" Background="{StaticResource B.Rail}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Bottom" Padding="12" BorderBrush="{StaticResource B.Border}" BorderThickness="0,1,0,0">
-                        <Button Content="Uygulamadan Çık" Style="{StaticResource Btn}" Click="Close_Click"/>
+                        <Button Content="Uygulamadan Çık" Style="{StaticResource Btn}" Click="Close_Click"
+                                sec:Access.Requires="App.Exit"/>
                     </Border>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>

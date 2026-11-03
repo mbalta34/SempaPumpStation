@@ -1,0 +1,4 @@
+[submodule "Terakki"]
+	path = Terakki
+	url = https://github.com/mbalta34/Terakki.git
+	branch = Development

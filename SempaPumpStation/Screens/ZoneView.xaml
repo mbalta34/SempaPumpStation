@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:SempaPumpStation.Controls"
+             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
              xmlns:g="clr-namespace:TerakkiUI.Components.Hmi.Graphics;assembly=TerakkiUI">
     <UserControl.Resources>
         <!-- Choice tile: title + subtitle -->
@@ -74,7 +75,7 @@
 
                 <!-- ============ Selection ============ -->
                 <StackPanel Grid.Column="0">
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,14" sec:Access.Requires="Station.Operate">
                         <StackPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Text="Pompa çalışırken kilitli" Style="{StaticResource T.Label}" FontSize="10.5"
@@ -92,27 +93,29 @@
 
                     <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="DEBİMETRE" Style="{StaticResource T.Section}"/>
-                            <ItemsControl ItemsSource="{Binding Flowmeters}" ItemTemplate="{StaticResource ChoiceTemplate}"
-                                          IsEnabled="{Binding Ph[Flowmeter.Enabled].TagValue}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
-                            <TextBlock Text="BASMA BASINÇ TRANSMİTTERİ" Style="{StaticResource T.Section}" Margin="0,8,0,8"/>
-                            <ItemsControl ItemsSource="{Binding Transmitters}" ItemTemplate="{StaticResource ChoiceTemplate}"
-                                          IsEnabled="{Binding Ph[DischargeTransmitter.Enabled].TagValue}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
+                            <StackPanel sec:Access.Requires="Station.Operate">
+                                <TextBlock Text="DEBİMETRE" Style="{StaticResource T.Section}"/>
+                                <ItemsControl ItemsSource="{Binding Flowmeters}" ItemTemplate="{StaticResource ChoiceTemplate}"
+                                              IsEnabled="{Binding Ph[Flowmeter.Enabled].TagValue}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <TextBlock Text="BASMA BASINÇ TRANSMİTTERİ" Style="{StaticResource T.Section}" Margin="0,8,0,8"/>
+                                <ItemsControl ItemsSource="{Binding Transmitters}" ItemTemplate="{StaticResource ChoiceTemplate}"
+                                              IsEnabled="{Binding Ph[DischargeTransmitter.Enabled].TagValue}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </StackPanel>
                             <TextBlock Text="{Binding InstrumentsText}" Style="{StaticResource T.Label}" Margin="0,2,0,0"/>
                             <Button Content="Enstrüman pozisyonları →" Style="{StaticResource Btn}" HorizontalAlignment="Left" Margin="0,10,0,0"
                                     Click="Instruments_Click"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource Card}">
+                    <Border Style="{StaticResource Card}" sec:Access.Requires="Station.Operate">
                         <StackPanel>
                             <TextBlock Text="HIZ REFERANSI" Style="{StaticResource T.Section}"/>
                             <StackPanel Orientation="Horizontal">
@@ -167,19 +170,26 @@
                                 <TextBlock Text="TEST" Style="{StaticResource T.Section}"/>
                             </DockPanel>
                             <TextBlock Text="{Binding TestText}" Style="{StaticResource T.Label}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                            <!-- Stopping the pump is never locked; the rest needs an operator login -->
                             <UniformGrid Columns="2">
-                                <Button Content="▶  Testi Başlat" Style="{StaticResource Btn.Success}" Margin="0,0,8,8"
-                                        Command="{Binding ClickCommand}" CommandParameter="StartTest"
-                                        IsEnabled="{Binding Ph[StartTest.Enabled].TagValue}"/>
-                                <Button Content="■  Testi Bitir" Style="{StaticResource Btn.Primary}" Margin="0,0,0,8"
-                                        Command="{Binding ClickCommand}" CommandParameter="EndTest"
-                                        IsEnabled="{Binding Ph[EndTest.Enabled].TagValue}"/>
+                                <Border sec:Access.Requires="Station.Operate">
+                                    <Button Content="▶  Testi Başlat" Style="{StaticResource Btn.Success}" Margin="0,0,8,8"
+                                            Command="{Binding ClickCommand}" CommandParameter="StartTest"
+                                            IsEnabled="{Binding Ph[StartTest.Enabled].TagValue}"/>
+                                </Border>
+                                <Border sec:Access.Requires="Station.Operate">
+                                    <Button Content="■  Testi Bitir" Style="{StaticResource Btn.Primary}" Margin="0,0,0,8"
+                                            Command="{Binding ClickCommand}" CommandParameter="EndTest"
+                                            IsEnabled="{Binding Ph[EndTest.Enabled].TagValue}"/>
+                                </Border>
                                 <Button Content="Pompayı Durdur" Style="{StaticResource Btn.Danger}" Margin="0,0,8,0"
                                         Command="{Binding ClickCommand}" CommandParameter="Stop"
                                         IsEnabled="{Binding Ph[Stop.Enabled].TagValue}"/>
-                                <Button Content="Arıza Reset" Style="{StaticResource Btn.Warn}"
-                                        Command="{Binding ClickCommand}" CommandParameter="ResetFault"
-                                        IsEnabled="{Binding Ph[ResetFault.Enabled].TagValue}"/>
+                                <Border sec:Access.Requires="Station.Operate">
+                                    <Button Content="Arıza Reset" Style="{StaticResource Btn.Warn}"
+                                            Command="{Binding ClickCommand}" CommandParameter="ResetFault"
+                                            IsEnabled="{Binding Ph[ResetFault.Enabled].TagValue}"/>
+                                </Border>
                             </UniformGrid>
                             <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
                                        Text="Pompa sahadaki START butonu ile çalışır (test şart değil). Numune yalnızca test aktifken alınır; test bitince numuneler arşive yazılır."/>
@@ -189,7 +199,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,8">
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" sec:Access.Requires="Station.Operate">
                                     <Button Content="Son Numuneyi Sil" Style="{StaticResource Btn}" Padding="10,5" FontSize="12" Margin="0,0,6,0"
                                             Command="{Binding ClickCommand}" CommandParameter="DeleteLastSample"/>
                                     <Button Content="Temizle" Style="{StaticResource Btn}" Padding="10,5" FontSize="12"

@@ -3,10 +3,17 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using SempaPumpStation.Infrastructure.Plc;
+using SempaPumpStation.Infrastructure.Security;
+using SempaPumpStation.Shell;
 using TerakkiFramework.Communication.Abstractions;
+using TerakkiFramework.Logging;
+using TerakkiFramework.Logging.Audit;
 using TerakkiFramework.Plc.Abstractions;
 using TerakkiFramework.Plc.Local;
+using TerakkiFramework.Security;
 using TerakkiFramework.Tags;
+using TerakkiUI.Components.User;
+using TerakkiUI.Dialogs;
 
 namespace SempaPumpStation.Infrastructure
 {
@@ -39,6 +46,11 @@ namespace SempaPumpStation.Infrastructure
         public string BackendText => IsSimulation ? "Simülasyon" : "PLC " + Link.IpAddress;
 
         public TestArchive Archive { get; private set; }
+        public UserSecurity Security { get; private set; }
+        /// <summary>Idle time after which the user is logged out (config.xml AutoLogoutMinutes); zero = never.</summary>
+        public TimeSpan AutoLogout { get; private set; }
+        /// <summary>Message / confirmation dialogs in the HMI's theme.</summary>
+        public IDialogService Dialogs { get; } = new DialogService(() => new MessageDialogWindow());
         public IConnectionService Connection => _connection;
 
         /// <summary>Raised after every PLC scan, on the UI thread.</summary>
@@ -50,10 +62,20 @@ namespace SempaPumpStation.Infrastructure
 
         public TagScope Scope(string prefix) => new TagScope(Tags, prefix);
 
-        public async Task InitializeAsync()
+        /// <param name="forceSimulation">Ignore config.xml's backend; the smoke test must never write to a real PLC.</param>
+        public async Task InitializeAsync(bool forceSimulation = false)
         {
             var config = StationConfig.Load();
-            bool simulate = !config.UsePlc;
+            bool simulate = forceSimulation || !config.UsePlc;
+
+            // The framework login system with the station's levels and Turkish texts
+            var options = new SecurityOptions();
+            if (config.PasswordMaxAge.HasValue) options.PasswordMaxAge = config.PasswordMaxAge.Value;
+            Security = new UserSecurity(StationSecurity.DataFolder, StationSecurity.Table, options, StationSecurity.Turkish());
+            AutoLogout = config.AutoLogout;
+            Access.User = Security.User;
+            // Operator actions (logins, user changes, framework controls) go to logs\audit.log under the logged-in user
+            AuditLog.Instance = new SerilogAuditLogger(LogBootstrap.CreateDefault("logs\\audit.log"), Security.User);
 
             var project = TagCatalog.Build(simulate);
             IPlcTagFactory factory;

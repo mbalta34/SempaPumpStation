@@ -1,0 +1,36 @@
+<u:ModalOverlayWindow x:Class="SempaPumpStation.Shell.LoginWindow"
+                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:u="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
+                Title="Giriş" FontFamily="{StaticResource F.Ui}">
+    <Window.Resources>
+        <Style TargetType="PasswordBox" BasedOn="{StaticResource Pb}"/>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="Enter" Command="{Binding LoginCommand}"/>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+    </Window.InputBindings>
+
+    <!-- TerakkiUI LoginViewModel -->
+    <Border Style="{StaticResource Card}" Padding="24" Width="380" BorderBrush="{StaticResource B.BorderHi}"
+            HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel>
+            <TextBlock Text="KULLANICI GİRİŞİ" Style="{StaticResource T.H2}"/>
+            <TextBlock Text="Bölge kumandası ve ayarlar için giriş yapın." Style="{StaticResource T.Label}" Margin="0,4,0,18"/>
+
+            <TextBlock Text="Kullanıcı adı" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,3"/>
+            <TextBox x:Name="UsernameBox" Style="{StaticResource Tb}" Margin="0,0,0,12"
+                     Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <TextBlock Text="Şifre" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,3"/>
+            <u:BindablePasswordBox x:Name="PasswordField" Password="{Binding Password, Mode=TwoWay}" Height="34"/>
+
+            <TextBlock Text="{Binding Error}" Foreground="{StaticResource B.Alarm}" TextWrapping="Wrap" FontSize="12.5" Margin="0,10,0,0"/>
+
+            <UniformGrid Columns="2" Margin="0,16,0,0">
+                <Button Content="Vazgeç" Style="{StaticResource Btn}" Command="{Binding CancelCommand}" Margin="0,0,6,0"/>
+                <Button Content="Giriş" Style="{StaticResource Btn.Primary}" Command="{Binding LoginCommand}" Margin="6,0,0,0"/>
+            </UniformGrid>
+        </StackPanel>
+    </Border>
+</u:ModalOverlayWindow>

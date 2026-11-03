@@ -12,6 +12,8 @@ namespace SempaPumpStation.Infrastructure
     /// <code>
     /// &lt;Backend&gt;Simulation | Plc&lt;/Backend&gt;   default Simulation
     /// &lt;Rack&gt;0&lt;/Rack&gt; &lt;Slot&gt;1&lt;/Slot&gt;              S7-1500 CPU: 0 / 1
+    /// &lt;AutoLogoutMinutes&gt;15&lt;/AutoLogoutMinutes&gt;      logout after this long without input, 0 = never
+    /// &lt;PasswordMaxAgeDays&gt;90&lt;/PasswordMaxAgeDays&gt;    password must be changed after this, 0 = never
     /// </code>
     /// </summary>
     public sealed class StationConfig
@@ -20,6 +22,9 @@ namespace SempaPumpStation.Infrastructure
         public string IpAddress { get; private set; }
         public int Rack { get; private set; }
         public int Slot { get; private set; } = 1;
+        public TimeSpan AutoLogout { get; private set; } = TimeSpan.FromMinutes(15);
+        /// <summary>Null keeps the framework's <see cref="TerakkiFramework.Security.SecurityOptions"/> default.</summary>
+        public TimeSpan? PasswordMaxAge { get; private set; }
         public Serilog.ILogger Log { get; private set; }
 
         public static StationConfig Load()
@@ -41,6 +46,8 @@ namespace SempaPumpStation.Infrastructure
                     int v;
                     if (int.TryParse((string)root?.Element("Rack"), out v)) cfg.Rack = v;
                     if (int.TryParse((string)root?.Element("Slot"), out v)) cfg.Slot = v;
+                    if (int.TryParse((string)root?.Element("AutoLogoutMinutes"), out v)) cfg.AutoLogout = TimeSpan.FromMinutes(Math.Max(0, v));
+                    if (int.TryParse((string)root?.Element("PasswordMaxAgeDays"), out v)) cfg.PasswordMaxAge = TimeSpan.FromDays(Math.Max(0, v));
                 }
             }
             catch (Exception ex)
