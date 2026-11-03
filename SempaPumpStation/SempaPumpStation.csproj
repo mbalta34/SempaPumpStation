@@ -71,7 +71,11 @@
 
   <!-- All C# sources -->
   <ItemGroup>
-    <Compile Include="**\*.cs" Exclude="obj\**\*.cs;bin\**\*.cs" />
+    <Compile Include="**\*.cs" Exclude="obj\**\*.cs;bin\**\*.cs;**\*.xaml.cs" />
+    <!-- Code-behind nests under its XAML file in Solution Explorer (Foo.xaml.cs -> Foo.xaml) -->
+    <Compile Include="**\*.xaml.cs" Exclude="obj\**\*.cs;bin\**\*.cs">
+      <DependentUpon>%(Filename)</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <!-- Properties resources -->
