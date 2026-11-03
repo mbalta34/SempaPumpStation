@@ -1,0 +1,14 @@
+﻿DATA_BLOCK "StationInstruments"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR RETAIN
+      Flowmeters : Array[1..100] of "st_Station_Instrument";
+      PressureTransmitters : Array[1..100] of "st_Station_Instrument";
+      Vacuummeters : Array[1..100] of "st_Station_Instrument";
+   END_VAR
+
+
+BEGIN
+
+END_DATA_BLOCK
+

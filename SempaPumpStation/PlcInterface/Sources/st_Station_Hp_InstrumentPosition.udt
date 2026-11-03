@@ -1,0 +1,9 @@
+﻿TYPE "st_Station_Hp_InstrumentPosition"
+VERSION : 0.1
+   STRUCT
+      Device { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+      Load { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+   END_STRUCT;
+
+END_TYPE
+

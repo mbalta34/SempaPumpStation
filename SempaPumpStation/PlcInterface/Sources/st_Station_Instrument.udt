@@ -1,0 +1,18 @@
+﻿TYPE "st_Station_Instrument"
+VERSION : 0.1
+   STRUCT
+      Description { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[24];
+      SerialNumber { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[24];
+      Unit { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[8];
+      MinRaw { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 0;
+      MaxRaw { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 27648;
+      MinPv { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;
+      MaxPv { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 100.0;
+      FilterType { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 0;
+      FilterEmaAlpha { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.2;
+      FilterOutlierMaxJump { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1000.0;
+      FilterOutlierMaxRejectCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 5;
+   END_STRUCT;
+
+END_TYPE
+

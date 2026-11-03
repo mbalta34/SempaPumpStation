@@ -1,0 +1,19 @@
+<UserControl x:Class="SempaPumpStation.Controls.MetricTile"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="root">
+    <Border Background="{StaticResource B.Card}" BorderBrush="{StaticResource B.Border}" BorderThickness="1"
+            CornerRadius="8" Padding="14,12">
+        <StackPanel>
+            <TextBlock Text="{Binding Caption, ElementName=root}" Style="{StaticResource T.Label}"
+                       FontSize="10.5" FontWeight="SemiBold"/>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="{Binding Value, ElementName=root}" FontFamily="Segoe UI"
+                           FontSize="{Binding ValueSize, ElementName=root}" FontWeight="SemiBold"
+                           Foreground="{Binding ValueBrush, ElementName=root}"/>
+                <TextBlock Text="{Binding Unit, ElementName=root}" Style="{StaticResource T.Label}"
+                           VerticalAlignment="Bottom" Margin="6,0,0,6"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

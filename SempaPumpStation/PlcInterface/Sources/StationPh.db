@@ -1,0 +1,16 @@
+﻿DATA_BLOCK "StationPh"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+   VAR 
+      Zone1 : "st_Station_Ph_Zone";
+      Zone2 : "st_Station_Ph_Zone";
+      Zone3 : "st_Station_Ph_Zone";
+      Instruments : "st_Station_Ph_Instruments";
+   END_VAR
+
+
+BEGIN
+
+END_DATA_BLOCK
+

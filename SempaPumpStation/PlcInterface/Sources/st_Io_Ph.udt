@@ -1,0 +1,11 @@
+﻿TYPE "st_Io_Ph"
+VERSION : 0.1
+   STRUCT
+      DigitalInputs { S7_SetPoint := 'False'} : "st_Io_Ph_DigitalInputs";
+      DigitalOutputs { S7_SetPoint := 'False'} : "st_Io_Ph_DigitalOutputs";
+      AnalogInputs { S7_SetPoint := 'False'} : "st_Io_Ph_AnalogInputs";
+      AnalogOutputs { S7_SetPoint := 'False'} : "st_Io_Ph_AnalogOutputs";
+   END_STRUCT;
+
+END_TYPE
+

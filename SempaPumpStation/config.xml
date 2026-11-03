@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Config>
+  <InputMode>Mouse</InputMode>
+  <!-- Simulation: the built-in port of the PLC program. Plc: MainPLC over S7 (PUT/GET must be enabled). -->
+  <Backend>Plc</Backend>
+  <IpAddress>10.42.193.150</IpAddress>
+  <Rack>0</Rack>
+  <Slot>1</Slot>
+  <Id>1</Id>
+</Config>

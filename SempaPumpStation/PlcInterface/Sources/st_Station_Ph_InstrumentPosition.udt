@@ -1,0 +1,10 @@
+﻿TYPE "st_Station_Ph_InstrumentPosition"
+VERSION : 0.1
+   STRUCT
+      Device { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterInt";
+      Load { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_CommandButton";
+      SelectionRejected { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+   END_STRUCT;
+
+END_TYPE
+

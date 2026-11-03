@@ -1,0 +1,13 @@
+﻿DATA_BLOCK "StationSamples"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+   VAR 
+      Zone : Array[1..3] of "st_Station_SampleBuffer";
+   END_VAR
+
+
+BEGIN
+
+END_DATA_BLOCK
+

@@ -1,0 +1,16 @@
+<UserControl x:Class="SempaPumpStation.Controls.LabeledField"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="clr-namespace:SempaPumpStation.Controls"
+             x:Name="root">
+    <StackPanel Margin="0,0,0,10">
+        <TextBlock Text="{Binding Label, ElementName=root}" Style="{StaticResource T.Label}"
+                   FontSize="10.5" Margin="0,0,0,3"/>
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Unit, ElementName=root}" Style="{StaticResource T.Value}"
+                       Foreground="{StaticResource B.TextDim}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <ctl:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding FieldTag, ElementName=root}"
+                            Format="{Binding Format, ElementName=root}"/>
+        </DockPanel>
+    </StackPanel>
+</UserControl>

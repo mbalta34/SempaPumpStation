@@ -1,0 +1,13 @@
+﻿DATA_BLOCK "MaintenancePh"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+   VAR 
+      Io : "st_Io_Ph";
+   END_VAR
+
+
+BEGIN
+
+END_DATA_BLOCK
+

@@ -1,0 +1,171 @@
+<UserControl x:Class="SempaPumpStation.Screens.ReportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:SempaPumpStation.Controls">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="14"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Recipe select toolbar -->
+        <Border Grid.Row="0" Grid.ColumnSpan="3" Style="{StaticResource CardTight}" Margin="0,0,0,14">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="CSV'yi Aç" Style="{StaticResource Btn}" Command="{Binding OpenFileCommand}" Margin="0,0,8,0"
+                            IsEnabled="{Binding HasSelection}"/>
+                    <Button Content="Arşiv Klasörü" Style="{StaticResource Btn}" Command="{Binding OpenFolderCommand}"/>
+                </StackPanel>
+                <WrapPanel>
+                    <TextBlock Text="SONRAKİ TEST İÇİN:" Style="{StaticResource T.Label}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Content="Firma Seç" Style="{StaticResource Btn}" Command="{Binding SelectFirmaCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Pompa Seç" Style="{StaticResource Btn}" Command="{Binding SelectPompaCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Motor Seç" Style="{StaticResource Btn}" Command="{Binding SelectMotorCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Hat Geometrisi" Style="{StaticResource Btn}" Command="{Binding SelectHatCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Testi Yapan" Style="{StaticResource Btn}" Command="{Binding SelectTestiYapanCommand}"/>
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Archived tests -->
+        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource Card}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="ARŞİVLENEN TESTLER" Style="{StaticResource T.Section}"/>
+                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Text="Bir bölgede Testi Bitir'e basıldığında numuneler buraya ve CSV dosyasına yazılır."/>
+                <ListBox Style="{StaticResource Lb}" ItemContainerStyle="{StaticResource LbItem}"
+                         ItemsSource="{Binding Records}" SelectedItem="{Binding Selected}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold">
+                                    <Run Text="Deney "/><Run Text="{Binding TestNo, Mode=OneWay}"/><Run Text="  ·  Bölge "/><Run Text="{Binding Zone, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock FontSize="11" Opacity="0.75">
+                                    <Run Text="{Binding Started, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Samples.Count, Mode=OneWay}"/><Run Text=" numune"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Report -->
+        <ScrollViewer Grid.Row="1" Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Henüz arşivlenmiş test yok." Style="{StaticResource T.Label}" Margin="4"
+                           Visibility="{Binding HasSelection, Converter={StaticResource BoolVis}, ConverterParameter=invert}"/>
+
+                <StackPanel DataContext="{Binding Selected}" Visibility="{Binding DataContext.HasSelection, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolVis}}">
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                        <UniformGrid Columns="5">
+                            <c:LabeledValue Label="DENEY NO" Value="{Binding TestNo}"/>
+                            <c:LabeledValue Label="BÖLGE" Value="{Binding Zone}"/>
+                            <c:LabeledValue Label="BAŞLANGIÇ" Value="{Binding Started}"/>
+                            <c:LabeledValue Label="BİTİŞ" Value="{Binding Ended}"/>
+                            <c:LabeledValue Label="TESTİ YAPAN" Value="{Binding Header[WRT_TESTI_YAPAN]}"/>
+                        </UniformGrid>
+                    </Border>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="MÜŞTERİ / POMPA" Style="{StaticResource T.Section}"/>
+                                <UniformGrid Columns="2">
+                                    <c:LabeledValue Label="Firma" Value="{Binding Header[WRT_FIRMA_ADI]}"/>
+                                    <c:LabeledValue Label="Adres" Value="{Binding Header[WRT_ADRES]}"/>
+                                    <c:LabeledValue Label="Pompa Tipi" Value="{Binding Header[WRT_POMPA_TIPI]}"/>
+                                    <c:LabeledValue Label="Seri No" Value="{Binding Header[WRT_PMP_SERI_NO]}"/>
+                                    <c:LabeledValue Label="Emme / Basma Çapı" Value="{Binding Header[WRT_PMP_EMME_CAP]}"/>
+                                    <c:LabeledValue Label="Çark Çapı" Value="{Binding Header[WRT_CARK_CAPI]}"/>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="MOTOR / ENSTRÜMANLAR" Style="{StaticResource T.Section}"/>
+                                <UniformGrid Columns="2">
+                                    <c:LabeledValue Label="Motor" Value="{Binding Header[WRT_MOTOR_MARKA]}"/>
+                                    <c:LabeledValue Label="Gücü (kW)" Value="{Binding Header[WRT_MOTOR_GUCU]}"/>
+                                    <c:LabeledValue Label="Devri (d/dk)" Value="{Binding Header[WRT_MOTOR_DEVRI]}"/>
+                                    <c:LabeledValue Label="Debimetre" Value="{Binding Header[DEBIMETRE]}"/>
+                                    <c:LabeledValue Label="Basınç Transmitteri" Value="{Binding Header[BASINC_TR]}"/>
+                                    <c:LabeledValue Label="Vakummetre" Value="{Binding Header[VAKUMMETRE]}"/>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Q–H curve -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="Q – H EĞRİSİ" Style="{StaticResource T.Section}"/>
+                            <Grid DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Left" Margin="40,6,0,22">
+                                <Border Width="520" Height="220" BorderBrush="{StaticResource B.Border}" BorderThickness="1,0,0,1">
+                                    <Canvas ClipToBounds="False">
+                                        <Polyline Points="{Binding HeadCurve}" Stroke="{StaticResource B.Accent}" StrokeThickness="2"/>
+                                        <ItemsControl ItemsSource="{Binding HeadPoints}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                    <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Ellipse Width="8" Height="8" Margin="-4,-4,0,0" Fill="{StaticResource B.Run}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Canvas>
+                                </Border>
+                                <TextBlock Text="{Binding HeadAxisMax}" Style="{StaticResource T.Label}" FontSize="10.5" Margin="-40,-6,0,0"
+                                           HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                                <TextBlock Text="{Binding FlowAxisMax}" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,-18"
+                                           HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                                <TextBlock Text="0" Style="{StaticResource T.Label}" FontSize="10.5" Margin="-12,0,0,-18"
+                                           HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Samples -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="ÖLÇÜM NOKTALARI" Style="{StaticResource T.Section}"/>
+                            <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Samples}" IsReadOnly="True" MaxHeight="420">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="No" Binding="{Binding No}" Width="40"/>
+                                    <DataGridTextColumn Header="Saat" Binding="{Binding TimeText}" Width="70"/>
+                                    <DataGridTextColumn Header="Kaynak" Binding="{Binding SourceText}" Width="130"/>
+                                    <DataGridTextColumn Header="Q m³/h" Binding="{Binding Flow, StringFormat=0.0}" Width="*"/>
+                                    <DataGridTextColumn Header="Pd bar" Binding="{Binding DischargePressure, StringFormat=0.00}" Width="*"/>
+                                    <DataGridTextColumn Header="Ps bar" Binding="{Binding SuctionPressure, StringFormat=0.000}" Width="*"/>
+                                    <DataGridTextColumn Header="Hm m" Binding="{Binding Head, StringFormat=0.0}" Width="*"/>
+                                    <DataGridTextColumn Header="P hid kW" Binding="{Binding HydraulicPower, StringFormat=0.00}" Width="*"/>
+                                    <DataGridTextColumn Header="d/dk" Binding="{Binding Speed, StringFormat=0}" Width="*"/>
+                                    <DataGridTextColumn Header="Su °C" Binding="{Binding WaterTemperature, StringFormat=0.0}" Width="*"/>
+                                    <DataGridTextColumn Header="Titr. mm/s" Binding="{Binding Vibration, StringFormat=0.00}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
