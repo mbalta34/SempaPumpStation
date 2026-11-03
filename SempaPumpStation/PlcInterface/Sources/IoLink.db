@@ -1,0 +1,15 @@
+﻿DATA_BLOCK "IoLink"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+NON_RETAIN
+//Raw values of the IO-Link hubs. To be filled from the BNI00L3 masters' process data once they are
+//configured; FB_Station_Instruments routes them into "Io".AnalogInputs. Read by the HMI (IO-Link screen).
+   STRUCT 
+      Zone { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Array[1..3] of "st_IoLink_Zone";
+   END_STRUCT;
+
+
+BEGIN
+
+END_DATA_BLOCK
+

@@ -30,6 +30,7 @@ namespace SempaPumpStation.Infrastructure
                     for (int d = 1; d <= Station.LibrarySize; d++)
                         foreach (var f in Station.InstrumentFields) Add(t, Station.LibraryEntry(c, d) + f.Name, f.Kind);
                 for (int z = 1; z <= Station.ZoneCount; z++) AddSamples(t, z);
+                for (int z = 1; z <= Station.ZoneCount; z++) AddIoLink(t, z);
             }
             AddSimulation(t);
             AddHmiLocal(t);
@@ -58,6 +59,14 @@ namespace SempaPumpStation.Infrastructure
             I(t, ph + "Device.Value"); B(t, ph + "Device.Enabled");
             B(t, ph + "Load.Value"); B(t, ph + "Load.Enabled");
             B(t, ph + "SelectionRejected");
+        }
+
+        private static void AddIoLink(List<TagDefinition> t, int z)
+        {
+            foreach (var hub in new[] { IoLinkModule.RtdHub, IoLinkModule.AnalogHub })
+                for (int p = 0; p < IoLinkLayout.PortCount; p++) I(t, IoLinkLayout.Raw(z, hub, p));
+            I(t, IoLinkLayout.Field(z, "Vibration"));
+            I(t, IoLinkLayout.Field(z, "Temperature"));
         }
 
         private static void AddAnalogInput(List<TagDefinition> t, string ch)
@@ -94,7 +103,7 @@ namespace SempaPumpStation.Infrastructure
 
         private static void AddHmiLocal(List<TagDefinition> t)
         {
-            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); I(t, "GLOBAL_DENEY_NO");
+            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); B(t, "PLC_INTERFACE_OK"); I(t, "GLOBAL_DENEY_NO");
             B(t, "DALGIC_PMP_SEL");
 
             // ---- Report values (WRT_* = master data selected from the recipes) ----
@@ -137,6 +146,7 @@ namespace SempaPumpStation.Infrastructure
             return new Dictionary<string, object>
             {
                 { "PLC_COMM_OK", true },
+                { "PLC_INTERFACE_OK", true },
                 { "GLOBAL_DENEY_NO", 1042 },
 
                 { "WRT_FIRMA_ADI", "AKDENIZ SU ARITMA A.Ş." },

@@ -18,6 +18,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly ZoneInputs[] _zoneInputs = new ZoneInputs[4];
         private readonly ZoneOutputs[] _zoneOutputs = new ZoneOutputs[4];
         private readonly StationInstruments _instruments;
+        private readonly Dictionary<string, int> _ioLink = new Dictionary<string, int>();
 
         public FieldSimulation Field => _field;
 
@@ -60,8 +61,11 @@ namespace SempaPumpStation.Infrastructure.Plc
             _cycle.DtMs = dtMs;
             _cycle.TimeMs += dtMs;
 
-            // ================================================================ "Io"
-            foreach (var ch in _ai.Values) ch.Run(_t, _field.Raw(ch.Name));
+            // ================================================================ IO-Link → "Io"
+            // The simulated field drives the hub port each sensor is wired to (its IO list port); FB_Station_Instruments
+            // routes every port into its channel.
+            WriteIoLink();
+            foreach (var ch in _ai.Values) ch.Run(_t, RoutedRaw(ch.Name));
 
             // ================================================================ read IO
             for (int z = 1; z <= Station.ZoneCount; z++)
@@ -147,6 +151,38 @@ namespace SempaPumpStation.Infrastructure.Plc
                     }
 
             _field.Update(_zoneOutputs, run, speedReference, _instruments.Device, _cycle);
+        }
+
+        // The physical wiring: every sensor on its IO list port, free ports read as an open 4-20 mA input
+        private void WriteIoLink()
+        {
+            for (int z = 1; z <= Station.ZoneCount; z++)
+                foreach (var hub in new[] { IoLinkModule.RtdHub, IoLinkModule.AnalogHub })
+                    for (int p = 0; p < IoLinkLayout.PortCount; p++)
+                        _ioLink[IoLinkLayout.Raw(z, hub, p)] = IoLinkLayout.OpenInputRaw;
+
+            foreach (var p in Station.Positions)
+            {
+                var w = IoLinkLayout.Wiring(p);
+                _ioLink[IoLinkLayout.Raw(w.Zone, w.Hub, w.Port)] = _field.Raw(p.Channel);
+            }
+            foreach (var f in IoLinkLayout.FixedInputs())
+                _ioLink[f.Field != null ? IoLinkLayout.Field(f.Zone, f.Field) : IoLinkLayout.Raw(f.Zone, f.Hub, f.Port)] = _field.Raw(f.Channel);
+
+            foreach (var kv in _ioLink) _t.W(kv.Key, kv.Value);
+        }
+
+        // FB_Station_Instruments' routing: every channel from its port in the IO list
+        private int RoutedRaw(string channel)
+        {
+            var position = Station.Position(channel);
+            if (position != null)
+            {
+                var w = IoLinkLayout.Wiring(position);
+                return _t.I(IoLinkLayout.Raw(w.Zone, w.Hub, w.Port));
+            }
+            var f = IoLinkLayout.FixedInputs().First(x => x.Channel == channel);
+            return _t.I(f.Field != null ? IoLinkLayout.Field(f.Zone, f.Field) : IoLinkLayout.Raw(f.Zone, f.Hub, f.Port));
         }
     }
 }

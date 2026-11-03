@@ -1,0 +1,11 @@
+﻿TYPE "st_IoLink_Zone"
+VERSION : 0.1
+   STRUCT
+      RtdHub { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..7] of Int;   // BNI00AJ 8 AI / RTD on master port 0, raw value per port
+      AnalogHub { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[0..7] of Int;   // BNI00KM 8 AI on master port 1 (zone 3: BNI0007 4 AI, ports 0..3)
+      Vibration { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // vibration & temperature IO-Link sensor on master port 3
+      Temperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;
+   END_STRUCT;
+
+END_TYPE
+

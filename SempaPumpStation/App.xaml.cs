@@ -74,6 +74,8 @@ namespace SempaPumpStation
 
             try { RunScenario(sb); }
             catch (Exception ex) { sb.AppendLine("FAIL scenario : " + ex); }
+            try { RunIoLinkScenario(sb, vm); }
+            catch (Exception ex) { sb.AppendLine("FAIL io-link : " + ex); }
             try { RunSecurityScenario(sb); }   // ends logged in as admin, so the captures show every screen unlocked
             catch (Exception ex) { sb.AppendLine("FAIL security : " + ex); }
 
@@ -95,6 +97,17 @@ namespace SempaPumpStation
                         sb.AppendLine("FAIL " + entry.Key + " : " + ex.GetType().Name + " — " + ex.Message);
                     }
                 }
+
+            // IO-Link screen of zone 3 (stopped, so unlocked) with a transmitter port selected
+            var ioLinkEntry = System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "IoLink");
+            var ioLink = (Screens.IoLinkViewModel)ioLinkEntry.Screen;
+            vm.NavigateCommand.Execute(ioLinkEntry);
+            ioLink.Zones[2].Command.Execute(null);
+            ioLink.Hubs[1].Ports[1].SelectCommand.Execute(null);
+            shell.UpdateLayout();
+            Steps(8);
+            Capture(shell, Path.Combine(dir, "IoLink_Zone3.png"));
+            sb.AppendLine((ioLink.HasSelection && ioLink.CanAssign ? "OK   " : "FAIL ") + "IoLink_Zone3 (port selected, unlocked)");
 
             // The login modal blocks until closed: capture it from inside, then cancel it
             vm.NavigateCommand.Execute(vm.MainNav[1]);
@@ -211,6 +224,48 @@ namespace SempaPumpStation
             Steps(40);
             Press(Sim(2) + "PendantTakeSample");
             Steps(10);
+        }
+
+        // ---------------------------------------------------------------- IO-Link
+        // Runs after the station scenario, which leaves zones 1 and 2 running and zone 3 stopped
+        private void RunIoLinkScenario(System.Text.StringBuilder sb, ShellViewModel vm)
+        {
+            var c = _context;
+            void Check(string what, bool ok) => sb.AppendLine((ok ? "PASS " : "FAIL ") + what);
+            int Raw(string channel) => c.GetInt(Station.AiPh(channel) + "RawValue");
+            int Hub(int port) => c.GetInt(IoLinkLayout.Raw(3, IoLinkModule.AnalogHub, port));
+            string Ph(string p) => Station.PositionPh(p);
+
+            // Zone 3 is stopped, so every transmitter reads 0 bar; unmount Pt2's device to tell its port apart
+            int pt2Device = c.GetInt(Ph("Zone3_Pt2") + "Device.Value");
+            c.SetValue(Station.PositionHp("Zone3_Pt2") + "Device.Value", (short)0);
+            Steps(3);
+            Check("transmitters read their fixed ports", Raw("Zone3_Pt1") == Hub(0) && Raw("Zone3_Pt2") == Hub(1)
+                                                         && Hub(1) == IoLinkLayout.OpenInputRaw && Hub(0) != Hub(1));
+            Check("fixed sensors read their IO list ports", Raw("Zone3_Speed") == c.GetInt(IoLinkLayout.Raw(3, IoLinkModule.RtdHub, 3)));
+
+            // The device on a port is chosen on the IO-Link screen
+            var screen = (Screens.IoLinkViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "IoLink").Screen;
+            screen.Zones[2].Command.Execute(null);
+            screen.Hubs[1].Ports[1].SelectCommand.Execute(null);   // BNI0007 port 1 = Pt2
+            Steps(2);
+            var free = System.Linq.Enumerable.First(screen.Devices, d => d.Value > 0 && d.State == "");
+            var held = System.Linq.Enumerable.First(screen.Devices, d => d.State == "held");
+            free.Command.Execute(null);
+            Steps(3);
+            Check("a device chosen on the port is mounted", screen.CanAssign && c.GetInt(Ph("Zone3_Pt2") + "Device.Value") == free.Value);
+            held.Command.Execute(null);
+            Steps(3);
+            Check("a device mounted elsewhere is refused", c.GetInt(Ph("Zone3_Pt2") + "Device.Value") == free.Value
+                                                           && c.GetBool(Ph("Zone3_Pt2") + "SelectionRejected"));
+            c.SetValue(Station.PositionHp("Zone3_Pt2") + "Device.Value", (short)pt2Device);
+            Steps(3);
+            Check("restored", c.GetInt(Ph("Zone3_Pt2") + "Device.Value") == pt2Device);
+
+            screen.Zones[0].Command.Execute(null);
+            screen.Hubs[1].Ports[0].SelectCommand.Execute(null);   // zone 1 Pt1, zone 1 runs
+            Steps(2);
+            Check("the device is locked while the zone runs", !screen.CanAssign);
         }
 
         // ---------------------------------------------------------------- login system

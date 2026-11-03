@@ -27,6 +27,10 @@ namespace SempaPumpStation.Infrastructure
 
         private readonly Serilog.ILogger _log;
         private readonly SiemensS7IsoTcpConnection _connection;
+        private readonly List<S7DbReadPlan> _plans = new List<S7DbReadPlan>();
+
+        // Sharp7 results meaning the PLC's data blocks do not have the layout of this HMI's interface
+        private const int ErrAddressOutOfRange = 0x00900000, ErrItemNotAvailable = 0x00C00000;
         private CancellationTokenSource _cts;
 
         public StationHpDb Hp { get; }
@@ -34,10 +38,18 @@ namespace SempaPumpStation.Infrastructure
         public StationSamplesDb Samples { get; }
         public StationInstrumentsDb Library { get; }
         public MaintenancePhDb Maintenance { get; }
+        /// <summary>Raw values of the IO-Link hubs, for the IO-Link screen.</summary>
+        public IoLinkDb IoLink { get; }
 
         public string IpAddress { get; }
         public bool IsConnected => _connection.State == ConnectionState.Connected;
         public IConnectionService Connection => _connection;
+
+        /// <summary>Why the link was stopped (the PLC program does not match this HMI), or null.</summary>
+        public string Problem { get; private set; }
+
+        /// <summary>Connected, and every block is being read.</summary>
+        public bool DataOk => IsConnected && Problem == null && _plans.All(p => p.ConsecutiveFailures == 0);
 
         public StationPlcLink(string ipAddress, int rack, int slot, Serilog.ILogger log)
         {
@@ -51,6 +63,7 @@ namespace SempaPumpStation.Infrastructure
             Samples = new StationSamplesDb(_connection, w, ReadPlan.DbBulk);
             Library = new StationInstrumentsDb(_connection, w, ReadPlan.DbBulk);
             Maintenance = new MaintenancePhDb(_connection, w, ReadPlan.DbBulk);
+            IoLink = new IoLinkDb(_connection, w, ReadPlan.DbBulk);
 
             // Status and live values fast; the sample buffers once a second (12 kB, consistent with
             // TestActive since both come from one read); the library rarely changes.
@@ -59,25 +72,28 @@ namespace SempaPumpStation.Infrastructure
             AddPlan("AI", 300, MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai), ai);
             AddPlan("SAMPLES", 1000, StationSamplesDb.Number, 0, S7Layout.SizeOf(Samples), Samples);
             AddPlan("LIBRARY", 5000, StationInstrumentsDb.Number, 0, S7Layout.SizeOf(Library), Library);
+            AddPlan("IOLINK", 500, IoLinkDb.Number, 0, S7Layout.SizeOf(IoLink), IoLink);
 
             // Logged so a drift between these models and the PLC's DBs shows up at once (compare with
             // the DB lengths / offsets in TIA)
             _log.Information("Interface layout: StationHp DB{Hp} {HpLen} B | StationPh DB{Ph} {PhLen} B | StationSamples DB{S} {SLen} B | " +
-                             "StationInstruments DB{L} {LLen} B | MaintenancePh DB{M} AnalogInputs @{AiOff} {AiLen} B",
+                             "StationInstruments DB{L} {LLen} B | MaintenancePh DB{M} AnalogInputs @{AiOff} {AiLen} B | IoLink DB{IoL} {IoLLen} B",
                 StationHpDb.Number, S7Layout.SizeOf(Hp), StationPhDb.Number, S7Layout.SizeOf(Ph),
                 StationSamplesDb.Number, S7Layout.SizeOf(Samples), StationInstrumentsDb.Number, S7Layout.SizeOf(Library),
-                MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai));
+                MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai), IoLinkDb.Number, S7Layout.SizeOf(IoLink));
         }
 
         private void AddPlan(string id, int intervalMs, int db, int start, int length, SiemensS7PlcTag tag)
         {
-            _connection.AddPlan(new S7DbReadPlan(_log, id, intervalMs, db, start, length));
+            var plan = new S7DbReadPlan(_log, id, intervalMs, db, start, length);
+            _plans.Add(plan);
+            _connection.AddPlan(plan);
             _connection.RegisterTagToPlan(id, tag);
         }
 
-        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library and the analog inputs.</summary>
+        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog inputs and the IO-Link hubs.</summary>
         public IEnumerable<SiemensS7PlcTag> Leaves() =>
-            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs }.SelectMany(Flatten);
+            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, IoLink }.SelectMany(Flatten);
 
         private static IEnumerable<SiemensS7PlcTag> Flatten(SiemensS7PlcTag tag)
         {
@@ -96,6 +112,24 @@ namespace SempaPumpStation.Infrastructure
                     foreach (var item in list.OfType<SiemensS7PlcTag>())
                         foreach (var leaf in Flatten(item)) yield return leaf;
             }
+        }
+
+        /// <summary>
+        /// Called every HMI scan. A block that is missing or shorter than the generated interface means the PLC runs
+        /// another program version: its offsets cannot be trusted, so the link stops (no more writes) until restart.
+        /// </summary>
+        public void CheckInterface()
+        {
+            if (Problem != null) return;
+            var bad = _plans.FirstOrDefault(p => p.ConsecutiveFailures > 0
+                                                 && (p.LastErrorCode == ErrAddressOutOfRange || p.LastErrorCode == ErrItemNotAvailable));
+            if (bad == null) return;
+
+            Problem = (bad.LastErrorCode == ErrItemNotAvailable ? "PLC'de DB" + bad.Db + " yok" : "PLC'deki DB" + bad.Db + " HMI'nın beklediğinden kısa")
+                    + ": PLC programı bu HMI sürümüyle uyumsuz. Güncel programı PLC'ye yükleyip HMI'yı yeniden başlatın.";
+            _log.Error("Interface mismatch on plan {Plan} (DB{Db}, {Len} B from {Start}): {Err}. Link stopped; nothing is written to the PLC until restart.",
+                       bad.Id, bad.Db, bad.Length, bad.Start, bad.LastErrorCode);
+            Stop();
         }
 
         /// <summary>Connects, and reconnects every few seconds while the PLC is unreachable.</summary>

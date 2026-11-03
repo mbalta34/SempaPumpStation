@@ -116,7 +116,13 @@ namespace SempaPumpStation.Infrastructure
         public void Step()
         {
             if (Plc != null) Plc.Scan(ScanMs);
-            else SetFromDevice("PLC_COMM_OK", Link.IsConnected);
+            else
+            {
+                // Connected and every block read; a program that does not match this HMI stops the link
+                Link.CheckInterface();
+                SetFromDevice("PLC_COMM_OK", Link.DataOk);
+                SetFromDevice("PLC_INTERFACE_OK", Link.Problem == null);
+            }
             SetFromDevice("TARIH_SAAT", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"));
             Archive.Poll();
             Scanned?.Invoke(this, EventArgs.Empty);

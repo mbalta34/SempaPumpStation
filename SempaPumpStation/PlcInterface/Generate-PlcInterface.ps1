@@ -9,7 +9,7 @@ param(
 )
 
 # DB numbers in MainPLC
-$dbNumbers = [ordered]@{ MaintenancePh = 102; StationHp = 201; StationPh = 202; StationSamples = 203; StationInstruments = 204 }
+$dbNumbers = [ordered]@{ MaintenancePh = 102; StationHp = 201; StationPh = 202; StationSamples = 203; StationInstruments = 204; IoLink = 205 }
 
 # Types provided by TerakkiFramework.Plc.Hmi (same layout as the PLC's FB_Hmi_* UDTs) or hand-written (DTL)
 $external = 'st_Hmi_Hp_CommandButton', 'st_Hmi_Ph_CommandButton', 'st_Hmi_Hp_ParameterInt', 'st_Hmi_Ph_ParameterInt',
@@ -86,7 +86,16 @@ function Emit-Class([string] $className, $members, [string] $summary, [bool] $is
                 $props += "        public $($t.Name) $n { get; private set; }"
             }
             'Array' {
-                if ($t.Element.Kind -ne 'Struct') { throw "Only arrays of structs are supported ($className.$n)" }
+                if ($t.Element.Kind -eq 'Leaf' -and $t.Element.DataType -ne 'BOOL') {
+                    # Array of numbers: word-aligned start, elements packed (Bool arrays pack bits; not needed yet)
+                    $L.Add("            $n = new List<SiemensS7PlcTag>();")
+                    $L.Add('            k.ArrayStart();')
+                    $L.Add("            for (int i = $($t.Lo); i <= $($t.Hi); i++)")
+                    $L.Add("                $n.Add(k.Leaf(name + `".$n[`" + i + `"]`", DataType.$($t.Element.DataType)));")
+                    $props += "        public List<SiemensS7PlcTag> $n { get; private set; }"
+                    continue
+                }
+                if ($t.Element.Kind -ne 'Struct') { throw "Only arrays of structs or numbers are supported ($className.$n)" }
                 $e = $t.Element.Name
                 $L.Add("            $n = new List<$e>();")
                 $L.Add('            k.ArrayStart();')
