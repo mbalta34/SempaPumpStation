@@ -1,9 +1,10 @@
 <UserControl x:Class="SempaPumpStation.Screens.IoView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:TerakkiUI.Utils.Converters;assembly=TerakkiUI"
              xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure">
     <UserControl.Resources>
-        <inf:BoolBrushConverter x:Key="InputBrush" OnBrush="{StaticResource B.Run}" OffBrush="{StaticResource B.Idle}"/>
+        <conv:BooleanToBrushConverter x:Key="InputBrush" TrueBrush="{StaticResource B.Run}" FalseBrush="{StaticResource B.Idle}"/>
 
         <!-- A digital input: state lamp, label, channel name, flags -->
         <DataTemplate x:Key="InputRowTemplate">

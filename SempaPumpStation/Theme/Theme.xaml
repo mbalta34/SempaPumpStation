@@ -1,7 +1,8 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib"
-                    xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure">
+                    xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
+                    xmlns:conv="clr-namespace:TerakkiUI.Utils.Converters;assembly=TerakkiUI">
 
     <!-- ============================================================= -->
     <!--  SEMPA Pump Test Bench — modern dark industrial HMI theme     -->
@@ -10,7 +11,7 @@
     <!-- Shared converters (app-wide) -->
     <inf:TagFormatConverter x:Key="Fmt"/>
     <inf:BoolTextConverter x:Key="BoolText"/>
-    <inf:BoolVisibilityConverter x:Key="BoolVis"/>
+    <conv:BooleanToVisibilityConverter x:Key="BoolVis" NonBoolVisibility="Collapsed"/>
     <inf:SeverityBrushConverter x:Key="Sev"/>
 
     <!-- Surfaces -->

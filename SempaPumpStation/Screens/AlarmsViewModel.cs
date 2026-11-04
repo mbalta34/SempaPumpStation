@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -15,7 +16,7 @@ namespace SempaPumpStation.Screens
         public AlarmsViewModel(HmiContext ctx, AlarmMonitor alarms) : base(ctx)
         {
             Alarms = alarms;
-            ResetCommand = new RelayCommand(() => Alarms.ResetAll());
+            ResetCommand = new SyncCommand(() => Alarms.ResetAll());
         }
     }
 }

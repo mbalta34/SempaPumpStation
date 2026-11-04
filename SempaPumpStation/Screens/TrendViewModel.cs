@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using SempaPumpStation.Infrastructure;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -26,7 +27,7 @@ namespace SempaPumpStation.Screens
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
                 int zone = z;
-                Zones.Add(new ChoiceItem { Value = z, Title = "Bölge " + z, State = z == 1 ? "active" : "", Command = new RelayCommand(() => Zone = zone) });
+                Zones.Add(new ChoiceItem { Value = z, Title = "Bölge " + z, State = z == 1 ? "active" : "", Command = new SyncCommand(() => Zone = zone) });
             }
         }
     }

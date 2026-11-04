@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
+        xmlns:conv="clr-namespace:TerakkiUI.Utils.Converters;assembly=TerakkiUI"
         xmlns:s="clr-namespace:SempaPumpStation.Screens"
         xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
         Title="SEMPA — Pompa Test Standı" Height="1000" Width="1600"
@@ -18,8 +19,8 @@
         <inf:TagFormatConverter x:Key="Fmt"/>
         <inf:SeverityBrushConverter x:Key="Sev"/>
         <inf:BoolTextConverter x:Key="BoolText"/>
-        <inf:BoolVisibilityConverter x:Key="BoolVis"/>
-        <inf:BoolBrushConverter x:Key="CommBrush" OnBrush="{StaticResource B.Run}" OffBrush="{StaticResource B.Alarm}"/>
+        <conv:BooleanToVisibilityConverter x:Key="BoolVis" NonBoolVisibility="Collapsed"/>
+        <conv:BooleanToBrushConverter x:Key="CommBrush" TrueBrush="{StaticResource B.Run}" FalseBrush="{StaticResource B.Alarm}"/>
 
         <!-- Screen VM → View map -->
         <DataTemplate DataType="{x:Type s:OverviewViewModel}"><s:OverviewView/></DataTemplate>

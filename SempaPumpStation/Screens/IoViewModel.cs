@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using SempaPumpStation.Infrastructure;
 using TerakkiFramework.Mvvm;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -94,7 +95,7 @@ namespace SempaPumpStation.Screens
             for (int i = 0; i < titles.Length; i++)
             {
                 int tab = i;
-                Tabs.Add(new ChoiceItem { Value = i, Title = titles[i], Command = new RelayCommand(() => ShowTab(tab)) });
+                Tabs.Add(new ChoiceItem { Value = i, Title = titles[i], Command = new SyncCommand(() => ShowTab(tab)) });
             }
 
             for (int z = 1; z <= Station.ZoneCount; z++) InputGroups.Add(Inputs("BÖLGE " + z, z));

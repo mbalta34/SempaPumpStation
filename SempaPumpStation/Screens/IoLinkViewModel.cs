@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
 using TerakkiFramework.Mvvm;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -57,7 +58,7 @@ namespace SempaPumpStation.Screens
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
                 int zone = z;
-                Zones.Add(new ChoiceItem { Value = z, Title = "Bölge " + z, Command = new RelayCommand(() => ShowZone(zone)) });
+                Zones.Add(new ChoiceItem { Value = z, Title = "Bölge " + z, Command = new SyncCommand(() => ShowZone(zone)) });
             }
             ShowZone(1);
             ctx.Scanned += (o, e) => Refresh();
@@ -104,7 +105,7 @@ namespace SempaPumpStation.Screens
             foreach (var info in IoLinkLayout.Ports(_zone, module))
             {
                 var cell = new IoLinkPortCell { Info = info };
-                cell.SelectCommand = new RelayCommand(() => Select(cell), () => info.IsInstrument);
+                cell.SelectCommand = new SyncCommand(() => Select(cell), () => info.IsInstrument);
                 card.Ports.Add(cell);
             }
             return card;
@@ -117,7 +118,7 @@ namespace SempaPumpStation.Screens
             if (cell != null)
             {
                 var position = Station.Position(cell.Info.Position);
-                Devices.Add(new ChoiceItem { Value = 0, Title = "Takılı değil", Command = new RelayCommand(() => Mount(0)) });
+                Devices.Add(new ChoiceItem { Value = 0, Title = "Takılı değil", Command = new SyncCommand(() => Mount(0)) });
                 for (int d = 1; d <= Station.LibrarySize; d++)
                 {
                     int device = d;
@@ -128,7 +129,7 @@ namespace SempaPumpStation.Screens
                     {
                         Value = d,
                         Title = "#" + d + "  " + description,
-                        Command = new RelayCommand(() => Mount(device)),
+                        Command = new SyncCommand(() => Mount(device)),
                     });
                 }
             }

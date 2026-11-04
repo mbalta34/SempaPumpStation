@@ -5,6 +5,7 @@ using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
 using TerakkiFramework.Mvvm;
 using TerakkiFramework.Plc.Abstractions;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -89,14 +90,14 @@ namespace SempaPumpStation.Screens
                     Info = p,
                     DeviceTag = ctx.Tag(Station.PositionHp(p.Name) + "Device.Value"),
                     PhDeviceTag = ctx.Tag(Station.PositionPh(p.Name) + "Device.Value"),
-                    LoadCommand = new RelayCommand(() => Ctx.Click(Station.PositionHp(info.Name) + "Load")),
+                    LoadCommand = new SyncCommand(() => Ctx.Click(Station.PositionHp(info.Name) + "Load")),
                 });
             }
 
             for (int c = Station.Flowmeter; c <= Station.Vacuummeter; c++)
             {
                 int category = c;
-                Categories.Add(new ChoiceItem { Value = c, Title = Station.CategoryName(c), Command = new RelayCommand(() => ShowCategory(category)) });
+                Categories.Add(new ChoiceItem { Value = c, Title = Station.CategoryName(c), Command = new SyncCommand(() => ShowCategory(category)) });
             }
             ShowCategory(Station.Flowmeter);
 

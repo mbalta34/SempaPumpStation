@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using SempaPumpStation.Infrastructure;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -52,13 +53,13 @@ namespace SempaPumpStation.Screens
 
         public ReportViewModel(HmiContext ctx) : base(ctx)
         {
-            SelectFirmaCommand = new RelayCommand(() => Ctx.Navigate("FirmaRecipe"));
-            SelectPompaCommand = new RelayCommand(() => Ctx.Navigate("PompaRecipe"));
-            SelectMotorCommand = new RelayCommand(() => Ctx.Navigate("MotorRecipe"));
-            SelectHatCommand = new RelayCommand(() => Ctx.Navigate("HatRecipe"));
-            SelectTestiYapanCommand = new RelayCommand(() => Ctx.Navigate("TestiYapan"));
-            OpenFileCommand = new RelayCommand(() => Open(_selected?.File));
-            OpenFolderCommand = new RelayCommand(() => { Directory.CreateDirectory(TestArchive.Folder); Open(TestArchive.Folder); });
+            SelectFirmaCommand = new SyncCommand(() => Ctx.Navigate("FirmaRecipe"));
+            SelectPompaCommand = new SyncCommand(() => Ctx.Navigate("PompaRecipe"));
+            SelectMotorCommand = new SyncCommand(() => Ctx.Navigate("MotorRecipe"));
+            SelectHatCommand = new SyncCommand(() => Ctx.Navigate("HatRecipe"));
+            SelectTestiYapanCommand = new SyncCommand(() => Ctx.Navigate("TestiYapan"));
+            OpenFileCommand = new SyncCommand(() => Open(_selected?.File));
+            OpenFolderCommand = new SyncCommand(() => { Directory.CreateDirectory(TestArchive.Folder); Open(TestArchive.Folder); });
 
             ctx.Archive.Archived += r => Selected = r;
             Selected = Records.FirstOrDefault();

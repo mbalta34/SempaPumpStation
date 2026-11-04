@@ -5,6 +5,7 @@ using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
 using TerakkiFramework.Mvvm;
 using TerakkiUI.Dialogs;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -56,7 +57,7 @@ namespace SempaPumpStation.Screens
             for (int z = 1; z <= Station.ZoneCount; z++) Groups.Add(Group("BÖLGE " + z, z));
             Groups.Add(Group("SÜRÜCÜLER (MERKEZİ PANO)", 0));
 
-            ReleaseAllCommand = new RelayCommand(ReleaseAll);
+            ReleaseAllCommand = new SyncCommand(ReleaseAll);
             ctx.Scanned += (o, e) => Refresh();
             Refresh();
         }
@@ -70,9 +71,9 @@ namespace SempaPumpStation.Screens
                 group.Rows.Add(new OutputForceRow
                 {
                     Info = o,
-                    ForceOnCommand = new RelayCommand(() => Force(o, true)),
-                    ForceOffCommand = new RelayCommand(() => Force(o, false)),
-                    ReleaseCommand = new RelayCommand(() => Ctx.Click(o.Hp + "StopForcing")),
+                    ForceOnCommand = new SyncCommand(() => Force(o, true)),
+                    ForceOffCommand = new SyncCommand(() => Force(o, false)),
+                    ReleaseCommand = new SyncCommand(() => Ctx.Click(o.Hp + "StopForcing")),
                 });
             }
             return group;

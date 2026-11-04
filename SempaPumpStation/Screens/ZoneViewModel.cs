@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -52,11 +53,11 @@ namespace SempaPumpStation.Screens
             for (int f = 1; f <= Station.FlowmeterCount(zone); f++) Flowmeters.Add(Choice(f, "FM" + f, "Flowmeter"));
             for (int t = 1; t <= Station.TransmitterCount; t++) Transmitters.Add(Choice(t, "Pt" + t, "DischargeTransmitter"));
 
-            ClickCommand = new RelayCommand(p => Ctx.Click(Hp.Prefix + p));
-            PendantCommand = new RelayCommand(p => Ctx.Pulse(Sim.Prefix + p));
-            ToggleEStopCommand = new RelayCommand(() => Ctx.Toggle(Sim.Prefix + "EStopPressed"));
-            ToggleFeedbackFaultCommand = new RelayCommand(() => Ctx.Toggle(Sim.Prefix + "FeedbackFault"));
-            ToggleDriveFaultCommand = new RelayCommand(() =>
+            ClickCommand = new SyncCommand(p => Ctx.Click(Hp.Prefix + p));
+            PendantCommand = new SyncCommand(p => Ctx.Pulse(Sim.Prefix + p));
+            ToggleEStopCommand = new SyncCommand(() => Ctx.Toggle(Sim.Prefix + "EStopPressed"));
+            ToggleFeedbackFaultCommand = new SyncCommand(() => Ctx.Toggle(Sim.Prefix + "FeedbackFault"));
+            ToggleDriveFaultCommand = new SyncCommand(() =>
             {
                 int s = SelectedSource;
                 if (s > 0) Ctx.Toggle(Station.SimDrive(s) + "Fault");
@@ -70,7 +71,7 @@ namespace SempaPumpStation.Screens
         {
             Value = value,
             Title = title,
-            Command = new RelayCommand(() => Ctx.SetValue(Hp.Prefix + parameter + ".Value", (short)value)),
+            Command = new SyncCommand(() => Ctx.SetValue(Hp.Prefix + parameter + ".Value", (short)value)),
         };
 
         // ---------------------------------------------------------------- live state

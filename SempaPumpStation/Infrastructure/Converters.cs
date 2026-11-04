@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
@@ -39,24 +38,12 @@ namespace SempaPumpStation.Infrastructure
         }
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 
-        internal static bool ToBool(object v)
+        private static bool ToBool(object v)
         {
             if (v is bool b) return b;
             if (v == null) return false;
             try { return System.Convert.ToBoolean(v); } catch { return false; }
         }
-    }
-
-    /// <summary>bool → Visibility. ConverterParameter "invert" flips it.</summary>
-    public sealed class BoolVisibilityConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            bool b = BoolTextConverter.ToBool(value);
-            if ((parameter as string) == "invert") b = !b;
-            return b ? Visibility.Visible : Visibility.Collapsed;
-        }
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
     }
 
     /// <summary>Alarm severity string → status brush (ALARM=red, WARN=amber, else green).</summary>
@@ -70,20 +57,6 @@ namespace SempaPumpStation.Infrastructure
                 case "WARN": return new SolidColorBrush(Color.FromRgb(0xF5, 0xA6, 0x23));
                 default: return new SolidColorBrush(Color.FromRgb(0x2E, 0xCC, 0x71));
             }
-        }
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
-    }
-
-    /// <summary>bool → brush: "onKey|offKey" resource keys, or defaults run-green / idle-grey.</summary>
-    public sealed class BoolBrushConverter : IValueConverter
-    {
-        public Brush OnBrush { get; set; }
-        public Brush OffBrush { get; set; }
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            bool b = BoolTextConverter.ToBool(value);
-            if ((parameter as string) == "invert") b = !b;
-            return b ? (OnBrush ?? Brushes.LimeGreen) : (OffBrush ?? Brushes.Gray);
         }
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
     }

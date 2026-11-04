@@ -7,6 +7,7 @@ using TerakkiFramework.Mvvm;
 using TerakkiFramework.Security;
 using TerakkiUI.Components.User;
 using TerakkiUI.Navigation;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Shell
 {
@@ -65,11 +66,11 @@ namespace SempaPumpStation.Shell
             _ctx = ctx;
             Alarms = new AlarmMonitor(ctx);
 
-            NavigateCommand = new RelayCommand(p => { if (p is NavEntry e && e.IsVisible) Current = e.Screen; });
-            AlarmResetCommand = new RelayCommand(() => Alarms.ResetAll());
-            LoginCommand = new RelayCommand(ShowLogin);
-            LogoutCommand = new RelayCommand(() => Security.Auth.Logout(Security.Texts.LogLogout));
-            ChangePasswordCommand = new RelayCommand(() => ShowChangePassword(false));
+            NavigateCommand = new SyncCommand(p => { if (p is NavEntry e && e.IsVisible) Current = e.Screen; });
+            AlarmResetCommand = new SyncCommand(() => Alarms.ResetAll());
+            LoginCommand = new SyncCommand(ShowLogin);
+            LogoutCommand = new SyncCommand(() => Security.Auth.Logout(Security.Texts.LogLogout));
+            ChangePasswordCommand = new SyncCommand(() => ShowChangePassword(false));
 
             // TerakkiUI modals in the HMI's theme
             _modals.RegisterModal(LoginModal, () => new LoginWindow(), () => _login = new LoginViewModel(Security, _lastUsername));

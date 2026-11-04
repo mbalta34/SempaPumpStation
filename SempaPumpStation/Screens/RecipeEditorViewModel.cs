@@ -5,6 +5,7 @@ using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
 using TerakkiFramework.Plc;
 using TerakkiFramework.Plc.Abstractions;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -39,11 +40,11 @@ namespace SempaPumpStation.Screens
             foreach (var d in Defs)
                 Fields.Add(new RecipeFieldVm { Label = d.Label, Tag = ctx.Tag(d.TagName), Format = d.Format });
 
-            SaveCommand = new RelayCommand(Save);
-            DeleteCommand = new RelayCommand(Delete, () => !string.IsNullOrEmpty(SelectedRecipe));
-            LoadCommand = new RelayCommand(() => LoadInto(SelectedRecipe), () => !string.IsNullOrEmpty(SelectedRecipe));
-            NewCommand = new RelayCommand(NewRecipe);
-            SelectForReportCommand = new RelayCommand(SelectForReport);
+            SaveCommand = new SyncCommand(Save);
+            DeleteCommand = new SyncCommand(Delete, () => !string.IsNullOrEmpty(SelectedRecipe));
+            LoadCommand = new SyncCommand(() => LoadInto(SelectedRecipe), () => !string.IsNullOrEmpty(SelectedRecipe));
+            NewCommand = new SyncCommand(NewRecipe);
+            SelectForReportCommand = new SyncCommand(SelectForReport);
 
             RefreshList();
         }
@@ -61,15 +62,21 @@ namespace SempaPumpStation.Screens
         public string SelectedRecipe
         {
             get => _selected;
-            set { if (Set(ref _selected, value) && !string.IsNullOrEmpty(value)) NewName = value; }
+            set
+            {
+                if (!Set(ref _selected, value)) return;
+                if (!string.IsNullOrEmpty(value)) NewName = value;
+                DeleteCommand.RaiseCanExecuteChanged();
+                LoadCommand.RaiseCanExecuteChanged();
+            }
         }
 
         private string _newName = "";
         public string NewName { get => _newName; set => Set(ref _newName, value); }
 
         public ICommand SaveCommand { get; }
-        public ICommand DeleteCommand { get; }
-        public ICommand LoadCommand { get; }
+        public SyncCommand DeleteCommand { get; }
+        public SyncCommand LoadCommand { get; }
         public ICommand NewCommand { get; }
         public ICommand SelectForReportCommand { get; }
 

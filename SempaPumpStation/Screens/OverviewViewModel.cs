@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SempaPumpStation.Infrastructure;
 using TerakkiFramework.Mvvm;
+using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
@@ -51,7 +52,7 @@ namespace SempaPumpStation.Screens
                     Zone = z,
                     Ph = ctx.Scope(Station.ZonePh(z)),
                     Ai = ctx.Scope("MaintenancePh.Io.AnalogInputs.Zone" + z + "_"),
-                    OpenCommand = new RelayCommand(() => Ctx.Navigate("Zone" + zone)),
+                    OpenCommand = new SyncCommand(() => Ctx.Navigate("Zone" + zone)),
                 });
             }
             foreach (var s in Station.Sources) Sources.Add(new SourceSummary { Id = s.Id, Name = s.Name });
