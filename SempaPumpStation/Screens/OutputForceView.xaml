@@ -1,0 +1,113 @@
+<UserControl x:Class="SempaPumpStation.Screens.OutputForceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
+             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
+    <UserControl.Resources>
+        <inf:BoolBrushConverter x:Key="OutputBrush" OnBrush="{StaticResource B.Run}" OffBrush="{StaticResource B.Idle}"/>
+
+        <Style x:Key="ForceBtn" TargetType="Button" BasedOn="{StaticResource Btn.Primary}">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
+            <Setter Property="MinWidth" Value="78"/>
+        </Style>
+
+        <DataTemplate x:Key="RowTemplate">
+            <Border x:Name="row" Padding="8,5" CornerRadius="5" Margin="0,0,0,3" Background="{StaticResource B.Field}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="22"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Output state as driven (Pv) -->
+                    <Ellipse Width="12" Height="12" VerticalAlignment="Center"
+                             Fill="{Binding Pv, Converter={StaticResource OutputBrush}}"/>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Label}" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource B.Text}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Name}" FontSize="10" Foreground="{StaticResource B.TextFaint}"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="2" x:Name="badge" Style="{StaticResource Pill}" Background="#4A3A1A" Padding="8,2"
+                            Margin="6,0" Visibility="Collapsed">
+                        <TextBlock Text="ZORLANIYOR" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource B.Warn}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" sec:Access.Requires="Io.Force">
+                        <Button Content="Zorla 1" Style="{StaticResource ForceBtn}" Background="{StaticResource B.Run}" BorderBrush="{StaticResource B.Run}"
+                                Command="{Binding ForceOnCommand}" ToolTip="Çıkışı 1'e zorla"/>
+                        <Button Content="Zorla 0" Style="{StaticResource ForceBtn}" Background="{StaticResource B.Alarm}" BorderBrush="{StaticResource B.Alarm}"
+                                Command="{Binding ForceOffCommand}" ToolTip="Çıkışı 0'a zorla"/>
+                    </StackPanel>
+                    <Border Grid.Column="4" sec:Access.Requires="Station.Operate">
+                        <Button Content="Bırak" Style="{StaticResource ForceBtn}" Background="{StaticResource B.Card2}" BorderBrush="{StaticResource B.BorderHi}"
+                                Foreground="{StaticResource B.Text}" Command="{Binding ReleaseCommand}" ToolTip="Zorlamayı kaldır, çıkış programa döner"/>
+                    </Border>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Forcing}" Value="True">
+                    <Setter TargetName="row" Property="Background" Value="#33291A"/>
+                    <Setter TargetName="badge" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel Margin="20">
+        <!-- ============ Header ============ -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,0,0,14">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Style="{StaticResource Pill}" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding ForcedText}" FontSize="12.5" FontWeight="SemiBold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ForcedCount}" Value="0">
+                                            <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                    <Border sec:Access.Requires="Station.Operate">
+                        <Button Content="Tümünü Bırak" Style="{StaticResource Btn.Warn}" Command="{Binding ReleaseAllCommand}"/>
+                    </Border>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="DİJİTAL ÇIKIŞ ZORLAMA" Style="{StaticResource T.H1}"/>
+                    <TextBlock Style="{StaticResource T.Label}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="Zorlanan çıkış, programın kilitlemelerinden bağımsız olarak Bırak'a basılana kadar o değerde kalır. Zorlama mühendis girişi ister; her zorlanan çıkış alarm listesinde uyarı olarak görünür. PLC yeniden başladığında zorlamalar kalkar."/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ============ Outputs per zone ============ -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,14,14" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource T.Section}"/>
+                                <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource RowTemplate}"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

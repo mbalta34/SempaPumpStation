@@ -1,0 +1,11 @@
+﻿TYPE "st_Io_Hp_AnalogOutputs"
+VERSION : 0.1
+   STRUCT
+      Drive_7k5Vfd_SpeedReference { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogOutput";
+      Drive_37Vfd_SpeedReference { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogOutput";
+      Drive_110Vfd_SpeedReference { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogOutput";
+      Drive_630Vfd_SpeedReference { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogOutput";
+   END_STRUCT;
+
+END_TYPE
+

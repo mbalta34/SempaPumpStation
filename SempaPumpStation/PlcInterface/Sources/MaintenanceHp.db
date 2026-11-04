@@ -1,0 +1,13 @@
+﻿DATA_BLOCK "MaintenanceHp"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+NON_RETAIN
+   STRUCT 
+      Io : "st_Io_Hp";
+   END_STRUCT;
+
+
+BEGIN
+
+END_DATA_BLOCK
+

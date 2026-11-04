@@ -1,0 +1,48 @@
+﻿TYPE "st_Io_Hp_AnalogInputs"
+VERSION : 0.1
+   STRUCT
+      Zone1_Pt1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Pt2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Pt3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Pt4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Vacuummeter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_WaterTemperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_AmbientTemperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Vibration { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Temperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Sound { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone1_Speed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Pt1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Pt2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Pt3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Pt4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Vacuummeter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_WaterTemperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_AmbientTemperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Vibration { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Temperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Sound { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone2_Speed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Pt1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Pt2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Pt3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Pt4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Vacuummeter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_WaterTemperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_AmbientTemperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Vibration { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Temperature { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Sound { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_Speed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Shared_FM1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Shared_FM2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Shared_FM3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Shared_FM4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Shared_FM5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_FM1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_FM2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+      Zone3_FM3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInput";
+   END_STRUCT;
+
+END_TYPE
+

@@ -31,6 +31,8 @@ namespace SempaPumpStation.Infrastructure
                         foreach (var f in Station.InstrumentFields) Add(t, Station.LibraryEntry(c, d) + f.Name, f.Kind);
                 for (int z = 1; z <= Station.ZoneCount; z++) AddSamples(t, z);
                 for (int z = 1; z <= Station.ZoneCount; z++) AddIoLink(t, z);
+                foreach (var o in DigitalOutputs.All) AddDigitalOutput(t, o);
+                foreach (var i in DigitalInputs.All) { B(t, i.Ph + "Pv"); B(t, i.Ph + "RawValue"); B(t, i.Ph + "WireBreak"); B(t, i.Ph + "ForcingActive"); }
             }
             AddSimulation(t);
             AddHmiLocal(t);
@@ -59,6 +61,16 @@ namespace SempaPumpStation.Infrastructure
             I(t, ph + "Device.Value"); B(t, ph + "Device.Enabled");
             B(t, ph + "Load.Value"); B(t, ph + "Load.Enabled");
             B(t, ph + "SelectionRejected");
+        }
+
+        private static void AddDigitalOutput(List<TagDefinition> t, DigitalOutputInfo o)
+        {
+            foreach (var n in new[] { "ForceOn", "ForceOff", "StopForcing" })
+            {
+                B(t, o.Hp + n + ".Click");
+                B(t, o.Ph + n + ".Value"); B(t, o.Ph + n + ".Enabled");
+            }
+            B(t, o.Ph + "ForcingActive"); B(t, o.Ph + "Pv");
         }
 
         private static void AddIoLink(List<TagDefinition> t, int z)

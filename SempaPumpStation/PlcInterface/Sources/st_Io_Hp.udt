@@ -1,0 +1,11 @@
+﻿TYPE "st_Io_Hp"
+VERSION : 0.1
+   STRUCT
+      DigitalInputs { S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInputs";
+      DigitalOutputs { S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutputs";
+      AnalogInputs { S7_SetPoint := 'False'} : "st_Io_Hp_AnalogInputs";
+      AnalogOutputs { S7_SetPoint := 'False'} : "st_Io_Hp_AnalogOutputs";
+   END_STRUCT;
+
+END_TYPE
+

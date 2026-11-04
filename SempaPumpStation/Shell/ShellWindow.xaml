@@ -6,7 +6,7 @@
         xmlns:s="clr-namespace:SempaPumpStation.Screens"
         xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
         Title="SEMPA — Pompa Test Standı" Height="1000" Width="1600"
-        WindowStartupLocation="CenterScreen" WindowState="Maximized"
+        WindowStartupLocation="CenterScreen"
         WindowStyle="None" Background="{StaticResource B.App}"
         FontFamily="{StaticResource F.Ui}" TextOptions.TextFormattingMode="Ideal">
 
@@ -35,6 +35,8 @@
         <DataTemplate DataType="{x:Type s:AlarmsViewModel}"><s:AlarmsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:EventsViewModel}"><s:EventsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:TrendViewModel}"><s:TrendView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:IoViewModel}"><s:IoView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:OutputForceViewModel}"><s:OutputForceView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:UserLogViewModel}"><s:UserLogView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:UsersViewModel}"><s:UsersView/></DataTemplate>
 

@@ -118,6 +118,14 @@ namespace SempaPumpStation.Infrastructure
                 list.Add(new AlarmDef { Tag = ph + "DriveFault", Message = name + "Sürücü arızası", Severity = "ALARM" });
                 list.Add(new AlarmDef { Tag = ph + "SampleBufferFull", Message = name + "Numune hafızası dolu (50)", Severity = "WARN" });
             }
+            // A forced output bypasses the station program's interlocks: a warning for as long as it is forced
+            foreach (var o in DigitalOutputs.All)
+                list.Add(new AlarmDef
+                {
+                    Tag = o.Ph + "ForcingActive",
+                    Message = (o.Zone > 0 ? "Bölge " + o.Zone : "Sürücü") + " — Çıkış zorlanıyor: " + o.Label,
+                    Severity = "WARN",
+                });
             // SelectionRejected is not an alarm: the PLC keeps it set until the next accepted selection
             return list;
         }

@@ -1,0 +1,18 @@
+﻿TYPE "st_Io_Hp_AnalogInput"
+VERSION : 0.1
+   STRUCT
+      MinPv { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
+      MaxPv { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
+      ForceValue { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
+      MinRaw { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+      MaxRaw { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+      StartForcing { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+      StopForcing { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+      FilterType { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+      FilterEmaAlpha { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
+      FilterOutlierMaxJump { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
+      FilterOutlierMaxRejectCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+   END_STRUCT;
+
+END_TYPE
+

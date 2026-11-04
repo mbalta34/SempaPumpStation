@@ -72,10 +72,24 @@ namespace SempaPumpStation
             var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "shots");
             Directory.CreateDirectory(dir);
 
+            bool coversScreen = shell.IsFullScreen && shell.WindowState == WindowState.Normal
+                                && Math.Abs(shell.ActualWidth - SystemParameters.PrimaryScreenWidth) < 1
+                                && Math.Abs(shell.ActualHeight - SystemParameters.PrimaryScreenHeight) < 1;
+            sb.AppendLine((coversScreen ? "PASS " : "FAIL ") + string.Format("full screen ({0}x{1} on a {2}x{3} screen)",
+                shell.ActualWidth, shell.ActualHeight, SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight));
+            shell.SetFullScreen(false);
+            DoEvents();
+            bool windowed = !shell.IsFullScreen && shell.ActualWidth < SystemParameters.PrimaryScreenWidth;
+            shell.SetFullScreen(true);
+            DoEvents();
+            sb.AppendLine((windowed && shell.IsFullScreen ? "PASS " : "FAIL ") + "▢ switches to a window and back");
+
             try { RunScenario(sb); }
             catch (Exception ex) { sb.AppendLine("FAIL scenario : " + ex); }
             try { RunIoLinkScenario(sb, vm); }
             catch (Exception ex) { sb.AppendLine("FAIL io-link : " + ex); }
+            try { RunOutputForceScenario(sb, vm); }
+            catch (Exception ex) { sb.AppendLine("FAIL output-force : " + ex); }
             try { RunSecurityScenario(sb); }   // ends logged in as admin, so the captures show every screen unlocked
             catch (Exception ex) { sb.AppendLine("FAIL security : " + ex); }
 
@@ -97,6 +111,20 @@ namespace SempaPumpStation
                         sb.AppendLine("FAIL " + entry.Key + " : " + ex.GetType().Name + " — " + ex.Message);
                     }
                 }
+
+            // IO screen: the analog inputs and the output force table as well
+            var ioEntry = System.Linq.Enumerable.First(vm.DiagNav, e => e.Key == "Io");
+            var io = (Screens.IoViewModel)ioEntry.Screen;
+            vm.NavigateCommand.Execute(ioEntry);
+            foreach (var (tab, file) in new[] { (Screens.IoViewModel.AnalogInputsTab, "Io_Analog"), (Screens.IoViewModel.DigitalOutputsTab, "Io_Outputs") })
+            {
+                io.ShowTab(tab);
+                shell.UpdateLayout();
+                Steps(8);
+                Capture(shell, Path.Combine(dir, file + ".png"));
+                sb.AppendLine("OK   " + file);
+            }
+            io.ShowTab(Screens.IoViewModel.DigitalInputsTab);
 
             // IO-Link screen of zone 3 (stopped, so unlocked) with a transmitter port selected
             var ioLinkEntry = System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "IoLink");
@@ -266,6 +294,54 @@ namespace SempaPumpStation
             screen.Hubs[1].Ports[0].SelectCommand.Execute(null);   // zone 1 Pt1, zone 1 runs
             Steps(2);
             Check("the device is locked while the zone runs", !screen.CanAssign);
+        }
+
+        // ---------------------------------------------------------------- digital output forcing
+        // Zone 3 is stopped with the 560 kW switch closed; its 7.5 kW soft starter contactor is not requested
+        private void RunOutputForceScenario(System.Text.StringBuilder sb, ShellViewModel vm)
+        {
+            var c = _context;
+            void Check(string what, bool ok) => sb.AppendLine((ok ? "PASS " : "FAIL ") + what);
+            var screen = ((Screens.IoViewModel)System.Linq.Enumerable.First(vm.DiagNav, e => e.Key == "Io").Screen).Outputs;
+            var row = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(screen.Groups, g => g.Rows), r => r.Name == "Zone3_K7k5Ss_Close");
+            string asked = null;
+            screen.Confirm = q => { asked = q; return false; };
+
+            row.ForceOnCommand.Execute(null);
+            Steps(3);
+            Check("forcing asks first, and a 'no' forces nothing", asked != null && !row.Forcing && !row.Pv);
+
+            screen.Confirm = q => true;
+            row.ForceOnCommand.Execute(null);
+            Steps(10);
+            Check("Force ON drives the output and is shown as forced", row.Forcing && row.Pv && screen.ForcedCount == 1);
+            Check("the forced output reaches the field (contactor closes)", c.Plc.Field.DeviceClosed(3, 1));
+
+            row.ForceOffCommand.Execute(null);
+            Steps(3);
+            Check("Force OFF holds the output at 0", row.Forcing && !row.Pv);
+
+            screen.ReleaseAllCommand.Execute(null);
+            Steps(10);
+            Check("release returns the output to the program", !row.Forcing && !row.Pv && screen.ForcedCount == 0 && !c.Plc.Field.DeviceClosed(3, 1));
+
+            // The contactor moved without a request: clear the zone's device fault again
+            c.Click(Station.ZoneHp(3) + "ResetFault");
+            Steps(20);
+
+            // Input watch tables
+            var io = (Screens.IoViewModel)System.Linq.Enumerable.First(vm.DiagNav, e => e.Key == "Io").Screen;
+            io.ShowTab(Screens.IoViewModel.DigitalInputsTab);
+            Steps(2);
+            var inputs = System.Linq.Enumerable.ToList(System.Linq.Enumerable.SelectMany(io.InputGroups, g => g.Rows));
+            Check("DI watch shows the field (zone 3 560 kW switch closed, not open)",
+                  inputs.Count == 82 && inputs.Find(r => r.Name == "Zone3_Q560Ss_Closed").Pv && !inputs.Find(r => r.Name == "Zone3_Q560Ss_Open").Pv);
+            io.ShowTab(Screens.IoViewModel.AnalogInputsTab);
+            Steps(2);
+            var pt2 = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(io.AnalogGroups, g => g.Rows), r => r.Name == "Zone1_Pt2");
+            Check("AI watch shows value, raw and range (" + pt2.Value + ", " + pt2.Raw + ", " + pt2.Range + ")",
+                  pt2.Value.EndsWith("bar") && pt2.Raw.Length > 0 && pt2.Range.Contains("16"));
+            io.ShowTab(Screens.IoViewModel.DigitalInputsTab);
         }
 
         // ---------------------------------------------------------------- login system

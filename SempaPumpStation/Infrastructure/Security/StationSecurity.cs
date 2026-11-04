@@ -28,6 +28,8 @@ namespace SempaPumpStation.Infrastructure.Security
         /// <summary>Creating, saving and deleting recipes.</summary>
         public const string ManageRecipes = "Recipes.Manage";
         public const string ExitApplication = "App.Exit";
+        /// <summary>Forcing digital outputs on or off (bypasses the program's interlocks).</summary>
+        public const string ForceOutputs = "Io.Force";
 
         public static readonly PermissionTable Table = new PermissionTable(
             new Dictionary<int, string>
@@ -45,6 +47,7 @@ namespace SempaPumpStation.Infrastructure.Security
                 { EditLibrary, Engineer },
                 { ManageRecipes, Engineer },
                 { ExitApplication, Engineer },
+                { ForceOutputs, Engineer },
                 { SecurityPermissions.ManageUsers, Admin },
             });
 

@@ -1,0 +1,137 @@
+<UserControl x:Class="SempaPumpStation.Screens.IoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure">
+    <UserControl.Resources>
+        <inf:BoolBrushConverter x:Key="InputBrush" OnBrush="{StaticResource B.Run}" OffBrush="{StaticResource B.Idle}"/>
+
+        <!-- A digital input: state lamp, label, channel name, flags -->
+        <DataTemplate x:Key="InputRowTemplate">
+            <Border x:Name="row" Padding="8,4" CornerRadius="5" Margin="0,0,0,3" Background="{StaticResource B.Field}">
+                <DockPanel>
+                    <Ellipse DockPanel.Dock="Left" Width="12" Height="12" Margin="0,0,10,0" VerticalAlignment="Center"
+                             Fill="{Binding Pv, Converter={StaticResource InputBrush}}"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="forced" Style="{StaticResource Pill}" Background="#4A3A1A" Padding="7,1" Margin="4,0,0,0" Visibility="Collapsed">
+                            <TextBlock Text="ZORLANIYOR" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource B.Warn}"/>
+                        </Border>
+                        <Border x:Name="broken" Style="{StaticResource Pill}" Background="#4A1C1C" Padding="7,1" Margin="4,0,0,0" Visibility="Collapsed">
+                            <TextBlock Text="TEL KOPUK" FontSize="10" FontWeight="SemiBold" Foreground="#FF8A80"/>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource B.Text}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Name}" FontSize="9.5" Foreground="{StaticResource B.TextFaint}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Forcing}" Value="True">
+                    <Setter TargetName="row" Property="Background" Value="#33291A"/>
+                    <Setter TargetName="forced" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding WireBreak}" Value="True">
+                    <Setter TargetName="broken" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- ============ Tabs ============ -->
+        <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Tabs}" Margin="20,20,20,0">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Style="{StaticResource Choice}" Tag="{Binding State}" Command="{Binding Command}" Padding="18,8">
+                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid>
+            <!-- ============ Digital inputs ============ -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,12,20,20"
+                          Visibility="{Binding ShowDigitalInputs, Converter={StaticResource BoolVis}}">
+                <ItemsControl ItemsSource="{Binding InputGroups}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="4"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12" Padding="10" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource T.Section}"/>
+                                    <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource InputRowTemplate}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- ============ Analog inputs ============ -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,12,20,20"
+                          Visibility="{Binding ShowAnalogInputs, Converter={StaticResource BoolVis}}">
+                <ItemsControl ItemsSource="{Binding AnalogGroups}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12" Padding="10" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource T.Section}"/>
+                                    <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Rows}" IsReadOnly="True" RowHeight="34"
+                                              HeadersVisibility="Column" CanUserSortColumns="False">
+                                        <DataGrid.Columns>
+                                            <DataGridTemplateColumn Header="Kanal" Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Name}" FontSize="9.5" Foreground="{StaticResource B.TextFaint}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Değer" Binding="{Binding Value}" Width="110"/>
+                                            <DataGridTextColumn Header="Ham" Binding="{Binding Raw}" Width="62"/>
+                                            <DataGridTextColumn Header="Filtreli" Binding="{Binding Filtered}" Width="62"/>
+                                            <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="120"/>
+                                            <DataGridTemplateColumn Header="Durum" Width="86">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Status}" FontWeight="SemiBold" VerticalAlignment="Center">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Tel kopuk">
+                                                                            <Setter Property="Foreground" Value="#FF8A80"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- ============ Digital outputs: the force table ============ -->
+            <ContentControl Content="{Binding Outputs}" Focusable="False"
+                            Visibility="{Binding ShowDigitalOutputs, Converter={StaticResource BoolVis}}"/>
+        </Grid>
+    </DockPanel>
+</UserControl>

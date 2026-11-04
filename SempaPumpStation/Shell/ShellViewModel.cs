@@ -91,6 +91,7 @@ namespace SempaPumpStation.Shell
             Add(DiagNav, "Alarms", "⚠", "Alarmlar", new AlarmsViewModel(ctx, Alarms));
             Add(DiagNav, "Events", "≡", "Olay Kaydı", new EventsViewModel(ctx, Alarms));
             Add(DiagNav, "Trend", "∿", "Trend", new TrendViewModel(ctx));
+            Add(DiagNav, "Io", "⏻", "IO İzleme", new IoViewModel(ctx));
             Add(DiagNav, "UserLog", "◔", "Kullanıcı Kaydı", new UserLogViewModel(ctx));
             _usersEntry = Add(DiagNav, "Users", "☺", "Kullanıcılar", new UsersViewModel(ctx));
 

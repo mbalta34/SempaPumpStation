@@ -1,0 +1,10 @@
+﻿TYPE "st_Io_Hp_DigitalOutput"
+VERSION : 0.1
+   STRUCT
+      ForceOn { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+      ForceOff { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+      StopForcing { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+   END_STRUCT;
+
+END_TYPE
+

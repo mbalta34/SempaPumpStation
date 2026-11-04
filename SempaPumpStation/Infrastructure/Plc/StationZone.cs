@@ -29,6 +29,22 @@ namespace SempaPumpStation.Infrastructure.Plc
         public double SpeedReference;
         public int SelectedSource, SelectedFlowmeter;
         public bool LampGreen, LampYellow, LampRed;
+
+        /// <summary>A copy, for what the outputs actually drive after forcing ("Io".DigitalOutputs).</summary>
+        public ZoneOutputs Clone()
+        {
+            var c = new ZoneOutputs
+            {
+                RunRequest = RunRequest, SpeedReference = SpeedReference,
+                SelectedSource = SelectedSource, SelectedFlowmeter = SelectedFlowmeter,
+                LampGreen = LampGreen, LampYellow = LampYellow, LampRed = LampRed,
+            };
+            ContactorClose.CopyTo(c.ContactorClose, 0);
+            SwitchOpen.CopyTo(c.SwitchOpen, 0);
+            SwitchClose.CopyTo(c.SwitchClose, 0);
+            SwitchChargeSpring.CopyTo(c.SwitchChargeSpring, 0);
+            return c;
+        }
     }
 
     /// <summary>

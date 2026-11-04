@@ -19,6 +19,8 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly ZoneOutputs[] _zoneOutputs = new ZoneOutputs[4];
         private readonly StationInstruments _instruments;
         private readonly Dictionary<string, int> _ioLink = new Dictionary<string, int>();
+        private readonly Dictionary<string, DigitalOutputChannel> _outputs =
+            DigitalOutputs.All.ToDictionary(o => o.Name, o => new DigitalOutputChannel(o));
 
         public FieldSimulation Field => _field;
 
@@ -101,6 +103,8 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.DriveFault = selected > 0 && _field.DriveFault(selected);
             }
 
+            WriteDigitalInputs();
+
             // ================================================================ instruments
             // A zone counts as running from its run request until its drive has stopped
             var zoneRunning = new bool[4];
@@ -150,7 +154,64 @@ namespace SempaPumpStation.Infrastructure.Plc
                         speedReference[i] = _zoneOutputs[z].SpeedReference;
                     }
 
-            _field.Update(_zoneOutputs, run, speedReference, _instruments.Device, _cycle);
+            // "Io".DigitalOutputs: every command goes through its output channel (FB_Io_DigitalOutput), so a forced
+            // output is what reaches the field
+            var fieldOutputs = new ZoneOutputs[4];
+            for (int z = 1; z <= Station.ZoneCount; z++)
+            {
+                var o = fieldOutputs[z] = _zoneOutputs[z].Clone();
+                string zone = "Zone" + z + "_";
+                foreach (var s in Station.Sources)
+                {
+                    if (!s.IsMagneticSwitch)
+                        o.ContactorClose[s.Id] = Output(zone + s.Device + "_Close", o.ContactorClose[s.Id]);
+                    else
+                    {
+                        o.SwitchOpen[s.Id] = Output(zone + s.Device + "_Open", o.SwitchOpen[s.Id]);
+                        o.SwitchClose[s.Id] = Output(zone + s.Device + "_Close", o.SwitchClose[s.Id]);
+                        o.SwitchChargeSpring[s.Id] = Output(zone + s.Device + "_ChargeSpring", o.SwitchChargeSpring[s.Id]);
+                    }
+                }
+                o.LampGreen = Output(zone + "LampGreen", o.LampGreen);
+                o.LampYellow = Output(zone + "LampYellow", o.LampYellow);
+                o.LampRed = Output(zone + "LampRed", o.LampRed);
+            }
+            foreach (var s in Station.Sources) run[s.Id] = Output("Drive_" + s.Drive + "_Run", run[s.Id]);
+
+            _field.Update(fieldOutputs, run, speedReference, _instruments.Device, _cycle);
+        }
+
+        private bool Output(string channel, bool cmd) => _outputs[channel].Run(_t, cmd);
+
+        // "Io".DigitalInputs as the field drives them (not forced in the simulation), for the IO watch table
+        private void WriteDigitalInputs()
+        {
+            for (int z = 1; z <= Station.ZoneCount; z++)
+            {
+                string zone = "Zone" + z + "_";
+                foreach (var s in Station.Sources)
+                {
+                    Input(zone + s.Device + "_Open", _field.DeviceOpen(z, s.Id));
+                    Input(zone + s.Device + "_Closed", _field.DeviceClosed(z, s.Id));
+                    if (s.IsMagneticSwitch) Input(zone + s.Device + "_SpringCharged", _field.SpringCharged(z, s.Id));
+                }
+                Input(zone + "PendantStart", _field.PendantStart(z));
+                Input(zone + "PendantStop", _field.PendantStop(z));
+                Input(zone + "PendantTakeSample", _field.PendantTakeSample(z));
+                Input(zone + "EStopOk", _field.EStopOk(z));
+            }
+            foreach (var s in Station.Sources)
+            {
+                Input("Drive_" + s.Drive + "_Running", _field.DriveRunning(s.Id));
+                Input("Drive_" + s.Drive + "_Fault", _field.DriveFault(s.Id));
+            }
+        }
+
+        private void Input(string channel, bool value)
+        {
+            string ph = "MaintenancePh.Io.DigitalInputs." + channel + ".";
+            _t.W(ph + "RawValue", value);
+            _t.W(ph + "Pv", value);
         }
 
         // The physical wiring: every sensor on its IO list port, free ports read as an open 4-20 mA input

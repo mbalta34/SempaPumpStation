@@ -9,7 +9,7 @@ param(
 )
 
 # DB numbers in MainPLC
-$dbNumbers = [ordered]@{ MaintenancePh = 102; StationHp = 201; StationPh = 202; StationSamples = 203; StationInstruments = 204; IoLink = 205 }
+$dbNumbers = [ordered]@{ MaintenanceHp = 101; MaintenancePh = 102; StationHp = 201; StationPh = 202; StationSamples = 203; StationInstruments = 204; IoLink = 205 }
 
 # Types provided by TerakkiFramework.Plc.Hmi (same layout as the PLC's FB_Hmi_* UDTs) or hand-written (DTL)
 $external = 'st_Hmi_Hp_CommandButton', 'st_Hmi_Ph_CommandButton', 'st_Hmi_Hp_ParameterInt', 'st_Hmi_Ph_ParameterInt',

@@ -38,6 +38,8 @@ namespace SempaPumpStation.Infrastructure
         public StationSamplesDb Samples { get; }
         public StationInstrumentsDb Library { get; }
         public MaintenancePhDb Maintenance { get; }
+        /// <summary>HMI-to-PLC side of the IO channels (forcing); written only, like StationHp.</summary>
+        public MaintenanceHpDb MaintenanceHp { get; }
         /// <summary>Raw values of the IO-Link hubs, for the IO-Link screen.</summary>
         public IoLinkDb IoLink { get; }
 
@@ -63,13 +65,18 @@ namespace SempaPumpStation.Infrastructure
             Samples = new StationSamplesDb(_connection, w, ReadPlan.DbBulk);
             Library = new StationInstrumentsDb(_connection, w, ReadPlan.DbBulk);
             Maintenance = new MaintenancePhDb(_connection, w, ReadPlan.DbBulk);
+            MaintenanceHp = new MaintenanceHpDb(_connection, w, ReadPlan.Individual);
             IoLink = new IoLinkDb(_connection, w, ReadPlan.DbBulk);
 
             // Status and live values fast; the sample buffers once a second (12 kB, consistent with
             // TestActive since both come from one read); the library rarely changes.
             var ai = Maintenance.Io.AnalogInputs;
+            var din = Maintenance.Io.DigitalInputs;
+            var dout = Maintenance.Io.DigitalOutputs;
             AddPlan("PH", 150, StationPhDb.Number, 0, S7Layout.SizeOf(Ph), Ph);
             AddPlan("AI", 300, MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai), ai);
+            AddPlan("DI", 300, MaintenancePhDb.Number, din.ByteOffset, S7Layout.SizeOf(din), din);
+            AddPlan("DO", 300, MaintenancePhDb.Number, dout.ByteOffset, S7Layout.SizeOf(dout), dout);
             AddPlan("SAMPLES", 1000, StationSamplesDb.Number, 0, S7Layout.SizeOf(Samples), Samples);
             AddPlan("LIBRARY", 5000, StationInstrumentsDb.Number, 0, S7Layout.SizeOf(Library), Library);
             AddPlan("IOLINK", 500, IoLinkDb.Number, 0, S7Layout.SizeOf(IoLink), IoLink);
@@ -77,10 +84,12 @@ namespace SempaPumpStation.Infrastructure
             // Logged so a drift between these models and the PLC's DBs shows up at once (compare with
             // the DB lengths / offsets in TIA)
             _log.Information("Interface layout: StationHp DB{Hp} {HpLen} B | StationPh DB{Ph} {PhLen} B | StationSamples DB{S} {SLen} B | " +
-                             "StationInstruments DB{L} {LLen} B | MaintenancePh DB{M} AnalogInputs @{AiOff} {AiLen} B | IoLink DB{IoL} {IoLLen} B",
+                             "StationInstruments DB{L} {LLen} B | MaintenancePh DB{M} AnalogInputs @{AiOff} {AiLen} B, DigitalInputs @{DiOff} {DiLen} B, DigitalOutputs @{DoOff} {DoLen} B | " +
+                             "MaintenanceHp DB{MH} {MHLen} B | IoLink DB{IoL} {IoLLen} B",
                 StationHpDb.Number, S7Layout.SizeOf(Hp), StationPhDb.Number, S7Layout.SizeOf(Ph),
                 StationSamplesDb.Number, S7Layout.SizeOf(Samples), StationInstrumentsDb.Number, S7Layout.SizeOf(Library),
-                MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai), IoLinkDb.Number, S7Layout.SizeOf(IoLink));
+                MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai), din.ByteOffset, S7Layout.SizeOf(din), dout.ByteOffset, S7Layout.SizeOf(dout),
+                MaintenanceHpDb.Number, S7Layout.SizeOf(MaintenanceHp), IoLinkDb.Number, S7Layout.SizeOf(IoLink));
         }
 
         private void AddPlan(string id, int intervalMs, int db, int start, int length, SiemensS7PlcTag tag)
@@ -91,9 +100,9 @@ namespace SempaPumpStation.Infrastructure
             _connection.RegisterTagToPlan(id, tag);
         }
 
-        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog inputs and the IO-Link hubs.</summary>
+        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog and digital inputs, the digital outputs (state and forcing) and the IO-Link hubs.</summary>
         public IEnumerable<SiemensS7PlcTag> Leaves() =>
-            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, IoLink }.SelectMany(Flatten);
+            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, MaintenanceHp.Io.DigitalOutputs, IoLink }.SelectMany(Flatten);
 
         private static IEnumerable<SiemensS7PlcTag> Flatten(SiemensS7PlcTag tag)
         {
