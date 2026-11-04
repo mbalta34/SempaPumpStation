@@ -134,8 +134,13 @@
             <Border Grid.Column="0" Background="{StaticResource B.Rail}" BorderBrush="{StaticResource B.Border}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Bottom" Padding="12" BorderBrush="{StaticResource B.Border}" BorderThickness="0,1,0,0">
-                        <Button Content="Uygulamadan Çık" Style="{StaticResource Btn}" Click="Close_Click"
-                                sec:Access.Requires="App.Exit"/>
+                        <StackPanel>
+                            <Button Content="Uygulamadan Çık" Style="{StaticResource Btn}" Click="Close_Click"
+                                    sec:Access.Requires="App.Exit"/>
+                            <!-- Version; hover shows this release's notes -->
+                            <TextBlock Text="{x:Static inf:AppVersion.DisplayName}" ToolTip="{x:Static inf:AppVersion.CurrentNotes}"
+                                       HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="11" Foreground="{StaticResource B.TextFaint}"/>
+                        </StackPanel>
                     </Border>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>

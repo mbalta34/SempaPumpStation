@@ -178,6 +178,16 @@ namespace SempaPumpStation.Infrastructure.Plc
             }
             foreach (var s in Station.Sources) run[s.Id] = Output("Drive_" + s.Drive + "_Run", run[s.Id]);
 
+            // "Io".AnalogOutputs: the VFD speed references, scaled 0..100 % → 0..27648 as commissioned
+            foreach (var o in AnalogOutputList.All)
+            {
+                double percent = speedReference[o.Source.Id];
+                _t.W(o.Ph + "Pv", percent);
+                _t.W(o.Ph + "RawValue", (int)System.Math.Round(System.Math.Max(0, System.Math.Min(100, percent)) / 100.0 * 27648));
+                _t.W(o.Ph + "MinPv.Value", 0.0);
+                _t.W(o.Ph + "MaxPv.Value", 100.0);
+            }
+
             _field.Update(fieldOutputs, run, speedReference, _instruments.Device, _cycle);
         }
 

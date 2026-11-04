@@ -61,7 +61,7 @@ namespace SempaPumpStation
             catch (Exception ex)
             {
                 Log(ex);
-                MessageBox.Show(ex.ToString(), "Başlatma hatası");
+                MessageBox.Show(ex.ToString(), AppVersion.DisplayName + " — başlatma hatası");
                 Shutdown(1);
             }
         }
@@ -116,7 +116,7 @@ namespace SempaPumpStation
             var ioEntry = System.Linq.Enumerable.First(vm.DiagNav, e => e.Key == "Io");
             var io = (Screens.IoViewModel)ioEntry.Screen;
             vm.NavigateCommand.Execute(ioEntry);
-            foreach (var (tab, file) in new[] { (Screens.IoViewModel.AnalogInputsTab, "Io_Analog"), (Screens.IoViewModel.DigitalOutputsTab, "Io_Outputs") })
+            foreach (var (tab, file) in new[] { (Screens.IoViewModel.AnalogInputsTab, "Io_Analog"), (Screens.IoViewModel.DigitalOutputsTab, "Io_Outputs"), (Screens.IoViewModel.AnalogOutputsTab, "Io_AnalogOutputs") })
             {
                 io.ShowTab(tab);
                 shell.UpdateLayout();
@@ -341,6 +341,14 @@ namespace SempaPumpStation
             var pt2 = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(io.AnalogGroups, g => g.Rows), r => r.Name == "Zone1_Pt2");
             Check("AI watch shows value, raw and range (" + pt2.Value + ", " + pt2.Raw + ", " + pt2.Range + ")",
                   pt2.Value.EndsWith("bar") && pt2.Raw.Length > 0 && pt2.Range.Contains("16"));
+            io.ShowTab(Screens.IoViewModel.AnalogOutputsTab);
+            Steps(2);
+            // Zone 1 runs on the 37 kW VFD: its speed reference is on that drive's output, the unused VFDs read 0
+            var ao37 = System.Linq.Enumerable.First(io.AnalogOutputs, r => r.Name == "Drive_37Vfd_SpeedReference");
+            var ao630 = System.Linq.Enumerable.First(io.AnalogOutputs, r => r.Name == "Drive_630Vfd_SpeedReference");
+            string zone1Speed = c.GetDouble(Station.ZonePh(1) + "SpeedReference.Value").ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " %";
+            Check("AO watch shows the speed references (" + ao37.Value + " = zone 1 " + zone1Speed + ", " + ao630.Value + ")",
+                  io.AnalogOutputs.Count == 4 && ao37.Value == zone1Speed && ao630.Value == "0.0 %" && ao37.Raw != "0");
             io.ShowTab(Screens.IoViewModel.DigitalInputsTab);
         }
 

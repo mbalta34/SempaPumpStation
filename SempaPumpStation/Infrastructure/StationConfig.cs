@@ -31,6 +31,7 @@ namespace SempaPumpStation.Infrastructure
         {
             var log = LogBootstrap.CreateDefault("logs\\plc.log", Serilog.Events.LogEventLevel.Information);
             var cfg = new StationConfig { Log = log };
+            log.Information("{App} starting", AppVersion.DisplayName);
 
             // GlobalConfig reads config.xml from the working directory, as in RailHMI
             Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);

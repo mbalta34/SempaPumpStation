@@ -33,6 +33,11 @@ namespace SempaPumpStation.Infrastructure
                 for (int z = 1; z <= Station.ZoneCount; z++) AddIoLink(t, z);
                 foreach (var o in DigitalOutputs.All) AddDigitalOutput(t, o);
                 foreach (var i in DigitalInputs.All) { B(t, i.Ph + "Pv"); B(t, i.Ph + "RawValue"); B(t, i.Ph + "WireBreak"); B(t, i.Ph + "ForcingActive"); }
+                foreach (var o in AnalogOutputList.All)
+                {
+                    R(t, o.Ph + "Pv"); I(t, o.Ph + "RawValue"); B(t, o.Ph + "ForcingActive");
+                    R(t, o.Ph + "MinPv.Value"); R(t, o.Ph + "MaxPv.Value");
+                }
             }
             AddSimulation(t);
             AddHmiLocal(t);

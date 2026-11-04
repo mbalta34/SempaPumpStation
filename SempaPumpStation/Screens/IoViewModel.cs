@@ -41,6 +41,20 @@ namespace SempaPumpStation.Screens
         public string Status { get => _status; set => Set(ref _status, value); }
     }
 
+    /// <summary>One analog output (VFD speed reference) in the watch table.</summary>
+    public sealed class AnalogOutputRow : ViewModelBase
+    {
+        public AnalogOutputInfo Info { get; set; }
+        public string Label => Info.Label;
+        public string Name => Info.Name;
+
+        private string _value = "", _raw = "", _range = "", _status = "";
+        public string Value { get => _value; set => Set(ref _value, value); }
+        public string Raw { get => _raw; set => Set(ref _raw, value); }
+        public string Range { get => _range; set => Set(ref _range, value); }
+        public string Status { get => _status; set => Set(ref _status, value); }
+    }
+
     public sealed class AnalogGroup
     {
         public string Title { get; set; }
@@ -48,12 +62,12 @@ namespace SempaPumpStation.Screens
     }
 
     /// <summary>
-    /// IO watch and force (as in BluePrism's maintenance HMI): the digital and analog inputs of "Io" live, and the
-    /// digital output force table.
+    /// IO watch and force (as in BluePrism's maintenance HMI): the digital and analog inputs and the analog outputs of
+    /// "Io" live, and the digital output force table.
     /// </summary>
     public sealed class IoViewModel : ScreenBase
     {
-        public const int DigitalInputsTab = 0, AnalogInputsTab = 1, DigitalOutputsTab = 2;
+        public const int DigitalInputsTab = 0, AnalogInputsTab = 1, DigitalOutputsTab = 2, AnalogOutputsTab = 3;
 
         public override string Key => "Io";
         public override string Title => "IO İzleme ve Zorlama";
@@ -61,6 +75,7 @@ namespace SempaPumpStation.Screens
         public ObservableCollection<ChoiceItem> Tabs { get; } = new ObservableCollection<ChoiceItem>();
         public ObservableCollection<InputGroup> InputGroups { get; } = new ObservableCollection<InputGroup>();
         public ObservableCollection<AnalogGroup> AnalogGroups { get; } = new ObservableCollection<AnalogGroup>();
+        public ObservableCollection<AnalogOutputRow> AnalogOutputs { get; } = new ObservableCollection<AnalogOutputRow>();
         public OutputForceViewModel Outputs { get; }
 
         private int _tab = -1;
@@ -68,13 +83,14 @@ namespace SempaPumpStation.Screens
         public bool ShowDigitalInputs => _tab == DigitalInputsTab;
         public bool ShowAnalogInputs => _tab == AnalogInputsTab;
         public bool ShowDigitalOutputs => _tab == DigitalOutputsTab;
+        public bool ShowAnalogOutputs => _tab == AnalogOutputsTab;
 
         public IoViewModel(HmiContext ctx) : base(ctx)
         {
             Outputs = new OutputForceViewModel(ctx);
 
             string[] titles = { "Dijital Girişler (" + DigitalInputs.All.Length + ")", "Analog Girişler (" + AnalogInputList.All.Length + ")",
-                                "Dijital Çıkışlar — Zorlama (" + DigitalOutputs.All.Length + ")" };
+                                "Dijital Çıkışlar — Zorlama (" + DigitalOutputs.All.Length + ")", "Analog Çıkışlar (" + AnalogOutputList.All.Length + ")" };
             for (int i = 0; i < titles.Length; i++)
             {
                 int tab = i;
@@ -90,6 +106,7 @@ namespace SempaPumpStation.Screens
                 foreach (var a in AnalogInputList.All.Where(a => a.Group == title)) group.Rows.Add(new AnalogRow { Info = a });
                 AnalogGroups.Add(group);
             }
+            foreach (var o in AnalogOutputList.All) AnalogOutputs.Add(new AnalogOutputRow { Info = o });
 
             ShowTab(DigitalInputsTab);
             ctx.Scanned += (o, e) => Refresh();
@@ -110,6 +127,7 @@ namespace SempaPumpStation.Screens
             OnPropertyChanged(nameof(ShowDigitalInputs));
             OnPropertyChanged(nameof(ShowAnalogInputs));
             OnPropertyChanged(nameof(ShowDigitalOutputs));
+            OnPropertyChanged(nameof(ShowAnalogOutputs));
             Refresh();
         }
 
@@ -125,6 +143,15 @@ namespace SempaPumpStation.Screens
                 }
             else if (ShowAnalogInputs)
                 foreach (var row in AnalogGroups.SelectMany(g => g.Rows)) RefreshAnalog(row);
+            else if (ShowAnalogOutputs)
+                foreach (var row in AnalogOutputs)
+                {
+                    string ph = row.Info.Ph;
+                    row.Value = Number(ph + "Pv", "0.0") + " %";
+                    row.Raw = Ctx.GetInt(ph + "RawValue").ToString(CultureInfo.InvariantCulture);
+                    row.Range = Number(ph + "MinPv.Value", "0.##") + " … " + Number(ph + "MaxPv.Value", "0.##") + " %";
+                    row.Status = Ctx.GetBool(ph + "ForcingActive") ? "Zorlanıyor" : "";
+                }
         }
 
         private void RefreshAnalog(AnalogRow row)

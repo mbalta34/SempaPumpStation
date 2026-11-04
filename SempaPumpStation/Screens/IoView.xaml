@@ -129,6 +129,45 @@
                 </ItemsControl>
             </ScrollViewer>
 
+            <!-- ============ Analog outputs: the VFD speed references ============ -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,12,20,20"
+                          Visibility="{Binding ShowAnalogOutputs, Converter={StaticResource BoolVis}}">
+                <Border Style="{StaticResource Card}" Padding="10" HorizontalAlignment="Left" Width="900" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="SÜRÜCÜ HIZ REFERANSLARI" Style="{StaticResource T.Section}"/>
+                        <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding AnalogOutputs}" IsReadOnly="True" RowHeight="34"
+                                  HeadersVisibility="Column" CanUserSortColumns="False">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Kanal" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="9.5" Foreground="{StaticResource B.TextFaint}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Değer" Binding="{Binding Value}" Width="110"/>
+                                <DataGridTextColumn Header="Ham" Binding="{Binding Raw}" Width="80"/>
+                                <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="120"/>
+                                <DataGridTextColumn Header="Durum" Binding="{Binding Status}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Text="Hız referansı, sürücüyü kullanan bölgenin HIZ REFERANSI değeridir; sürücü bir bölgeye bağlı değilken 0'dır."/>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+
             <!-- ============ Digital outputs: the force table ============ -->
             <ContentControl Content="{Binding Outputs}" Focusable="False"
                             Visibility="{Binding ShowDigitalOutputs, Converter={StaticResource BoolVis}}"/>
