@@ -5,9 +5,9 @@
              xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
     <Grid Margin="20">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="1.05*"/>
             <ColumnDefinition Width="14"/>
-            <ColumnDefinition Width="1.25*"/>
+            <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
 
         <!-- ============ Positions ============ -->
@@ -18,10 +18,11 @@
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
                                Text="Pozisyona takılan cihazın kütüphane numarasını girin. Yeni cihaz kabul edilince parametreleri analog girişe yüklenir; kütüphane kaydı değiştiyse Yükle'ye basın. Bölgesi çalışırken pozisyon kilitlidir; aynı cihaz iki pozisyona takılamaz."/>
                 </StackPanel>
-                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Positions}" IsReadOnly="True" RowHeight="32">
+                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Positions}" IsReadOnly="True" RowHeight="32"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Pozisyon" Binding="{Binding Name}" Width="130"/>
-                        <DataGridTextColumn Header="Tür" Binding="{Binding CategoryName}" Width="110"/>
+                        <DataGridTextColumn Header="Pozisyon" Binding="{Binding Name}" Width="138"/>
+                        <DataGridTextColumn Header="Tür" Binding="{Binding CategoryName}" Width="125"/>
                         <DataGridTemplateColumn Header="Cihaz No" Width="74">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -31,7 +32,8 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Cihaz" Width="*">
+                        <!-- Fixed widths: on a narrower screen the table scrolls sideways instead of cutting columns -->
+                        <DataGridTemplateColumn Header="Cihaz" Width="200">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
@@ -42,9 +44,9 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="110"/>
-                        <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" Width="90"/>
-                        <DataGridTemplateColumn Header="" Width="62">
+                        <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="105"/>
+                        <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" Width="88"/>
+                        <DataGridTemplateColumn Header="" Width="66">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border sec:Access.Requires="Instruments.Mount">
@@ -79,7 +81,9 @@
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
                                Text="Hücreye çift tıklayıp düzenleyin (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer."/>
                 </StackPanel>
+                <!-- Fixed column widths: wider than the card, the table scrolls sideways (No and Tanım stay) instead of cutting columns -->
                 <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                           sec:Access.Requires="Instruments.Library">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="No" Binding="{Binding Device}" IsReadOnly="True" Width="40"/>
@@ -94,7 +98,7 @@
                         <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha}" Width="56"/>
                         <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="80"/>
                         <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="64"/>
-                        <DataGridTextColumn Header="Takılı" Binding="{Binding MountedAt}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="Takılı" Binding="{Binding MountedAt}" IsReadOnly="True" Width="140"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>

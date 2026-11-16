@@ -145,6 +145,10 @@ namespace SempaPumpStation
                 var login = System.Linq.Enumerable.FirstOrDefault(System.Linq.Enumerable.OfType<LoginWindow>(Windows));
                 if (login == null) return;
                 shown = true;
+                // Filled in, so the capture shows whether the password dots fit their box
+                var lvm = (LoginViewModel)login.DataContext;
+                lvm.Username = "operator";
+                lvm.Password = "sifre1234";
                 login.UpdateLayout();
                 Capture(login, Path.Combine(dir, "LoginDialog.png"));
                 ((LoginViewModel)login.DataContext).CancelCommand.Execute(null);

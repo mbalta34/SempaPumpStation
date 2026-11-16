@@ -6,6 +6,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/TerakkiUI;component/Resources/HmiBrushes.xaml"/>
+                <!-- Thin RailHMI-style scrollbars in every window -->
+                <ResourceDictionary Source="/TerakkiUI;component/Resources/ScrollBarStyles.xaml"/>
                 <ResourceDictionary Source="/SempaPumpStation;component/Theme/Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -23,7 +23,7 @@
                      Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
 
             <TextBlock Text="Şifre" Style="{StaticResource T.Label}" FontSize="10.5" Margin="0,0,0,3"/>
-            <u:BindablePasswordBox x:Name="PasswordField" Password="{Binding Password, Mode=TwoWay}" Height="34"/>
+            <u:BindablePasswordBox x:Name="PasswordField" Password="{Binding Password, Mode=TwoWay}"/>
 
             <TextBlock Text="{Binding Error}" Foreground="{StaticResource B.Alarm}" TextWrapping="Wrap" FontSize="12.5" Margin="0,10,0,0"/>
 
