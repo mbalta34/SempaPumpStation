@@ -190,9 +190,8 @@ namespace SempaPumpStation.Infrastructure
             bool submersible = string.Equals(r.Get("DALGIC_PMP_SEL"), "True", StringComparison.OrdinalIgnoreCase);
             foreach (var s in r.Samples)
             {
-                double dp = s.DischargePressure - (submersible ? 0.0 : s.SuctionPressure);
-                s.Head = dp * 10.197 + geo;
-                s.HydraulicPower = s.Flow * s.Head / 367.2;
+                s.Head = PumpCalc.Head(s.DischargePressure, s.SuctionPressure, submersible, geo);
+                s.HydraulicPower = PumpCalc.HydraulicPower(s.Flow, s.Head);
             }
         }
 

@@ -127,13 +127,14 @@ namespace SempaPumpStation.Infrastructure.Plc
     }
 
     /// <summary>
-    /// Port of FB_Hmi_ParameterInt (no min/max limits). <see cref="Value"/> is the PLC's working
-    /// value; writing it from PLC code pushes it back to the HMI on the next call, as the SCL does.
+    /// Port of BluePrism's FB_Hmi_ParameterInt (no min/max limits). <see cref="Value"/> is the PLC's working
+    /// value. The PLC never writes Hp: an HMI entry is a change of Hp's value since the last scan, so whatever
+    /// Hp holds at start-up is not an entry. A change of <see cref="Value"/> by PLC code sets Q.
     /// </summary>
     public sealed class HmiParameterInt
     {
         private bool _firstCycle = true;
-        private int _previousValue;
+        private int _previousValue, _toPlcOldValue;
         public int Value;
         public int RetainValue;
         public bool Q { get; private set; }
@@ -144,23 +145,22 @@ namespace SempaPumpStation.Infrastructure.Plc
             if (_firstCycle)
             {
                 Value = retain ? RetainValue : initialValue;
-                _previousValue = Value;     // as in the PLC: no false change next cycle
-                t.W(hp + ".Value", Value);
+                _toPlcOldValue = t.I(hp + ".Value");
                 _firstCycle = false;
                 return;
             }
 
             if (_previousValue != Value)
             {
-                t.W(hp + ".Value", Value);
                 _previousValue = Value;
                 Q = true;
             }
 
-            if (enable)
+            int requested = t.I(hp + ".Value");
+            if (requested != _toPlcOldValue)
             {
-                int requested = t.I(hp + ".Value");
-                if (requested != Value)
+                _toPlcOldValue = requested;
+                if (enable)
                 {
                     Value = requested;
                     if (_previousValue != Value)
@@ -170,10 +170,6 @@ namespace SempaPumpStation.Infrastructure.Plc
                     }
                 }
             }
-            else
-            {
-                t.W(hp + ".Value", Value);
-            }
 
             RetainValue = Value;
             t.W(ph + ".Value", Value);
@@ -181,11 +177,11 @@ namespace SempaPumpStation.Infrastructure.Plc
         }
     }
 
-    /// <summary>Port of FB_Hmi_ParameterReal (no min/max limits). Same handshake as the Int version.</summary>
+    /// <summary>Port of BluePrism's FB_Hmi_ParameterReal (no min/max limits). Same handshake as the Int version.</summary>
     public sealed class HmiParameterReal
     {
         private bool _firstCycle = true;
-        private double _previousValue;
+        private double _previousValue, _toPlcOldValue;
         public double Value;
         public double RetainValue;
         public bool Q { get; private set; }
@@ -196,23 +192,22 @@ namespace SempaPumpStation.Infrastructure.Plc
             if (_firstCycle)
             {
                 Value = retain ? RetainValue : initialValue;
-                _previousValue = Value;     // as in the PLC: no false change next cycle
-                t.W(hp + ".Value", Value);
+                _toPlcOldValue = t.R(hp + ".Value");
                 _firstCycle = false;
                 return;
             }
 
             if (!Same(_previousValue, Value))
             {
-                t.W(hp + ".Value", Value);
                 _previousValue = Value;
                 Q = true;
             }
 
-            if (enable)
+            double requested = t.R(hp + ".Value");
+            if (!Same(requested, _toPlcOldValue))
             {
-                double requested = t.R(hp + ".Value");
-                if (!Same(requested, Value))
+                _toPlcOldValue = requested;
+                if (enable)
                 {
                     Value = requested;
                     if (!Same(_previousValue, Value))
@@ -221,10 +216,6 @@ namespace SempaPumpStation.Infrastructure.Plc
                         Q = true;
                     }
                 }
-            }
-            else
-            {
-                t.W(hp + ".Value", Value);
             }
 
             RetainValue = Value;
@@ -236,27 +227,30 @@ namespace SempaPumpStation.Infrastructure.Plc
         private static bool Same(double a, double b) => (float)a == (float)b;
     }
 
-    /// <summary>Port of FB_Hmi_CommandButton with buttonType BUTTON_MOMENTARY.</summary>
+    /// <summary>
+    /// Port of BluePrism's FB_Hmi_CommandButton with buttonType BUTTON_MOMENTARY: a press is the rising edge
+    /// of Hp.Click, which the HMI pulses; the PLC never clears it. A Click already TRUE at start-up is no press.
+    /// </summary>
     public sealed class HmiCommandButton
     {
         private bool _firstCycle = true;
-        private bool _value, _previousValue;
+        private bool _value, _previousValue, _clickLastScan;
         public bool QR { get; private set; }
 
         public void Run(PlcTags t, string hp, string ph, bool enable = true)
         {
             QR = false;
+            bool click = t.B(hp + ".Click");
+            if (_firstCycle) _clickLastScan = click;
+
             if (_value || _firstCycle)
             {
                 _value = false;
                 _firstCycle = false;
             }
 
-            if (t.B(hp + ".Click"))
-            {
-                if (enable) _value = true;
-                t.W(hp + ".Click", false);
-            }
+            if (enable && click && !_clickLastScan) _value = true;
+            _clickLastScan = click;
 
             if (_previousValue != _value)
             {

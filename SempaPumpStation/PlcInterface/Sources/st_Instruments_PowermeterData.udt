@@ -1,0 +1,12 @@
+﻿TYPE "st_Instruments_PowermeterData"
+VERSION : 0.1
+   STRUCT
+      CommOk : Bool;   // The meter answered every request of its last cycle; values are 0 while FALSE
+      PhaseA { S7_SetPoint := 'False'} : "st_Instruments_PowermeterPhaseData";
+      PhaseB { S7_SetPoint := 'False'} : "st_Instruments_PowermeterPhaseData";
+      PhaseC { S7_SetPoint := 'False'} : "st_Instruments_PowermeterPhaseData";
+      General : "st_Instruments_PowermeterPhaseData";
+   END_STRUCT;
+
+END_TYPE
+

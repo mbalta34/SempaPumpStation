@@ -31,6 +31,8 @@ namespace SempaPumpStation.Infrastructure
                         foreach (var f in Station.InstrumentFields) Add(t, Station.LibraryEntry(c, d) + f.Name, f.Kind);
                 for (int z = 1; z <= Station.ZoneCount; z++) AddSamples(t, z);
                 for (int z = 1; z <= Station.ZoneCount; z++) AddIoLink(t, z);
+                for (int s = 1; s <= Station.SourceCount; s++) AddPowermeter(t, s);
+                S(t, "StationPh.PlcVersion");
                 foreach (var o in DigitalOutputs.All) AddDigitalOutput(t, o);
                 foreach (var i in DigitalInputs.All) { B(t, i.Ph + "Pv"); B(t, i.Ph + "RawValue"); B(t, i.Ph + "WireBreak"); B(t, i.Ph + "ForcingActive"); }
                 foreach (var o in AnalogOutputList.All)
@@ -78,6 +80,14 @@ namespace SempaPumpStation.Infrastructure
             B(t, o.Ph + "ForcingActive"); B(t, o.Ph + "Pv");
         }
 
+        private static void AddPowermeter(List<TagDefinition> t, int source)
+        {
+            string m = Station.Meter(source);
+            B(t, m + "CommOk");
+            foreach (var g in Station.MeterGroups)
+                foreach (var v in Station.MeterValues) R(t, m + g + "." + v);
+        }
+
         private static void AddIoLink(List<TagDefinition> t, int z)
         {
             foreach (var hub in new[] { IoLinkModule.RtdHub, IoLinkModule.AnalogHub })
@@ -120,7 +130,7 @@ namespace SempaPumpStation.Infrastructure
 
         private static void AddHmiLocal(List<TagDefinition> t)
         {
-            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); B(t, "PLC_INTERFACE_OK"); I(t, "GLOBAL_DENEY_NO");
+            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); B(t, "PLC_INTERFACE_OK"); B(t, "PLC_VERSION_OK"); S(t, "PLC_VERSION_TEXT"); I(t, "GLOBAL_DENEY_NO");
             B(t, "DALGIC_PMP_SEL");
 
             // ---- Report values (WRT_* = master data selected from the recipes) ----
@@ -164,6 +174,8 @@ namespace SempaPumpStation.Infrastructure
             {
                 { "PLC_COMM_OK", true },
                 { "PLC_INTERFACE_OK", true },
+                { "PLC_VERSION_OK", true },
+                { "PLC_VERSION_TEXT", "PLC —" },
                 { "GLOBAL_DENEY_NO", 1042 },
 
                 { "WRT_FIRMA_ADI", "AKDENIZ SU ARITMA A.Ş." },

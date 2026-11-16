@@ -115,7 +115,7 @@ namespace SempaPumpStation.Controls
 
             if (IsStringType(target.DataType))
             {
-                target.TagValue = Text ?? string.Empty;
+                Write(target, Text ?? string.Empty);
                 return;
             }
 
@@ -124,11 +124,23 @@ namespace SempaPumpStation.Controls
 
             if (double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double d))
             {
-                target.TagValue = IsIntegerType(target.DataType)
-                    ? (object)(int)Math.Round(d)
-                    : (object)d;
+                object value = IsIntegerType(target.DataType) ? (object)(int)Math.Round(d) : (object)d;
+                Write(target, value);
             }
             PullFromTag();
+        }
+
+        /// <summary>
+        /// An HMI parameter (separate Hp write tag and Ph tag) goes through <see cref="HmiContext.WriteParameter(IPlcTag, IPlcTag, object)"/>,
+        /// so re-entering a value the PLC refused before still counts as an entry.
+        /// </summary>
+        private void Write(IPlcTag target, object value)
+        {
+            var ctx = Infrastructure.HmiContext.Current;
+            if (ctx != null && WriteTag != null && PlcTag != null && !ReferenceEquals(WriteTag, PlcTag))
+                ctx.WriteParameter(WriteTag, PlcTag, value);
+            else
+                target.TagValue = value;
         }
 
         private static bool IsStringType(DataType t)

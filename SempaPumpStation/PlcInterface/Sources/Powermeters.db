@@ -1,0 +1,13 @@
+DATA_BLOCK "Powermeters"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+NON_RETAIN
+   STRUCT 
+      Meter : Array[1..8] of "st_Instruments_PowermeterData";   // Decoded PM5550 values per power source, in source order. Standard access: the HMI reads it by address
+   END_STRUCT;
+
+
+BEGIN
+
+END_DATA_BLOCK
+

@@ -173,17 +173,32 @@ namespace SempaPumpStation
             string Sim(int z) => Station.SimZone(z);
 
             Steps(20);   // instruments accepted and loaded, springs charging
+            Check("PLC program version read and as expected (" + c.PlcVersion + ")",
+                  c.PlcVersion == AppVersion.ExpectedPlcVersion && c.GetBool("PLC_VERSION_OK") && c.GetString("PLC_VERSION_TEXT") == "PLC " + AppVersion.ExpectedPlcVersion);
 
             // Zone 1 takes the 37 kW VFD; zone 2 must not get the same source
-            c.SetValue(Hp(1) + "PowerSource.Value", (short)4);
+            c.WriteParameter(Hp(1) + "PowerSource.Value", Ph(1) + "PowerSource.Value", (short)4);
             Steps(15);
             Check("zone 1 connects source 4", c.GetInt(Ph(1) + "PowerSource.Value") == 4 && c.GetInt(Ph(1) + "PowerState") == Station.StateConnected);
-            c.SetValue(Hp(2) + "PowerSource.Value", (short)4);
+            c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)4);
             Steps(3);
             Check("zone 2 cannot select source 4", c.GetInt(Ph(2) + "PowerSource.Value") == 0 && c.GetBool(Ph(2) + "SelectionRejected"));
-            c.SetValue(Hp(2) + "Flowmeter.Value", (short)1);
+            c.WriteParameter(Hp(2) + "Flowmeter.Value", Ph(2) + "Flowmeter.Value", (short)1);
             Steps(3);
             Check("zone 2 cannot take shared FM1 of zone 1", c.GetInt(Ph(2) + "Flowmeter.Value") == 2);
+
+            // The PLC never writes Hp (BluePrism FB_Hmi_*): zone 2's Hp still holds the refused 1, yet entering 1 again
+            // once it is free must count as an entry
+            c.WriteParameter(Hp(1) + "Flowmeter.Value", Ph(1) + "Flowmeter.Value", (short)3);
+            Steps(3);
+            c.WriteParameter(Hp(2) + "Flowmeter.Value", Ph(2) + "Flowmeter.Value", (short)1);
+            Steps(3);
+            Check("a refused selection can be entered again once it is free", c.GetInt(Ph(1) + "Flowmeter.Value") == 3 && c.GetInt(Ph(2) + "Flowmeter.Value") == 1);
+            c.WriteParameter(Hp(2) + "Flowmeter.Value", Ph(2) + "Flowmeter.Value", (short)2);
+            Steps(3);
+            c.WriteParameter(Hp(1) + "Flowmeter.Value", Ph(1) + "Flowmeter.Value", (short)1);
+            Steps(3);
+            Check("selections restored (zone 1 FM1, zone 2 FM2)", c.GetInt(Ph(1) + "Flowmeter.Value") == 1 && c.GetInt(Ph(2) + "Flowmeter.Value") == 2);
 
             // Sampling needs a test; the pump does not
             Press(Sim(1) + "PendantTakeSample");
@@ -203,6 +218,13 @@ namespace SempaPumpStation
                 Press(Sim(1) + "PendantTakeSample");
             }
             Check("six samples taken", c.GetInt(Ph(1) + "SampleCount") == 6);
+            var live = PumpCalc.Live(c, 1);
+            Check("Pp from source 4's meter (" + (live.PumpPower?.ToString("0.00") ?? "—") + " kW, eff " + (live.Efficiency?.ToString("0.0") ?? "—") + " %)",
+                  c.GetBool(Station.Meter(4) + "CommOk") && live.Source == 4 && live.PumpPower > 0
+                  && live.Efficiency > 10 && live.Efficiency < 90);
+            Check("zone voltage and current come from the meter",
+                  c.GetDouble(Station.Sample(1, 6) + "Voltage") > 390 && c.GetDouble(Station.Sample(1, 6) + "Current") > 0);
+            Check("unused meters read no load", c.GetDouble(Station.Meter(8) + "General.ActivePower") == 0 && c.GetBool(Station.Meter(8) + "CommOk"));
             double q1 = c.GetDouble(Station.Sample(1, 1) + "Flow"), q6 = c.GetDouble(Station.Sample(1, 6) + "Flow");
             double p1 = c.GetDouble(Station.Sample(1, 1) + "DischargePressure"), p6 = c.GetDouble(Station.Sample(1, 6) + "DischargePressure");
             Check(string.Format("throttling lowers flow and raises pressure (Q {0:0.0}→{1:0.0}, Pd {2:0.00}→{3:0.00})", q1, q6, p1, p6), q6 < q1 && p6 > p1);
@@ -215,14 +237,14 @@ namespace SempaPumpStation
             Check("samples stay after end test", c.GetInt(Ph(1) + "SampleCount") == 6);
 
             // A position cannot take a device mounted elsewhere
-            c.SetValue(Station.PositionHp("Zone3_Pt1") + "Device.Value", (short)1);
+            c.WriteParameter(Station.PositionHp("Zone3_Pt1") + "Device.Value", Station.PositionPh("Zone3_Pt1") + "Device.Value", (short)1);
             Steps(3);
             Check("device mounted twice is rejected", c.GetInt(Station.PositionPh("Zone3_Pt1") + "Device.Value") == 9
                                                      && c.GetBool(Station.PositionPh("Zone3_Pt1") + "SelectionRejected"));
             Check("position locked while its zone runs", !c.GetBool(Station.PositionPh("Zone1_Pt1") + "Device.Enabled"));
 
             // Zone 3: 560 kW magnetic switch with spring, then E-stop
-            c.SetValue(Hp(3) + "PowerSource.Value", (short)7);
+            c.WriteParameter(Hp(3) + "PowerSource.Value", Ph(3) + "PowerSource.Value", (short)7);
             Steps(60);
             Check("zone 3 magnetic switch closes after spring charge", c.GetInt(Ph(3) + "PowerState") == Station.StateConnected);
             c.SetValue(Sim(3) + "EStopPressed", true);
@@ -245,7 +267,7 @@ namespace SempaPumpStation
             Steps(40);
 
             // Zone 2 runs too, for the overview captures
-            c.SetValue(Hp(2) + "PowerSource.Value", (short)6);
+            c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)6);
             Steps(15);
             c.Click(Hp(2) + "StartTest");
             Press(Sim(2) + "PendantStart");
@@ -266,7 +288,7 @@ namespace SempaPumpStation
 
             // Zone 3 is stopped, so every transmitter reads 0 bar; unmount Pt2's device to tell its port apart
             int pt2Device = c.GetInt(Ph("Zone3_Pt2") + "Device.Value");
-            c.SetValue(Station.PositionHp("Zone3_Pt2") + "Device.Value", (short)0);
+            c.WriteParameter(Station.PositionHp("Zone3_Pt2") + "Device.Value", Station.PositionPh("Zone3_Pt2") + "Device.Value", (short)0);
             Steps(3);
             Check("transmitters read their fixed ports", Raw("Zone3_Pt1") == Hub(0) && Raw("Zone3_Pt2") == Hub(1)
                                                          && Hub(1) == IoLinkLayout.OpenInputRaw && Hub(0) != Hub(1));
@@ -286,7 +308,7 @@ namespace SempaPumpStation
             Steps(3);
             Check("a device mounted elsewhere is refused", c.GetInt(Ph("Zone3_Pt2") + "Device.Value") == free.Value
                                                            && c.GetBool(Ph("Zone3_Pt2") + "SelectionRejected"));
-            c.SetValue(Station.PositionHp("Zone3_Pt2") + "Device.Value", (short)pt2Device);
+            c.WriteParameter(Station.PositionHp("Zone3_Pt2") + "Device.Value", Station.PositionPh("Zone3_Pt2") + "Device.Value", (short)pt2Device);
             Steps(3);
             Check("restored", c.GetInt(Ph("Zone3_Pt2") + "Device.Value") == pt2Device);
 

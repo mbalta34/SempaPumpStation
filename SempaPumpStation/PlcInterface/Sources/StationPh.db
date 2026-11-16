@@ -1,13 +1,14 @@
-﻿DATA_BLOCK "StationPh"
-{ S7_Optimized_Access := 'TRUE' }
+DATA_BLOCK "StationPh"
+{ S7_Optimized_Access := 'FALSE' }
 VERSION : 0.1
 NON_RETAIN
-   VAR 
+   STRUCT 
       Zone1 : "st_Station_Ph_Zone";
       Zone2 : "st_Station_Ph_Zone";
       Zone3 : "st_Station_Ph_Zone";
       Instruments : "st_Station_Ph_Instruments";
-   END_VAR
+      PlcVersion : String[20];   // Program version, written by FB_Station_Main; the HMI shows it and compares it with the one it was built for
+   END_STRUCT;
 
 
 BEGIN

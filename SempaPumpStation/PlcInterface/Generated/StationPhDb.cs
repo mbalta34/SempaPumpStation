@@ -23,11 +23,13 @@ namespace SempaPumpStation.PlcInterface
             Zone2 = k.Next(new st_Station_Ph_Zone(c, name + ".Zone2", db, k.Struct(), w, r));
             Zone3 = k.Next(new st_Station_Ph_Zone(c, name + ".Zone3", db, k.Struct(), w, r));
             Instruments = k.Next(new st_Station_Ph_Instruments(c, name + ".Instruments", db, k.Struct(), w, r));
+            PlcVersion = k.Leaf(name + ".PlcVersion", DataType.STRING, 20);
         }
 
         public st_Station_Ph_Zone Zone1 { get; private set; }
         public st_Station_Ph_Zone Zone2 { get; private set; }
         public st_Station_Ph_Zone Zone3 { get; private set; }
         public st_Station_Ph_Instruments Instruments { get; private set; }
+        public SiemensS7PlcTag PlcVersion { get; private set; }
     }
 }

@@ -13,10 +13,19 @@ namespace SempaPumpStation.Infrastructure
     {
         // ---- bump these ----
         public const int Major = 1;
-        public const int Minor = 4;
+        public const int Minor = 5;
         public const int Build = 0;
 
         public const string ProductName = "Sempa HMI";
+
+        /// <summary>
+        /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.3.4). Another version in the PLC raises an alarm.
+        /// </summary>
+        public const string ExpectedPlcVersion = "1.3.4";
+
+        /// <summary>Tooltip of the PLC version in the rail.</summary>
+        public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
 
         /// <summary>e.g. "1.0.0"</summary>
         public static string Version => $"{Major}.{Minor}.{Build}";
@@ -30,6 +39,17 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.5.0", "2026-11-16", new[]
+            {
+                "New Enerji Analizörleri screen: the eight PM5550 meters, one per power source, with phase voltages, currents, powers and power factor, totals, frequency, energy and whether each meter answers.",
+                "Pp on the TV and zone screens is the active power measured by the selected source's meter; efficiency is hydraulic power over that power. The zone screen also shows voltage and current.",
+                "New TV Ekranı screen: Q, Hm, Pp and efficiency in large figures with the sample and test numbers, like the old TV page.",
+                "Continuous data log of the zones' values to SQLite, CSV or XML (config.xml DataLog), during tests and on every sample.",
+                "The PLC program version is shown under the HMI version in the navigation rail; a PLC running another version than the one this HMI is built for (PLC 1.3.4) raises a warning.",
+                "Buttons pulse their Click and parameter entries always reach the PLC, also re-entering a value it refused before, for BluePrism's FB_Hmi_* blocks, which never write the HMI→PLC data blocks.",
+                "Needs Powermeters (DB303, standard access), the Modbus TCP blocks, StationPh.PlcVersion and BluePrism's FB_Hmi_* (hp in / ph out on the entry blocks) in the PLC.",
+            }),
+
             new ChangeLogEntry("1.4.0", "2026-11-04", new[]
             {
                 "The IO screen has a fourth tab, Analog Çıkışlar: the speed reference sent to each VFD, with its raw value, range and forcing state.",

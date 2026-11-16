@@ -141,7 +141,7 @@ namespace SempaPumpStation.Screens
         private void Mount(int device)
         {
             if (_selected == null || !CanAssign) return;
-            Ctx.SetValue(Station.PositionHp(_selected.Info.Position) + "Device.Value", (short)device);
+            Ctx.WriteParameter(Station.PositionHp(_selected.Info.Position) + "Device.Value", Station.PositionPh(_selected.Info.Position) + "Device.Value", (short)device);
         }
 
         // ---------------------------------------------------------------- live values

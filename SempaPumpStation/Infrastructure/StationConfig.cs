@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using TerakkiFramework.Config;
 using TerakkiFramework.Logging;
@@ -14,10 +15,15 @@ namespace SempaPumpStation.Infrastructure
     /// &lt;Rack&gt;0&lt;/Rack&gt; &lt;Slot&gt;1&lt;/Slot&gt;              S7-1500 CPU: 0 / 1
     /// &lt;AutoLogoutMinutes&gt;15&lt;/AutoLogoutMinutes&gt;      logout after this long without input, 0 = never
     /// &lt;PasswordMaxAgeDays&gt;90&lt;/PasswordMaxAgeDays&gt;    password must be changed after this, 0 = never
+    /// &lt;DataLog&gt;Sqlite&lt;/DataLog&gt;                     data log outputs: any of Sqlite, Csv, Xml (comma-separated), None; default Sqlite
+    /// &lt;DataLogRetentionDays&gt;90&lt;/DataLogRetentionDays&gt;  data older than this is deleted, 0 = keep everything
     /// </code>
     /// </summary>
     public sealed class StationConfig
     {
+        /// <summary>Lower-case output names: sqlite, csv, xml. Empty = no data log.</summary>
+        public string[] DataLogOutputs { get; private set; } = { "sqlite" };
+        public int DataLogRetentionDays { get; private set; } = 90;
         public bool UsePlc { get; private set; }
         public string IpAddress { get; private set; }
         public int Rack { get; private set; }
@@ -49,6 +55,12 @@ namespace SempaPumpStation.Infrastructure
                     if (int.TryParse((string)root?.Element("Slot"), out v)) cfg.Slot = v;
                     if (int.TryParse((string)root?.Element("AutoLogoutMinutes"), out v)) cfg.AutoLogout = TimeSpan.FromMinutes(Math.Max(0, v));
                     if (int.TryParse((string)root?.Element("PasswordMaxAgeDays"), out v)) cfg.PasswordMaxAge = TimeSpan.FromDays(Math.Max(0, v));
+                    if (int.TryParse((string)root?.Element("DataLogRetentionDays"), out v)) cfg.DataLogRetentionDays = Math.Max(0, v);
+                    var outputs = (string)root?.Element("DataLog");
+                    if (outputs != null)
+                        cfg.DataLogOutputs = outputs.ToLowerInvariant()
+                            .Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Where(o => o != "none").Distinct().ToArray();
                 }
             }
             catch (Exception ex)

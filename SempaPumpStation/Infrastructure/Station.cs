@@ -140,6 +140,20 @@ namespace SempaPumpStation.Infrastructure
         public static string LibraryEntry(int category, int device) => "StationInstruments." + LibraryArray(category) + "[" + device + "].";
         public static string SimZone(int zone) => "Sim.Zone" + zone + ".";
         public static string SimDrive(int source) => "Sim.Drive" + source + ".";
+        /// <summary>The PM5550 on a power source ("Powermeters".Meter[s], filled by FB_Communication_Pm5550Decoder).</summary>
+        public static string Meter(int source) => "Powermeters.Meter[" + source + "].";
+
+        // ---------------------------------------------------------------- power meters
+        /// <summary>The value groups of a meter (st_Instruments_PowermeterData).</summary>
+        public static readonly string[] MeterGroups = { "PhaseA", "PhaseB", "PhaseC", "General" };
+        /// <summary>The values of each group (st_Instruments_PowermeterPhaseData).</summary>
+        public static readonly string[] MeterValues =
+            { "Voltage", "Current", "ActivePower", "ReactivePower", "ApparentPower", "PowerFactor", "ActiveEnergy", "ReactiveEnergy", "ApparentEnergy", "Frequency" };
+        /// <summary>
+        /// The PM5550's energy registers count in Wh (PM5500 register list, Float32 energies from 2700): the
+        /// PLC passes them on unchanged, the HMI shows kWh.
+        /// </summary>
+        public const double MeterEnergyPerKwh = 1000.0;
 
         /// <summary>Selection parameters of a zone (FB_Station_ZoneHmi): name and whether it is Real.</summary>
         public static readonly string[] ZoneIntParameters = { "PowerSource", "Flowmeter", "DischargeTransmitter" };

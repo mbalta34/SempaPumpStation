@@ -71,6 +71,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         public void Update(ZoneOutputs[] outputs, bool[] driveRun, double[] driveSpeedReference, Func<string, int> mountedDevice, PlcCycle c)
         {
             double dt = c.DtMs / 1000.0;
+            _meterPhase += dt * 0.2;   // slow supply-voltage ripple on the meters
 
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
@@ -135,6 +136,40 @@ namespace SempaPumpStation.Infrastructure.Plc
             _coilTimer[z, s] += c.DtMs;
             return _coilTimer[z, s] >= ContactorDelayMs ? coil : _closed[z, s];
         }
+
+        // ---------------------------------------------------------------- power meters
+        /// <summary>What the PM5550 on source s would measure, in the units the PLC's decoder produces.</summary>
+        public sealed class MeterReading
+        {
+            public double VoltageLL, VoltageLN, Current, ActiveKw, ReactiveKvar, ApparentKva, PowerFactor, Frequency;
+        }
+
+        /// <summary>
+        /// The supply is always there (400 V, 50 Hz); while the drive runs, the electrical power is the
+        /// pump's hydraulic power over a typical pump and motor efficiency plus a no-load loss.
+        /// </summary>
+        public MeterReading Meter(int s)
+        {
+            var m = new MeterReading { VoltageLL = 400.0 + 1.5 * Math.Sin(_meterPhase + s), Frequency = 50.0 };
+            m.VoltageLN = m.VoltageLL / Math.Sqrt(3.0);
+
+            int z = FedZone(s);
+            if (z > 0 && _driveRunning[s])
+            {
+                var info = Station.Source(s);
+                double hydraulicKw = _flow[z] * _head[z] / 367.2;
+                double overallEfficiency = 0.62;   // pump about 0.70 x motor about 0.89
+                double noLoadKw = 0.03 * info.RatedKw * _driveSpeed[s];
+                m.ActiveKw = hydraulicKw / overallEfficiency + noLoadKw;
+                m.PowerFactor = info.IsVfd ? 0.95 : 0.86;
+                m.ApparentKva = m.ActiveKw / m.PowerFactor;
+                m.ReactiveKvar = Math.Sqrt(Math.Max(0.0, m.ApparentKva * m.ApparentKva - m.ActiveKw * m.ActiveKw));
+                m.Current = m.ApparentKva * 1000.0 / (Math.Sqrt(3.0) * m.VoltageLL);
+            }
+            return m;
+        }
+
+        private double _meterPhase;
 
         /// <summary>The zone that has source s connected, 0 = none.</summary>
         public int FedZone(int s)

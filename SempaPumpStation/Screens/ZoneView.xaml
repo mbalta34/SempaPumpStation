@@ -153,9 +153,17 @@
                                       Value="{Binding Ai[Sound.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                         <c:MetricTile Caption="ORTAM SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding Ai[AmbientTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
+                        <c:MetricTile Caption="POMPA GÜCÜ (Pp)" Unit="kW" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Run}"
+                                      Value="{Binding PowerText}"/>
+                        <c:MetricTile Caption="VERİM" Unit="%" ValueSize="22" Margin="0,0,0,8" ValueBrush="{StaticResource B.Accent}"
+                                      Value="{Binding EfficiencyText}"/>
+                        <c:MetricTile Caption="GERİLİM (F-F)" Unit="V" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding VoltageText}"/>
+                        <c:MetricTile Caption="AKIM" Unit="A" ValueSize="22" Margin="0,0,0,8"
+                                      Value="{Binding CurrentText}"/>
                     </UniformGrid>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="2,4,0,0"
-                               Text="Gerilim ve akım Modbus güç analizöründen gelecek; PLC'de henüz bağlı değil."/>
+                               Text="Güç, gerilim ve akım seçili kaynağın PM5550 enerji analizöründen; verim = hidrolik güç / elektriksel güç."/>
                 </StackPanel>
 
                 <!-- ============ Test & samples ============ -->

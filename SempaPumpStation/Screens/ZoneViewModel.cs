@@ -71,7 +71,7 @@ namespace SempaPumpStation.Screens
         {
             Value = value,
             Title = title,
-            Command = new SyncCommand(() => Ctx.SetValue(Hp.Prefix + parameter + ".Value", (short)value)),
+            Command = new SyncCommand(() => Ctx.WriteParameter(Hp.Prefix + parameter + ".Value", Ph.Prefix + parameter + ".Value", (short)value)),
         };
 
         // ---------------------------------------------------------------- live state
@@ -90,6 +90,13 @@ namespace SempaPumpStation.Screens
         private double _head;
         /// <summary>Live total head, m (pressure difference + gauge height difference).</summary>
         public double Head { get => _head; private set => Set(ref _head, value); }
+
+        // From the PM5550 of the selected source; "—" while none is selected or its meter does not answer
+        private string _powerText = "—", _efficiencyText = "—", _voltageText = "—", _currentText = "—";
+        public string PowerText { get => _powerText; private set => Set(ref _powerText, value); }
+        public string EfficiencyText { get => _efficiencyText; private set => Set(ref _efficiencyText, value); }
+        public string VoltageText { get => _voltageText; private set => Set(ref _voltageText, value); }
+        public string CurrentText { get => _currentText; private set => Set(ref _currentText, value); }
 
         private string _flowUnit = "m³/h";
         public string FlowUnit { get => _flowUnit; private set => Set(ref _flowUnit, value); }
@@ -152,9 +159,13 @@ namespace SempaPumpStation.Screens
             FlowUnit = string.IsNullOrEmpty(unit) ? "m³/h" : unit;
             InstrumentsText = "Vakummetre: " + DeviceText(Station.Vacuummeter, Ctx.GetInt(Ph.Prefix + "VacuummeterDevice"));
 
-            double pd = Ctx.GetDouble(Ph.Prefix + "DischargePressure"), ps = Ctx.GetDouble(Ph.Prefix + "SuctionPressure");
-            bool submersible = Ctx.GetBool("DALGIC_PMP_SEL");
-            Head = (pd - (submersible ? 0 : ps)) * 10.197 + Ctx.GetDouble("GEO_YUKSEKLIK");
+            var reading = PumpCalc.Live(Ctx, _zone);
+            Head = reading.Head;
+            PowerText = reading.PumpPower?.ToString("0.00") ?? "—";
+            EfficiencyText = reading.Efficiency?.ToString("0.0") ?? "—";
+            string meter = reading.Source > 0 ? Station.Meter(reading.Source) : null;
+            VoltageText = meter != null ? Ctx.GetDouble(meter + "General.Voltage").ToString("0") : "—";
+            CurrentText = meter != null ? Ctx.GetDouble(meter + "General.Current").ToString("0.0") : "—";
 
             bool active = Ctx.GetBool(Samples.Prefix + "TestActive");
             string started = Ctx.GetDtl(Samples.Prefix + "TestStarted");

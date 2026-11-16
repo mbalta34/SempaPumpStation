@@ -1,10 +1,10 @@
 ﻿DATA_BLOCK "MaintenancePh"
-{ S7_Optimized_Access := 'TRUE' }
+{ S7_Optimized_Access := 'FALSE' }
 VERSION : 0.1
 NON_RETAIN
-   VAR 
+   STRUCT 
       Io : "st_Io_Ph";
-   END_VAR
+   END_STRUCT;
 
 
 BEGIN

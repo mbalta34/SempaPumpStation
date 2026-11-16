@@ -69,6 +69,12 @@ namespace SempaPumpStation.Infrastructure.Plc
             WriteIoLink();
             foreach (var ch in _ai.Values) ch.Run(_t, RoutedRaw(ch.Name));
 
+            // ================================================================ "Communication": PM5550s → "Powermeters"
+            WritePowermeters(dtMs / 1000.0);
+
+            // FB_Station_Main: the program version for the HMI (the simulation is the program this HMI is built for)
+            _t.W("StationPh.PlcVersion", AppVersion.ExpectedPlcVersion);
+
             // ================================================================ read IO
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
@@ -95,12 +101,12 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.Temperature = _ai["Zone" + z + "_Temperature"].Pv;
                 p.Sound = _ai["Zone" + z + "_Sound"].Pv;
                 p.Speed = _ai["Zone" + z + "_Speed"].Pv;
-                p.Voltage = 0.0;   // TODO Modbus power meter
-                p.Current = 0.0;   // TODO Modbus power meter
-
                 int selected = _zoneOutputs[z].SelectedSource;
                 p.DriveRunning = selected > 0 && _field.DriveRunning(selected);
                 p.DriveFault = selected > 0 && _field.DriveFault(selected);
+                // As FB_Station_Main: the meter of the selected source, 0 while none is selected
+                p.Voltage = selected > 0 ? _t.R(Station.Meter(selected) + "General.Voltage") : 0.0;
+                p.Current = selected > 0 ? _t.R(Station.Meter(selected) + "General.Current") : 0.0;
             }
 
             WriteDigitalInputs();
@@ -222,6 +228,39 @@ namespace SempaPumpStation.Infrastructure.Plc
             string ph = "MaintenancePh.Io.DigitalInputs." + channel + ".";
             _t.W(ph + "RawValue", value);
             _t.W(ph + "Pv", value);
+        }
+
+        // FB_Communication_Pm5550Decoder's result: every meter answers; phases share the load evenly.
+        // Energies count up in Wh, as the PM5550 reports them.
+        private readonly double[] _activeWh = new double[9], _reactiveWh = new double[9], _apparentWh = new double[9];
+
+        private void WritePowermeters(double dt)
+        {
+            for (int s = 1; s <= Station.SourceCount; s++)
+            {
+                var m = _field.Meter(s);
+                string meter = Station.Meter(s);
+                _activeWh[s] += m.ActiveKw * dt / 3.6;
+                _reactiveWh[s] += m.ReactiveKvar * dt / 3.6;
+                _apparentWh[s] += m.ApparentKva * dt / 3.6;
+
+                _t.W(meter + "CommOk", true);
+                foreach (var group in Station.MeterGroups)
+                {
+                    bool general = group == "General";
+                    string g = meter + group + ".";
+                    _t.W(g + "Voltage", general ? m.VoltageLL : m.VoltageLN);
+                    _t.W(g + "Current", m.Current);
+                    _t.W(g + "ActivePower", general ? m.ActiveKw : m.ActiveKw / 3.0);
+                    _t.W(g + "ReactivePower", general ? m.ReactiveKvar : m.ReactiveKvar / 3.0);
+                    _t.W(g + "ApparentPower", general ? m.ApparentKva : m.ApparentKva / 3.0);
+                    _t.W(g + "PowerFactor", m.PowerFactor);
+                    _t.W(g + "Frequency", m.Frequency);
+                    _t.W(g + "ActiveEnergy", general ? _activeWh[s] : 0.0);
+                    _t.W(g + "ReactiveEnergy", general ? _reactiveWh[s] : 0.0);
+                    _t.W(g + "ApparentEnergy", general ? _apparentWh[s] : 0.0);
+                }
+            }
         }
 
         // The physical wiring: every sensor on its IO list port, free ports read as an open 4-20 mA input

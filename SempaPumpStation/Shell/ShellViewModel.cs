@@ -80,8 +80,10 @@ namespace SempaPumpStation.Shell
             for (int z = 1; z <= Station.ZoneCount; z++)
                 Add(MainNav, "Zone" + z, "⧉", "Bölge " + z, new ZoneViewModel(ctx, z));
             Add(MainNav, "Instruments", "◎", "Enstrümanlar", new InstrumentsViewModel(ctx));
+            Add(MainNav, "Powermeters", "ϟ", "Enerji Analizörleri", new PowermetersViewModel(ctx));
             Add(MainNav, "IoLink", "⇄", "IO-Link", new IoLinkViewModel(ctx));
             Add(MainNav, "Report", "≣", "Deney Raporu", new ReportViewModel(ctx));
+            Add(MainNav, "Tv", "▭", "TV Ekranı", new TvViewModel(ctx));
 
             Add(RecipeNav, "FirmaRecipe", "◆", "Firma Reçetesi", new FirmaRecipeViewModel(ctx));
             Add(RecipeNav, "PompaRecipe", "◆", "Pompa Reçetesi", new PompaRecipeViewModel(ctx));

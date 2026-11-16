@@ -109,6 +109,7 @@ namespace SempaPumpStation.Infrastructure
             {
                 new AlarmDef { Tag = "PLC_COMM_OK", Message = "PLC ile SCADA haberleşmesi koptu", Severity = "ALARM", ActiveWhenFalse = true },
                 new AlarmDef { Tag = "PLC_INTERFACE_OK", Message = "PLC programı bu HMI sürümüyle uyumsuz — güncel programı PLC'ye yükleyin", Severity = "ALARM", ActiveWhenFalse = true },
+                new AlarmDef { Tag = "PLC_VERSION_OK", Message = "PLC program sürümü bu HMI'nın beklediğinden farklı (HMI PLC " + AppVersion.ExpectedPlcVersion + " bekliyor)", Severity = "WARN", ActiveWhenFalse = true },
             };
             for (int z = 1; z <= Station.ZoneCount; z++)
             {

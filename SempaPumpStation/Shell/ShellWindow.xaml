@@ -21,13 +21,16 @@
         <inf:BoolTextConverter x:Key="BoolText"/>
         <conv:BooleanToVisibilityConverter x:Key="BoolVis" NonBoolVisibility="Collapsed"/>
         <conv:BooleanToBrushConverter x:Key="CommBrush" TrueBrush="{StaticResource B.Run}" FalseBrush="{StaticResource B.Alarm}"/>
+        <conv:BooleanToBrushConverter x:Key="PlcVersionBrush" TrueBrush="{StaticResource B.TextFaint}" FalseBrush="{StaticResource B.Warn}"/>
 
         <!-- Screen VM → View map -->
         <DataTemplate DataType="{x:Type s:OverviewViewModel}"><s:OverviewView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:ZoneViewModel}"><s:ZoneView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:InstrumentsViewModel}"><s:InstrumentsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:PowermetersViewModel}"><s:PowermetersView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:IoLinkViewModel}"><s:IoLinkView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:ReportViewModel}"><s:ReportView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:TvViewModel}"><s:TvView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:FirmaRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:PompaRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:MotorRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
@@ -141,6 +144,10 @@
                             <!-- Version; hover shows this release's notes -->
                             <TextBlock Text="{x:Static inf:AppVersion.DisplayName}" ToolTip="{x:Static inf:AppVersion.CurrentNotes}"
                                        HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="11" Foreground="{StaticResource B.TextFaint}"/>
+                            <!-- PLC program version ("StationPh".PlcVersion); warning colour when it is not the one this HMI is built for -->
+                            <TextBlock Text="{Binding Context.Tags[PLC_VERSION_TEXT].TagValue}" ToolTip="{x:Static inf:AppVersion.PlcVersionNote}"
+                                       Foreground="{Binding Context.Tags[PLC_VERSION_OK].TagValue, Converter={StaticResource PlcVersionBrush}}"
+                                       HorizontalAlignment="Center" Margin="0,2,0,0" FontSize="11"/>
                         </StackPanel>
                     </Border>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">

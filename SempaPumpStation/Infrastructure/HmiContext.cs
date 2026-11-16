@@ -8,7 +8,9 @@ using SempaPumpStation.Shell;
 using TerakkiFramework.Communication.Abstractions;
 using TerakkiFramework.Logging;
 using TerakkiFramework.Logging.Audit;
+using TerakkiFramework.Logging.Data;
 using TerakkiFramework.Plc.Abstractions;
+using TerakkiFramework.Plc.Hmi;
 using TerakkiFramework.Plc.Local;
 using TerakkiFramework.Security;
 using TerakkiFramework.Tags;
@@ -31,9 +33,24 @@ namespace SempaPumpStation.Infrastructure
     {
         public const double ScanMs = 100;
 
+        /// <summary>How long a command button's Click stays TRUE against the real PLC (BluePrism FB_Hmi_CommandButton acts on its rising edge).</summary>
+        public const int ClickPulseMs = 300;
+
         private IConnectionService _connection;
         private TagProjectRuntime _runtime;
         private DispatcherTimer _timer;
+
+        /// <summary>The running context, for controls that write PLC parameters (TagTextBox).</summary>
+        public static HmiContext Current { get; private set; }
+
+        // Hp writes that complete an entry: the value, written once the PLC has seen the step before it
+        private sealed class PendingWrite
+        {
+            public IPlcTag Tag;
+            public object Value;
+            public int ScansLeft;
+        }
+        private readonly List<PendingWrite> _pending = new List<PendingWrite>();
 
         /// <summary>Live tags keyed by name — the binding surface for every screen.</summary>
         public Dictionary<string, IPlcTag> Tags { get; } = new Dictionary<string, IPlcTag>(StringComparer.OrdinalIgnoreCase);
@@ -46,6 +63,8 @@ namespace SempaPumpStation.Infrastructure
         public string BackendText => IsSimulation ? "Simülasyon" : "PLC " + Link.IpAddress;
 
         public TestArchive Archive { get; private set; }
+        /// <summary>The continuous data log; null when config.xml turns it off.</summary>
+        public DataLogger DataLog { get; private set; }
         public UserSecurity Security { get; private set; }
         /// <summary>Idle time after which the user is logged out (config.xml AutoLogoutMinutes); zero = never.</summary>
         public TimeSpan AutoLogout { get; private set; }
@@ -99,6 +118,8 @@ namespace SempaPumpStation.Infrastructure
             }
             else
             {
+                // Before the link builds its tags: Click is pulsed, the PLC never clears it
+                st_Hmi_Hp_CommandButton.ClickPulseMs = ClickPulseMs;
                 Link = new StationPlcLink(config.IpAddress, config.Rack, config.Slot, config.Log);
                 foreach (var leaf in Link.Leaves()) Tags[leaf.Name] = leaf;
                 SetFromDevice("PLC_COMM_OK", false);
@@ -106,7 +127,9 @@ namespace SempaPumpStation.Infrastructure
             }
 
             Archive = new TestArchive(this);
+            DataLog = StationDataLog.Start(this, config);
 
+            Current = this;
             _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(ScanMs) };
             _timer.Tick += (s, e) => Step();
             _timer.Start();
@@ -115,6 +138,7 @@ namespace SempaPumpStation.Infrastructure
         /// <summary>One PLC scan plus the HMI's own cyclic work. Public so the smoke test can fast-forward.</summary>
         public void Step()
         {
+            CompletePendingWrites();   // entries and click releases due after the scan before this one
             if (Plc != null) Plc.Scan(ScanMs);
             else
             {
@@ -123,14 +147,30 @@ namespace SempaPumpStation.Infrastructure
                 SetFromDevice("PLC_COMM_OK", Link.DataOk);
                 SetFromDevice("PLC_INTERFACE_OK", Link.Problem == null);
             }
+            UpdatePlcVersion();
             SetFromDevice("TARIH_SAAT", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"));
             Archive.Poll();
             Scanned?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>The program version the PLC reports ("StationPh".PlcVersion), empty until it has been read.</summary>
+        public string PlcVersion => (GetString("StationPh.PlcVersion") ?? string.Empty).Trim();
+
+        /// <summary>
+        /// "PLC 1.3.4" for the rail, and PLC_VERSION_OK for the alarm list: false when the PLC runs another program
+        /// version than <see cref="AppVersion.ExpectedPlcVersion"/>. Not yet read is no mismatch (the link alarms cover it).
+        /// </summary>
+        private void UpdatePlcVersion()
+        {
+            string version = PlcVersion;
+            SetFromDevice("PLC_VERSION_TEXT", "PLC " + (version.Length > 0 ? version : "—"));
+            SetFromDevice("PLC_VERSION_OK", version.Length == 0 || version == AppVersion.ExpectedPlcVersion);
+        }
+
         public void Shutdown()
         {
             _timer?.Stop();
+            DataLog?.Dispose();
             Link?.Stop();
             _runtime?.Dispose();
         }
@@ -198,7 +238,62 @@ namespace SempaPumpStation.Infrastructure
         public void Toggle(string name) => SetValue(name, !GetBool(name));
 
         /// <summary>Click of an HMI command button: sets Hp.Click, which the PLC takes and clears.</summary>
-        public void Click(string hpButton) => SetValue(hpButton + ".Click", true);
+        public void Click(string hpButton)
+        {
+            var click = Tag(hpButton + ".Click");
+            if (click == null) return;
+            click.TagValue = true;
+            // The PLC acts on the rising edge and never clears Click. Against the PLC the tag pulses itself
+            // (ClickPulseMs); in the simulation it is released once the simulated PLC has scanned it.
+            if (IsSimulation) Later(click, false, 2);
+        }
+
+        // ---------------- HMI parameter entries ----------------
+        // BluePrism FB_Hmi_Parameter*: the PLC never writes its HMI→PLC block; a new entry is a CHANGE of the
+        // Hp value. Hp therefore can still hold an entry the PLC refused (a source held by another zone) or
+        // replaced. Re-entering that same value would be no change and be ignored, so an entry that differs
+        // from the PLC's value first writes the PLC's own value (a change the PLC takes as "no new value"),
+        // then the entry once the PLC has scanned that step.
+
+        /// <summary>Operator entry of an HMI parameter: Hp value tag, its Ph value tag (the PLC's value), new value.</summary>
+        public void WriteParameter(IPlcTag hpValue, IPlcTag phValue, object value)
+        {
+            if (hpValue == null) return;
+            _pending.RemoveAll(p => p.Tag == hpValue);   // a newer entry replaces one still on its way
+            if (phValue == null || Same(phValue.TagValue, value))
+            {
+                hpValue.TagValue = value;
+                return;
+            }
+            hpValue.TagValue = phValue.TagValue;
+            Later(hpValue, value, IsSimulation ? 2 : (int)Math.Ceiling(ClickPulseMs / ScanMs) + 1);
+        }
+
+        /// <summary><see cref="WriteParameter(IPlcTag, IPlcTag, object)"/> by tag names.</summary>
+        public void WriteParameter(string hpValue, string phValue, object value) => WriteParameter(Tag(hpValue), Tag(phValue), value);
+
+        private void Later(IPlcTag tag, object value, int scans) =>
+            _pending.Add(new PendingWrite { Tag = tag, Value = value, ScansLeft = Math.Max(1, scans) });
+
+        /// <summary>Called at the start of every scan: a write queued with N scans lands before scan N, so the PLC has scanned the step before it.</summary>
+        private void CompletePendingWrites()
+        {
+            for (int i = _pending.Count - 1; i >= 0; i--)
+            {
+                var p = _pending[i];
+                if (--p.ScansLeft > 0) continue;
+                _pending.RemoveAt(i);
+                p.Tag.TagValue = p.Value;
+            }
+        }
+
+        private static bool Same(object a, object b)
+        {
+            if (a == null || b == null) return Equals(a, b);
+            if (a is string || b is string) return string.Equals(Convert.ToString(a), Convert.ToString(b));
+            try { return Math.Abs(Convert.ToDouble(a) - Convert.ToDouble(b)) < 1e-6; }
+            catch { return Equals(a, b); }
+        }
 
         /// <summary>Momentary field signal (a Sim.* MOMENTARY_BOOL pulses back to false by itself).</summary>
         public void Pulse(string name) => SetValue(name, true);
