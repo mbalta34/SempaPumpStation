@@ -42,6 +42,11 @@ namespace SempaPumpStation.PlcInterface
             LampGreen = k.Leaf(name + ".LampGreen", DataType.BOOL);
             LampYellow = k.Leaf(name + ".LampYellow", DataType.BOOL);
             LampRed = k.Leaf(name + ".LampRed", DataType.BOOL);
+            RotationTestTime = k.Next(new st_Hmi_Ph_ParameterReal(c, name + ".RotationTestTime", db, k.Struct(), w, r));
+            RotationTest = k.Next(new st_Hmi_Ph_CommandButton(c, name + ".RotationTest", db, k.Struct(), w, r));
+            ConfirmRotation = k.Next(new st_Hmi_Ph_CommandButton(c, name + ".ConfirmRotation", db, k.Struct(), w, r));
+            RotationState = k.Leaf(name + ".RotationState", DataType.INT);
+            RotationRemaining = k.Leaf(name + ".RotationRemaining", DataType.REAL);
         }
 
         public st_Hmi_Ph_ParameterInt PowerSource { get; private set; }
@@ -72,5 +77,10 @@ namespace SempaPumpStation.PlcInterface
         public SiemensS7PlcTag LampGreen { get; private set; }
         public SiemensS7PlcTag LampYellow { get; private set; }
         public SiemensS7PlcTag LampRed { get; private set; }
+        public st_Hmi_Ph_ParameterReal RotationTestTime { get; private set; }
+        public st_Hmi_Ph_CommandButton RotationTest { get; private set; }
+        public st_Hmi_Ph_CommandButton ConfirmRotation { get; private set; }
+        public SiemensS7PlcTag RotationState { get; private set; }
+        public SiemensS7PlcTag RotationRemaining { get; private set; }
     }
 }

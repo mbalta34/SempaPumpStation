@@ -107,6 +107,12 @@ namespace SempaPumpStation.Screens
         private string _testText;
         public string TestText { get => _testText; private set => Set(ref _testText, value); }
 
+        // Rotation test: Station.Rotation* state and a line for the operator
+        private int _rotationState;
+        private string _rotationText = "";
+        public int RotationState { get => _rotationState; private set => Set(ref _rotationState, value); }
+        public string RotationText { get => _rotationText; private set => Set(ref _rotationText, value); }
+
         private bool _driveFaultInjected;
         public bool DriveFaultInjected { get => _driveFaultInjected; private set => Set(ref _driveFaultInjected, value); }
 
@@ -173,6 +179,11 @@ namespace SempaPumpStation.Screens
             TestText = active ? "Test sürüyor — başlangıç " + started
                      : string.IsNullOrEmpty(started) ? "Test başlatılmadı"
                      : "Son test " + started + " → " + ended;
+
+            RotationState = Ctx.GetInt(Ph.Prefix + "RotationState");
+            RotationText = RotationState == Station.RotationRunning
+                ? Station.RotationStateText(RotationState) + " — " + Ctx.GetDouble(Ph.Prefix + "RotationRemaining").ToString("0.0") + " sn"
+                : Station.RotationStateText(RotationState);
 
             RefreshSamples(started);
         }

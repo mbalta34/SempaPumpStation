@@ -72,8 +72,10 @@ namespace SempaPumpStation.Infrastructure.Plc
             _openPulse.Run(!command && !IsOpen && !resetFault, PulseMs, c);
             CmdOpen = _openPulse.Q && !command;
 
-            CmdChargeSpring = IsOpen && !springCharged && !_faulted;
-            _springTimer.Run(CmdChargeSpring, SpringTimeoutMs, c);
+            // The spring-charged contact is powered through the charge output, so the output stays on while the switch
+            // is open (the motor operator stops by itself once charged); the timeout runs only until it reports charged
+            CmdChargeSpring = IsOpen && !_faulted;
+            _springTimer.Run(CmdChargeSpring && !springCharged, SpringTimeoutMs, c);
 
             bool discrepancy = (command && _closeIssued && !IsClosed) || (!command && !IsOpen);
             _feedbackTimer.Run(discrepancy && command == _previousCommand, FeedbackTimeoutMs, c);

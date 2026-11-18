@@ -178,6 +178,56 @@
                                 <TextBlock Text="TEST" Style="{StaticResource T.Section}"/>
                             </DockPanel>
                             <TextBlock Text="{Binding TestText}" Style="{StaticResource T.Label}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                            <!-- Rotation test: the pump runs for the set time and stops; the operator confirms the
+                                 direction, which enables Testi Başlat (the PLC enables each button) -->
+                            <Border Background="{StaticResource B.Field}" BorderBrush="{StaticResource B.Border}" BorderThickness="1"
+                                    CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding RotationText}" FontSize="12.5" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RotationState}" Value="1">
+                                                            <Setter Property="Foreground" Value="{StaticResource B.Accent}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding RotationState}" Value="2">
+                                                            <Setter Property="Foreground" Value="{StaticResource B.Warn}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding RotationState}" Value="3">
+                                                            <Setter Property="Foreground" Value="{StaticResource B.Run}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="YÖN TESTİ" Style="{StaticResource T.Section}" Margin="0" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <Grid Margin="0,8,0,0" sec:Access.Requires="Station.Operate">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="72"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding Ph[RotationTestTime.Value]}" WriteTag="{Binding Hp[RotationTestTime.Value]}"
+                                                      Format="0.0" IsEnabled="{Binding Ph[RotationTestTime.Enabled].TagValue}" ToolTip="Yön testinde pompanın çalışacağı süre"/>
+                                        <TextBlock Grid.Column="1" Text="sn" Style="{StaticResource T.Label}" VerticalAlignment="Center" Margin="6,0,10,0"/>
+                                        <Button Grid.Column="2" Content="⟳  Yön Testi" Style="{StaticResource Btn.Primary}" Margin="0,0,8,0"
+                                                Command="{Binding ClickCommand}" CommandParameter="RotationTest"
+                                                IsEnabled="{Binding Ph[RotationTest.Enabled].TagValue}"
+                                                ToolTip="Pompayı ayarlanan süre kadar çalıştırıp durdurur; bağlı kaynak, pompa duruyor ve test yokken"/>
+                                        <Button Grid.Column="3" Content="✓  Yön Doğru" Style="{StaticResource Btn.Success}"
+                                                Command="{Binding ClickCommand}" CommandParameter="ConfirmRotation"
+                                                IsEnabled="{Binding Ph[ConfirmRotation.Enabled].TagValue}"
+                                                ToolTip="Dönüş yönü doğruysa onaylayın; Testi Başlat ancak onaydan sonra açılır"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
                             <!-- Stopping the pump is never locked; the rest needs an operator login -->
                             <UniformGrid Columns="2">
                                 <Border sec:Access.Requires="Station.Operate">
@@ -200,7 +250,7 @@
                                 </Border>
                             </UniformGrid>
                             <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
-                                       Text="Pompa sahadaki START butonu ile çalışır (test şart değil). Numune yalnızca test aktifken alınır; test bitince numuneler arşive yazılır."/>
+                                       Text="Testi Başlat için önce yön testi yapılıp yön onaylanmalı; kaynak değişince, kaynak açılınca veya test bitince onay kalkar. Pompa sahadaki START butonu ile çalışır (test şart değil). Numune yalnızca test aktifken alınır; test bitince numuneler arşive yazılır."/>
                         </StackPanel>
                     </Border>
 

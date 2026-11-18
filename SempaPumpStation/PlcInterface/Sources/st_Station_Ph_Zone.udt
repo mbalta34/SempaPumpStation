@@ -1,4 +1,4 @@
-﻿TYPE "st_Station_Ph_Zone"
+TYPE "st_Station_Ph_Zone"
 VERSION : 0.1
    STRUCT
       PowerSource { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterInt";
@@ -29,6 +29,11 @@ VERSION : 0.1
       LampGreen { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
       LampYellow { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
       LampRed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      RotationTestTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterReal";
+      RotationTest { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_CommandButton";
+      ConfirmRotation { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_CommandButton";
+      RotationState { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // 0 not checked, 1 rotation test running, 2 waiting for confirmation, 3 confirmed
+      RotationRemaining { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Seconds left of the running rotation test
    END_STRUCT;
 
 END_TYPE

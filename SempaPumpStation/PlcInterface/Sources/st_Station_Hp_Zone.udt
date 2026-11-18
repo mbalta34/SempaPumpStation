@@ -1,4 +1,4 @@
-﻿TYPE "st_Station_Hp_Zone"
+TYPE "st_Station_Hp_Zone"
 VERSION : 0.1
    STRUCT
       PowerSource { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
@@ -11,6 +11,9 @@ VERSION : 0.1
       EndTest { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
       DeleteLastSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
       ClearSamples { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
+      RotationTestTime { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";   // Rotation test run time, s
+      RotationTest { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";   // Run the pump for RotationTestTime to check its direction
+      ConfirmRotation { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";   // The operator saw the right direction
    END_STRUCT;
 
 END_TYPE

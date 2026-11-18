@@ -23,6 +23,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly double[,] _coilTimer = new double[4, 9];
         private readonly bool[,] _springCharged = new bool[4, 9];
         private readonly double[,] _springTimer = new double[4, 9];
+        private readonly bool[,] _chargeOutput = new bool[4, 9];   // charge-spring DO as last driven
 
         // Drives (1-based source)
         private readonly bool[] _driveRunning = new bool[9];
@@ -52,7 +53,14 @@ namespace SempaPumpStation.Infrastructure.Plc
         // A feedback fault removes the feedback supply: neither open nor closed is reported
         public bool DeviceOpen(int z, int s) => !FeedbackFault(z) && !_closed[z, s];
         public bool DeviceClosed(int z, int s) => !FeedbackFault(z) && _closed[z, s];
-        public bool SpringCharged(int z, int s) => _springCharged[z, s];
+        /// <summary>
+        /// The "spring charged" contact is powered through the charge-spring output: it reads HIGH only while the
+        /// spring is charged AND the charge output is energised, as on site.
+        /// </summary>
+        public bool SpringCharged(int z, int s) => _springCharged[z, s] && _chargeOutput[z, s];
+
+        /// <summary>The charge-spring output as the PLC last drove it.</summary>
+        public bool ChargeOutput(int z, int s) => _chargeOutput[z, s];
         public bool PendantStart(int z) => _t.B(Station.SimZone(z) + "PendantStart");
         public bool PendantStop(int z) => _t.B(Station.SimZone(z) + "PendantStop");
         public bool PendantTakeSample(int z) => _t.B(Station.SimZone(z) + "PendantTakeSample");
@@ -96,6 +104,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                         if (_springTimer[z, s] >= SpringChargeMs) _springCharged[z, s] = true;
                     }
                     else _springTimer[z, s] = 0;
+                    _chargeOutput[z, s] = o.SwitchChargeSpring[s];
                 }
             }
 

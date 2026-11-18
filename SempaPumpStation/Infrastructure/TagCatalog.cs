@@ -51,6 +51,8 @@ namespace SempaPumpStation.Infrastructure
             string hp = Station.ZoneHp(z), ph = Station.ZonePh(z);
             foreach (var n in Station.ZoneIntParameters) { I(t, hp + n + ".Value"); I(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
             R(t, hp + "SpeedReference.Value"); R(t, ph + "SpeedReference.Value"); B(t, ph + "SpeedReference.Enabled");
+            R(t, hp + "RotationTestTime.Value"); R(t, ph + "RotationTestTime.Value"); B(t, ph + "RotationTestTime.Enabled");
+            I(t, ph + "RotationState"); R(t, ph + "RotationRemaining");
             foreach (var n in Station.ZoneButtons) { B(t, hp + n + ".Click"); B(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
 
             I(t, ph + "PowerState");

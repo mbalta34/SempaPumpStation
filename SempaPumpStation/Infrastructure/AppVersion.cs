@@ -13,16 +13,16 @@ namespace SempaPumpStation.Infrastructure
     {
         // ---- bump these ----
         public const int Major = 1;
-        public const int Minor = 5;
-        public const int Build = 0;
+        public const int Minor = 6;
+        public const int Build = 1;
 
         public const string ProductName = "Sempa HMI";
 
         /// <summary>
         /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
-        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.3.4). Another version in the PLC raises an alarm.
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.3.6). Another version in the PLC raises an alarm.
         /// </summary>
-        public const string ExpectedPlcVersion = "1.3.4";
+        public const string ExpectedPlcVersion = "1.3.6";
 
         /// <summary>Tooltip of the PLC version in the rail.</summary>
         public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
@@ -39,6 +39,20 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.6.1", "2026-11-18", new[]
+            {
+                "Magnetic switches (560 kW, 630 kW): the charge-spring output stays on while the switch is open, because the spring-charged contact is powered through it; it used to drop once charged, which also dropped the charged signal.",
+                "The simulation powers the spring-charged contact through the charge output, as on site.",
+                "Needs PLC program 1.3.6.",
+            }),
+
+            new ChangeLogEntry("1.6.0", "2026-11-18", new[]
+            {
+                "Rotation test (Yön testi) on the zone screen: the pump runs for the set number of seconds and stops; the operator then confirms the direction (Yön doğru). Testi Başlat is enabled only after the confirmation.",
+                "The confirmation is cleared when the zone's power source changes or is disconnected, and when a test ends.",
+                "Needs PLC program 1.3.5 (rotation test in FB_Station_Zone, longer StationHp/StationPh).",
+            }),
+
             new ChangeLogEntry("1.5.0", "2026-11-16", new[]
             {
                 "New Enerji Analizörleri screen: the eight PM5550 meters, one per power source, with phase voltages, currents, powers and power factor, totals, frequency, energy and whether each meter answers.",

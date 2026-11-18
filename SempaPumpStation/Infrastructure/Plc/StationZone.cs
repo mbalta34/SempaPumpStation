@@ -66,7 +66,9 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly HmiParameterReal _speedReference = new HmiParameterReal();
         private readonly HmiCommandButton _stop = new HmiCommandButton(), _resetFault = new HmiCommandButton(),
             _startTest = new HmiCommandButton(), _endTest = new HmiCommandButton(),
-            _deleteLastSample = new HmiCommandButton(), _clearSamples = new HmiCommandButton();
+            _deleteLastSample = new HmiCommandButton(), _clearSamples = new HmiCommandButton(),
+            _rotationTest = new HmiCommandButton(), _confirmRotation = new HmiCommandButton();
+        private readonly HmiParameterReal _rotationTestTime = new HmiParameterReal();
 
         private readonly Contactor[] _contactors = new Contactor[7];
         private readonly MagneticSwitch[] _switches = new MagneticSwitch[9];
@@ -74,6 +76,12 @@ namespace SempaPumpStation.Infrastructure.Plc
 
         private int _selectedSource, _selectedFlowmeter, _selectedTransmitter;
         private bool _runRequest, _eStop, _selectionRejected;
+
+        // Rotation test (Station.Rotation* states)
+        private bool _rotationRequest, _rotationAllowed;
+        private int _rotationState, _rotationSource;
+        private double _rotationElapsedMs;
+        private const double RotationDefaultTime = 3.0, RotationMaxTime = 600.0;
 
         public ZoneOutputs Outputs { get; } = new ZoneOutputs();
 
@@ -91,6 +99,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             _flowmeter.RetainValue = zone == 2 ? 2 : 1;   // zones 1 and 2 share the flowmeters
             _dischargeTransmitter.RetainValue = 2;
             _speedReference.RetainValue = 80.0;
+            _rotationTestTime.RetainValue = 3.0;
         }
 
         public void Run(PlcTags t, ZoneInputs inputs, bool[] sourceHeldByOtherZone, bool[] flowmeterHeldByOtherZone,
@@ -100,17 +109,20 @@ namespace SempaPumpStation.Infrastructure.Plc
             bool testActive = t.B(_samples + "TestActive");
 
             // Source and flowmeter can only be changed while the pump is stopped
-            bool selectionEnabled = !_runRequest && !inputs.DriveRunning;
+            bool selectionEnabled = !_runRequest && !_rotationRequest && !inputs.DriveRunning;
             _powerSource.Run(t, _hp + "PowerSource", _ph + "PowerSource", 0, false, selectionEnabled);
             _flowmeter.Run(t, _hp + "Flowmeter", _ph + "Flowmeter", 0, true, selectionEnabled);
             _dischargeTransmitter.Run(t, _hp + "DischargeTransmitter", _ph + "DischargeTransmitter", 0, true, true);
             _speedReference.Run(t, _hp + "SpeedReference", _ph + "SpeedReference", 0, true, true);
             _stop.Run(t, _hp + "Stop", _ph + "Stop");
             _resetFault.Run(t, _hp + "ResetFault", _ph + "ResetFault");
-            _startTest.Run(t, _hp + "StartTest", _ph + "StartTest", !testActive && !_eStop);
+            _startTest.Run(t, _hp + "StartTest", _ph + "StartTest", !testActive && !_eStop && _rotationState == Station.RotationConfirmed);
             _endTest.Run(t, _hp + "EndTest", _ph + "EndTest", testActive);
             _deleteLastSample.Run(t, _hp + "DeleteLastSample", _ph + "DeleteLastSample");
             _clearSamples.Run(t, _hp + "ClearSamples", _ph + "ClearSamples");
+            _rotationTestTime.Run(t, _hp + "RotationTestTime", _ph + "RotationTestTime", 3.0, true, true);
+            _rotationTest.Run(t, _hp + "RotationTest", _ph + "RotationTest", _rotationAllowed);
+            _confirmRotation.Run(t, _hp + "ConfirmRotation", _ph + "ConfirmRotation", _rotationState == Station.RotationWaitConfirm);
 
             bool resetFault = _resetFault.QR;
 
@@ -214,14 +226,55 @@ namespace SempaPumpStation.Infrastructure.Plc
             // ---------------------------------------------------------------- pump
             _startTrigger.Run(inputs.PendantStart);
 
-            if (_startTrigger.Q && deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop)
+            if (_startTrigger.Q && deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop && !_rotationRequest)
                 _runRequest = true;
 
             // Stop wins over start
             if (inputs.PendantStop || _stop.QR || deviceFault || !deviceClosed || inputs.DriveFault || _eStop)
                 _runRequest = false;
 
-            outputs.RunRequest = _runRequest;
+            // ---------------------------------------------------------------- rotation test
+            // Yön testi runs the pump for RotationTestTime seconds and stops it; the operator then confirms the
+            // direction, which enables Start test. A new source, a disconnected source or the end of the test clears it.
+            if (_rotationTestTime.Value <= 0.0) _rotationTestTime.Value = RotationDefaultTime;
+            else if (_rotationTestTime.Value > RotationMaxTime) _rotationTestTime.Value = RotationMaxTime;
+
+            if (_selectedSource != _rotationSource || !deviceClosed)
+            {
+                _rotationSource = _selectedSource;
+                _rotationRequest = false;
+                _rotationState = Station.RotationNone;
+            }
+
+            _rotationAllowed = deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop
+                               && !_runRequest && !inputs.DriveRunning && !testActive
+                               && _rotationState != Station.RotationRunning;
+
+            if (_rotationTest.QR && _rotationAllowed)
+            {
+                _rotationRequest = true;
+                _rotationState = Station.RotationRunning;
+            }
+
+            // Stop, a fault or the E-stop aborts it unconfirmed
+            if (_rotationRequest && (inputs.PendantStop || _stop.QR || deviceFault || inputs.DriveFault || _eStop))
+            {
+                _rotationRequest = false;
+                _rotationState = Station.RotationNone;
+            }
+
+            // TON: elapsed while requested
+            _rotationElapsedMs = _rotationRequest ? _rotationElapsedMs + c.DtMs : 0.0;
+            if (_rotationRequest && _rotationElapsedMs >= _rotationTestTime.Value * 1000.0)
+            {
+                _rotationRequest = false;
+                _rotationState = Station.RotationWaitConfirm;
+            }
+
+            if (_confirmRotation.QR && _rotationState == Station.RotationWaitConfirm)
+                _rotationState = Station.RotationConfirmed;
+
+            outputs.RunRequest = _runRequest || _rotationRequest;
             outputs.SpeedReference = _speedReference.Value;
             outputs.SelectedSource = _selectedSource;
             outputs.SelectedFlowmeter = _selectedFlowmeter;
@@ -244,7 +297,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             // Start test opens a new test: it clears the samples of the previous test and stamps the start time.
             // End test closes it. The samples stay in the buffer until the next start, so the HMI can archive them.
             int count = t.I(_samples + "Count");
-            if (_startTest.QR && !testActive && !_eStop)
+            if (_startTest.QR && !testActive && !_eStop && _rotationState == Station.RotationConfirmed)
             {
                 testActive = true;
                 count = 0;
@@ -254,6 +307,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             if (_endTest.QR && testActive)
             {
                 testActive = false;
+                _rotationState = Station.RotationNone;   // the next test is a new pump: check its direction again
                 WriteDtl(t, _samples + "TestEnded", DateTime.Now);
             }
 
@@ -298,8 +352,8 @@ namespace SempaPumpStation.Infrastructure.Plc
 
             // ---------------------------------------------------------------- tower lamp
             outputs.LampRed = _eStop || deviceFault || inputs.DriveFault;
-            outputs.LampGreen = !outputs.LampRed && (inputs.DriveRunning || (_runRequest && c.Flash1s));
-            outputs.LampYellow = !outputs.LampRed && !_runRequest && !inputs.DriveRunning
+            outputs.LampGreen = !outputs.LampRed && (inputs.DriveRunning || ((_runRequest || _rotationRequest) && c.Flash1s));
+            outputs.LampYellow = !outputs.LampRed && !_runRequest && !_rotationRequest && !inputs.DriveRunning
                                  && (powerState == Station.StateConnected
                                      || (c.Flash1s && (powerState == Station.StateClosing || powerState == Station.StateOpening)));
 
@@ -321,6 +375,8 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(_ph + "LampGreen", outputs.LampGreen);
             t.W(_ph + "LampYellow", outputs.LampYellow);
             t.W(_ph + "LampRed", outputs.LampRed);
+            t.W(_ph + "RotationState", _rotationState);
+            t.W(_ph + "RotationRemaining", _rotationRequest ? Math.Max(0.0, _rotationTestTime.Value - _rotationElapsedMs / 1000.0) : 0.0);
         }
 
         // RD_LOC_T into a DTL

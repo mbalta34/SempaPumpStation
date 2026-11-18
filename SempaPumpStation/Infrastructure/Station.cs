@@ -157,7 +157,21 @@ namespace SempaPumpStation.Infrastructure
 
         /// <summary>Selection parameters of a zone (FB_Station_ZoneHmi): name and whether it is Real.</summary>
         public static readonly string[] ZoneIntParameters = { "PowerSource", "Flowmeter", "DischargeTransmitter" };
-        public static readonly string[] ZoneButtons = { "Stop", "ResetFault", "StartTest", "EndTest", "DeleteLastSample", "ClearSamples" };
+        public static readonly string[] ZoneButtons = { "Stop", "ResetFault", "StartTest", "EndTest", "DeleteLastSample", "ClearSamples", "RotationTest", "ConfirmRotation" };
+
+        // Rotation test (FB_Station_Zone ROTATION_*, "StationPh".ZoneN.RotationState)
+        public const int RotationNone = 0, RotationRunning = 1, RotationWaitConfirm = 2, RotationConfirmed = 3;
+
+        public static string RotationStateText(int state)
+        {
+            switch (state)
+            {
+                case RotationRunning: return "Yön testi sürüyor";
+                case RotationWaitConfirm: return "Dönüş yönünü onaylayın";
+                case RotationConfirmed: return "Yön onaylandı";
+                default: return "Yön kontrol edilmedi";
+            }
+        }
 
         /// <summary>The analog input parameters that FC_Station_LoadInstrument copies from the library.</summary>
         public static readonly string[] AiRealParameters = { "MinPv", "MaxPv", "FilterEmaAlpha", "FilterOutlierMaxJump" };

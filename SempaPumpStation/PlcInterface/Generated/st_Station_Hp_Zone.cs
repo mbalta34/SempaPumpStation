@@ -24,6 +24,9 @@ namespace SempaPumpStation.PlcInterface
             EndTest = k.Next(new st_Hmi_Hp_CommandButton(c, name + ".EndTest", db, k.Struct(), w, r));
             DeleteLastSample = k.Next(new st_Hmi_Hp_CommandButton(c, name + ".DeleteLastSample", db, k.Struct(), w, r));
             ClearSamples = k.Next(new st_Hmi_Hp_CommandButton(c, name + ".ClearSamples", db, k.Struct(), w, r));
+            RotationTestTime = k.Next(new st_Hmi_Hp_ParameterReal(c, name + ".RotationTestTime", db, k.Struct(), w, r));
+            RotationTest = k.Next(new st_Hmi_Hp_CommandButton(c, name + ".RotationTest", db, k.Struct(), w, r));
+            ConfirmRotation = k.Next(new st_Hmi_Hp_CommandButton(c, name + ".ConfirmRotation", db, k.Struct(), w, r));
         }
 
         public st_Hmi_Hp_ParameterInt PowerSource { get; private set; }
@@ -36,5 +39,8 @@ namespace SempaPumpStation.PlcInterface
         public st_Hmi_Hp_CommandButton EndTest { get; private set; }
         public st_Hmi_Hp_CommandButton DeleteLastSample { get; private set; }
         public st_Hmi_Hp_CommandButton ClearSamples { get; private set; }
+        public st_Hmi_Hp_ParameterReal RotationTestTime { get; private set; }
+        public st_Hmi_Hp_CommandButton RotationTest { get; private set; }
+        public st_Hmi_Hp_CommandButton ConfirmRotation { get; private set; }
     }
 }

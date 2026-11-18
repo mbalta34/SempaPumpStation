@@ -212,6 +212,32 @@ namespace SempaPumpStation
             Check("pump runs without a test", c.GetBool(Ph(1) + "PumpRunning"));
             Check("selection locked while running", !c.GetBool(Ph(1) + "PowerSource.Enabled"));
 
+            // Rotation test before the test: with the pump stopped, run it for the set time, then confirm the direction
+            c.Click(Hp(1) + "Stop");
+            Steps(30);
+            Check("start test locked until the rotation is confirmed",
+                  !c.GetBool(Ph(1) + "StartTest.Enabled") && c.GetInt(Ph(1) + "RotationState") == Station.RotationNone
+                  && c.GetBool(Ph(1) + "RotationTest.Enabled"));
+            c.WriteParameter(Hp(1) + "RotationTestTime.Value", Ph(1) + "RotationTestTime.Value", 2.0f);
+            Steps(3);
+            c.Click(Hp(1) + "RotationTest");
+            Steps(12);
+            Check("rotation test runs the pump (" + c.GetDouble(Ph(1) + "RotationRemaining").ToString("0.0") + " s left)",
+                  c.GetInt(Ph(1) + "RotationState") == Station.RotationRunning && c.GetBool(Ph(1) + "PumpRunning")
+                  && !c.GetBool(Ph(1) + "ConfirmRotation.Enabled") && !c.GetBool(Ph(1) + "RotationTest.Enabled"));
+            Steps(15);
+            Check("rotation test stops after its time and waits for confirmation",
+                  c.GetInt(Ph(1) + "RotationState") == Station.RotationWaitConfirm && c.GetBool(Ph(1) + "ConfirmRotation.Enabled")
+                  && !c.GetBool(Ph(1) + "StartTest.Enabled"));
+            Steps(30);
+            Check("the pump stops after the rotation test", !c.GetBool(Ph(1) + "PumpRunning"));
+            c.Click(Hp(1) + "ConfirmRotation");
+            Steps(3);
+            Check("confirming the direction enables start test",
+                  c.GetInt(Ph(1) + "RotationState") == Station.RotationConfirmed && c.GetBool(Ph(1) + "StartTest.Enabled"));
+            Press(Sim(1) + "PendantStart");
+            Steps(40);
+
             c.Click(Hp(1) + "StartTest");
             Steps(3);
             Check("start test", c.GetBool(Ph(1) + "TestActive") && !c.GetBool(Ph(1) + "StartTest.Enabled"));
@@ -239,6 +265,8 @@ namespace SempaPumpStation
             Steps(3);
             Check("end test archives the samples", c.Archive.Records.Count == records + 1 && c.Archive.Records[0].Samples.Count == 6);
             Check("samples stay after end test", c.GetInt(Ph(1) + "SampleCount") == 6);
+            Check("end test clears the rotation confirmation",
+                  c.GetInt(Ph(1) + "RotationState") == Station.RotationNone && !c.GetBool(Ph(1) + "StartTest.Enabled"));
 
             // A position cannot take a device mounted elsewhere
             c.WriteParameter(Station.PositionHp("Zone3_Pt1") + "Device.Value", Station.PositionPh("Zone3_Pt1") + "Device.Value", (short)1);
@@ -249,8 +277,20 @@ namespace SempaPumpStation
 
             // Zone 3: 560 kW magnetic switch with spring, then E-stop
             c.WriteParameter(Hp(3) + "PowerSource.Value", Ph(3) + "PowerSource.Value", (short)7);
-            Steps(60);
+            // The spring-charged contact is powered through the charge output: the output must stay on while the
+            // switch is open (a charge output that drops once charged makes the signal, and the output, flicker)
+            int chargeSwitchings = 0;
+            bool chargeBefore = c.Plc.Field.ChargeOutput(3, 7);
+            for (int i = 0; i < 60; i++)
+            {
+                Steps(1);
+                bool charge = c.Plc.Field.ChargeOutput(3, 7);
+                if (charge != chargeBefore) chargeSwitchings++;
+                chargeBefore = charge;
+            }
             Check("zone 3 magnetic switch closes after spring charge", c.GetInt(Ph(3) + "PowerState") == Station.StateConnected);
+            Check("charge-spring output holds while open, off once closed (" + chargeSwitchings + " switchings)",
+                  chargeSwitchings <= 1 && !c.Plc.Field.ChargeOutput(3, 7));
             c.SetValue(Sim(3) + "EStopPressed", true);
             Steps(5);
             Check("E-stop latches and opens the switch", c.GetBool(Ph(3) + "EStop") && c.GetInt(Ph(3) + "PowerState") != Station.StateConnected);
@@ -273,6 +313,11 @@ namespace SempaPumpStation
             // Zone 2 runs too, for the overview captures
             c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)6);
             Steps(15);
+            c.Click(Hp(2) + "RotationTest");   // default 3 s
+            Steps(65);
+            c.Click(Hp(2) + "ConfirmRotation");
+            Steps(3);
+            Check("zone 2 rotation confirmed before its test", c.GetInt(Ph(2) + "RotationState") == Station.RotationConfirmed);
             c.Click(Hp(2) + "StartTest");
             Press(Sim(2) + "PendantStart");
             Steps(40);
