@@ -15,7 +15,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         public readonly int[] FlowmeterDevices = new int[6];
         public readonly int[] DischargeTransmitterDevices = new int[5];
         public int VacuummeterDevice;
-        public double Vacuummeter, WaterTemperature, AmbientTemperature, Vibration, Temperature, Sound, Speed, Voltage, Current;
+        public double Vacuummeter, WaterTemperature, AmbientTemperature, Vibration, Temperature, Sound, Speed, Voltage, Current, Torque, TorqueRpm, PowerFactor;
     }
 
     /// <summary>st_Station_ZoneOutputs.</summary>
@@ -342,6 +342,9 @@ namespace SempaPumpStation.Infrastructure.Plc
                 t.W(s + "Current", inputs.Current);
                 t.W(s + "SpeedReference", _speedReference.Value);
                 t.W(s + "PumpRunning", inputs.DriveRunning);
+                t.W(s + "Torque", inputs.Torque);
+                t.W(s + "TorqueRpm", inputs.TorqueRpm);
+                t.W(s + "PowerFactor", inputs.PowerFactor);
             }
 
             if (_deleteLastSample.QR && testActive && count > 0) count--;

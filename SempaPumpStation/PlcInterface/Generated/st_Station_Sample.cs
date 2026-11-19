@@ -34,6 +34,9 @@ namespace SempaPumpStation.PlcInterface
             Current = k.Leaf(name + ".Current", DataType.REAL);
             SpeedReference = k.Leaf(name + ".SpeedReference", DataType.REAL);
             PumpRunning = k.Leaf(name + ".PumpRunning", DataType.BOOL);
+            Torque = k.Leaf(name + ".Torque", DataType.REAL);
+            TorqueRpm = k.Leaf(name + ".TorqueRpm", DataType.REAL);
+            PowerFactor = k.Leaf(name + ".PowerFactor", DataType.REAL);
         }
 
         public DTL Timestamp { get; private set; }
@@ -56,5 +59,8 @@ namespace SempaPumpStation.PlcInterface
         public SiemensS7PlcTag Current { get; private set; }
         public SiemensS7PlcTag SpeedReference { get; private set; }
         public SiemensS7PlcTag PumpRunning { get; private set; }
+        public SiemensS7PlcTag Torque { get; private set; }
+        public SiemensS7PlcTag TorqueRpm { get; private set; }
+        public SiemensS7PlcTag PowerFactor { get; private set; }
     }
 }

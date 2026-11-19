@@ -49,6 +49,11 @@ namespace SempaPumpStation.Infrastructure.Plc
                 SensorRange("Zone" + z + "_Temperature", 0, 150);
                 SensorRange("Zone" + z + "_Sound", 30, 130);
                 SensorRange("Zone" + z + "_Speed", 0, 3600);
+                if (Station.HasTorqueMeter(z))
+                {
+                    SensorRange("Zone" + z + "_TorqueRpm", 0, 3600);
+                    SensorRange("Zone" + z + "_Torque", 0, 1000);
+                }
 
                 _zones[z] = new StationZone(z);
                 _zoneInputs[z] = new ZoneInputs();
@@ -101,12 +106,15 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.Temperature = _ai["Zone" + z + "_Temperature"].Pv;
                 p.Sound = _ai["Zone" + z + "_Sound"].Pv;
                 p.Speed = _ai["Zone" + z + "_Speed"].Pv;
+                p.Torque = Station.HasTorqueMeter(z) ? _ai["Zone" + z + "_Torque"].Pv : 0.0;
+                p.TorqueRpm = Station.HasTorqueMeter(z) ? _ai["Zone" + z + "_TorqueRpm"].Pv : 0.0;
                 int selected = _zoneOutputs[z].SelectedSource;
                 p.DriveRunning = selected > 0 && _field.DriveRunning(selected);
                 p.DriveFault = selected > 0 && _field.DriveFault(selected);
                 // As FB_Station_Main: the meter of the selected source, 0 while none is selected
                 p.Voltage = selected > 0 ? _t.R(Station.Meter(selected) + "General.Voltage") : 0.0;
                 p.Current = selected > 0 ? _t.R(Station.Meter(selected) + "General.Current") : 0.0;
+                p.PowerFactor = selected > 0 ? _t.R(Station.Meter(selected) + "General.PowerFactor") : 0.0;
             }
 
             WriteDigitalInputs();
@@ -139,11 +147,8 @@ namespace SempaPumpStation.Infrastructure.Plc
                         sourceHeld[i] |= _zoneOutputs[o].SelectedSource == i
                                          || !(_zoneInputs[o].DeviceOpen[i] && !_zoneInputs[o].DeviceClosed[i]);
 
-                // Zone 1 and zone 2 share their flowmeters
+                // Every zone has its own flowmeters, so none is held by another zone
                 var flowmeterHeld = new bool[6];
-                if (z <= 2)
-                    for (int i = 1; i <= Station.SharedFlowmeterCount; i++)
-                        flowmeterHeld[i] = _zoneOutputs[3 - z].SelectedFlowmeter == i;
 
                 _zones[z].Run(_t, _zoneInputs[z], sourceHeld, flowmeterHeld, Station.FlowmeterCount(z), _cycle);
             }

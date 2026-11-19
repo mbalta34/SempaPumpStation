@@ -118,7 +118,8 @@ namespace SempaPumpStation.Infrastructure.Plc
     /// <summary>Port of FB_Station_InstrumentPosition with FB_Station_InstrumentPositionHmi.</summary>
     public sealed class InstrumentPosition
     {
-        private const int PositionCount = 23, KeyFactor = 1000;
+        private const int KeyFactor = 1000;
+        private static readonly int PositionCount = Station.Positions.Length;   // POSITION_COUNT (28)
 
         private readonly InstrumentPositionInfo _info;
         private readonly string _hp, _ph;
@@ -178,7 +179,7 @@ namespace SempaPumpStation.Infrastructure.Plc
     /// <summary>Port of FB_Station_Instruments with FC_Station_LoadInstrument.</summary>
     public sealed class StationInstruments
     {
-        private readonly int[] _assigned = new int[24];
+        private readonly int[] _assigned = new int[Station.Positions.Length + 1];
         public readonly Dictionary<string, InstrumentPosition> Positions = new Dictionary<string, InstrumentPosition>();
 
         public StationInstruments(Func<InstrumentPositionInfo, int> retainedDevice)

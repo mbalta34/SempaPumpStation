@@ -262,20 +262,27 @@ namespace SempaPumpStation.Infrastructure.Plc
                 Sensor("Zone" + z + "_Temperature", _motorTemp[z] + Noise(0.05), 0, 150);
                 Sensor("Zone" + z + "_Sound", 42.0 + 38.0 * sp + Noise(0.4), 30, 130);
                 Sensor("Zone" + z + "_Speed", ZoneRpm(z) + (sp > 0.01 ? Noise(2.0) : 0), 0, 3600);
+                if (Station.HasTorqueMeter(z))
+                {
+                    // Torque meter on the shaft: speed, and torque from the shaft power (hydraulic power over a
+                    // pump efficiency of about 0.70): T [Nm] = P [kW] * 9549 / n [rpm]
+                    double rpm = ZoneRpm(z);
+                    double shaftKw = _flow[z] * _head[z] / 367.2 / 0.70;
+                    double torque = rpm > 50 ? shaftKw * 9549.0 / rpm : 0.0;
+                    Sensor("Zone" + z + "_TorqueRpm", rpm + (sp > 0.01 ? Noise(1.5) : 0), 0, 3600);
+                    Sensor("Zone" + z + "_Torque", torque + (torque > 0.5 ? Noise(torque * 0.003) : 0), 0, 1000);
+                }
             }
 
-            // The flow of a zone passes through the flowmeter it has selected
-            for (int f = 1; f <= Station.SharedFlowmeterCount; f++)
+            // The flow of a zone passes through the flowmeter it has selected (every zone has its own)
+            for (int z = 1; z <= Station.ZoneCount; z++)
             {
-                double q = 0;
-                for (int z = 1; z <= 2; z++)
-                    if (_t.I(Station.ZonePh(z) + "Flowmeter.Value") == f) q = _flow[z];
-                Instrument("Shared_FM" + f, Station.Flowmeter, q + (q > 0.05 ? Noise(q * 0.004) : 0), mountedDevice);
-            }
-            for (int f = 1; f <= Station.Zone3FlowmeterCount; f++)
-            {
-                double q = _t.I(Station.ZonePh(3) + "Flowmeter.Value") == f ? _flow[3] : 0;
-                Instrument("Zone3_FM" + f, Station.Flowmeter, q + (q > 0.05 ? Noise(q * 0.004) : 0), mountedDevice);
+                var positions = Station.FlowmeterPositions(z);
+                for (int f = 1; f <= positions.Length; f++)
+                {
+                    double q = _t.I(Station.ZonePh(z) + "Flowmeter.Value") == f ? _flow[z] : 0;
+                    Instrument(positions[f - 1], Station.Flowmeter, q + (q > 0.05 ? Noise(q * 0.004) : 0), mountedDevice);
+                }
             }
         }
 

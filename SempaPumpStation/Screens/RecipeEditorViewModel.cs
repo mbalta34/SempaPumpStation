@@ -29,7 +29,7 @@ namespace SempaPumpStation.Screens
 
     /// <summary>
     /// Generic recipe-editor view-model — a modern replacement for the per-family Winlog recipe pages
-    /// (Firma/Pompa/Motor/Hat/Testi Yapan). Lists saved recipes, loads them into the edit-buffer tags,
+    /// (Firma/Pompa/Motor/Hat). Lists saved recipes, loads them into the edit-buffer tags,
     /// saves the current values to a file, deletes, and "selects" a recipe into the report (WRT_*)
     /// tags. Subclasses only declare the category, fields and the field→report mapping.
     /// </summary>

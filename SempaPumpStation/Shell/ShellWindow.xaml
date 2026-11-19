@@ -35,7 +35,6 @@
         <DataTemplate DataType="{x:Type s:PompaRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:MotorRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:HatRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
-        <DataTemplate DataType="{x:Type s:TestiYapanRecipeViewModel}"><s:RecipeEditorView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:AlarmsViewModel}"><s:AlarmsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:EventsViewModel}"><s:EventsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:TrendViewModel}"><s:TrendView/></DataTemplate>

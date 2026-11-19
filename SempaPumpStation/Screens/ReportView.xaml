@@ -18,6 +18,8 @@
         <Border Grid.Row="0" Grid.ColumnSpan="3" Style="{StaticResource CardTight}" Margin="0,0,0,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Excel Raporu" Style="{StaticResource Btn.Primary}" Command="{Binding CreateReportCommand}" Margin="0,0,8,0"
+                            ToolTip="Seçili testi Sempa rapor şablonuna (Excel) doldurur ve açar"/>
                     <Button Content="CSV'yi Aç" Style="{StaticResource Btn}" Command="{Binding OpenFileCommand}" Margin="0,0,8,0"
                             IsEnabled="{Binding HasSelection}"/>
                     <Button Content="Arşiv Klasörü" Style="{StaticResource Btn}" Command="{Binding OpenFolderCommand}"/>
@@ -27,8 +29,7 @@
                     <Button Content="Firma Seç" Style="{StaticResource Btn}" Command="{Binding SelectFirmaCommand}" Margin="0,0,8,0"/>
                     <Button Content="Pompa Seç" Style="{StaticResource Btn}" Command="{Binding SelectPompaCommand}" Margin="0,0,8,0"/>
                     <Button Content="Motor Seç" Style="{StaticResource Btn}" Command="{Binding SelectMotorCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Hat Geometrisi" Style="{StaticResource Btn}" Command="{Binding SelectHatCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Testi Yapan" Style="{StaticResource Btn}" Command="{Binding SelectTestiYapanCommand}"/>
+                    <Button Content="Hat Geometrisi" Style="{StaticResource Btn}" Command="{Binding SelectHatCommand}"/>
                 </WrapPanel>
             </DockPanel>
         </Border>
@@ -70,7 +71,7 @@
                             <c:LabeledValue Label="BÖLGE" Value="{Binding Zone}"/>
                             <c:LabeledValue Label="BAŞLANGIÇ" Value="{Binding Started}"/>
                             <c:LabeledValue Label="BİTİŞ" Value="{Binding Ended}"/>
-                            <c:LabeledValue Label="TESTİ YAPAN" Value="{Binding Header[WRT_TESTI_YAPAN]}"/>
+                            <c:LabeledValue Label="TESTİ YAPAN" Value="{Binding Header[TESTI_YAPAN]}"/>
                         </UniformGrid>
                     </Border>
 

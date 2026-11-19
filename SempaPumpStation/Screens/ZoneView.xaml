@@ -143,6 +143,10 @@
                                       Value="{Binding Ph[SuctionPressure].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.000}"/>
                         <c:MetricTile Caption="DEVİR" Unit="d/dk" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[Speed.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0}"/>
+                        <c:MetricTile Caption="TORK" Unit="Nm" ValueSize="22" Margin="0,0,0,8" Visibility="{Binding HasTorqueMeter, Converter={StaticResource BoolVis}}"
+                                      Value="{Binding Ai[Torque.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
+                        <c:MetricTile Caption="TORK ÖLÇER DEVRİ" Unit="d/dk" ValueSize="22" Margin="0,0,8,8" Visibility="{Binding HasTorqueMeter, Converter={StaticResource BoolVis}}"
+                                      Value="{Binding Ai[TorqueRpm.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0}"/>
                         <c:MetricTile Caption="SU SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding Ai[WaterTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                         <c:MetricTile Caption="MOTOR SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
@@ -269,6 +273,8 @@
                                     <Run Text=" / 50" Foreground="{StaticResource B.TextDim}"/>
                                 </TextBlock>
                             </DockPanel>
+                            <!-- Columns are not in the visual tree; they reach the view-model through this element -->
+                            <FrameworkElement x:Name="SampleContext" Visibility="Collapsed"/>
                             <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding SampleRows}" IsReadOnly="True" Height="300">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="No" Binding="{Binding No}" Width="40"/>
@@ -278,6 +284,8 @@
                                     <DataGridTextColumn Header="Ps bar" Binding="{Binding SuctionPressure, StringFormat=0.000}" Width="*"/>
                                     <DataGridTextColumn Header="Hm m" Binding="{Binding Head, StringFormat=0.0}" Width="*"/>
                                     <DataGridTextColumn Header="d/dk" Binding="{Binding Speed, StringFormat=0}" Width="*"/>
+                                    <DataGridTextColumn Header="Nm" Binding="{Binding Torque, StringFormat=0.0}" Width="*"
+                                                        Visibility="{Binding Source={x:Reference SampleContext}, Path=DataContext.HasTorqueMeter, Converter={StaticResource BoolVis}}"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>

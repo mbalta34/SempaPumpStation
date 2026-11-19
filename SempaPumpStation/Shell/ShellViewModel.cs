@@ -89,7 +89,6 @@ namespace SempaPumpStation.Shell
             Add(RecipeNav, "PompaRecipe", "◆", "Pompa Reçetesi", new PompaRecipeViewModel(ctx));
             Add(RecipeNav, "MotorRecipe", "◆", "Motor Reçetesi", new MotorRecipeViewModel(ctx));
             Add(RecipeNav, "HatRecipe", "◆", "Hat Geometrisi", new HatRecipeViewModel(ctx));
-            Add(RecipeNav, "TestiYapan", "◆", "Testi Yapan", new TestiYapanRecipeViewModel(ctx));
 
             Add(DiagNav, "Alarms", "⚠", "Alarmlar", new AlarmsViewModel(ctx, Alarms));
             Add(DiagNav, "Events", "≡", "Olay Kaydı", new EventsViewModel(ctx, Alarms));

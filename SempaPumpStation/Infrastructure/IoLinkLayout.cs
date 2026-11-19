@@ -86,8 +86,8 @@ namespace SempaPumpStation.Infrastructure
             if (p.Category == Station.Vacuummeter) return (p.Zones[0], IoLinkModule.RtdHub, 5);
             if (p.Category == Station.PressureTransmitter)
                 return (p.Zones[0], IoLinkModule.AnalogHub, int.Parse(p.Name.Substring(p.Name.Length - 1)) - 1);
-            // Flowmeters: the shared ones on zone 2's hub, zone 3's on its own; FM n on port n-1
-            int zone = p.Zones.Contains(3) ? 3 : 2;
+            // Flowmeters: every zone on the first ports of its own BNI00AJ, FM n on port n-1
+            int zone = p.Zones[0];
             return (zone, IoLinkModule.RtdHub, System.Array.IndexOf(Station.FlowmeterPositions(zone), p.Name));
         }
 
@@ -110,6 +110,9 @@ namespace SempaPumpStation.Infrastructure
                 {
                     yield return ("Zone" + z + "_Sound", z, IoLinkModule.AnalogHub, 4, null);
                     yield return ("Zone" + z + "_Speed", z, IoLinkModule.AnalogHub, 5, null);
+                    // Torque meter: speed and torque on two dedicated channels
+                    yield return ("Zone" + z + "_TorqueRpm", z, IoLinkModule.AnalogHub, 6, null);
+                    yield return ("Zone" + z + "_Torque", z, IoLinkModule.AnalogHub, 7, null);
                 }
                 yield return ("Zone" + z + "_Vibration", z, IoLinkModule.Master, 3, "Vibration");
                 yield return ("Zone" + z + "_Temperature", z, IoLinkModule.Master, 3, "Temperature");
@@ -122,6 +125,8 @@ namespace SempaPumpStation.Infrastructure
             { "AmbientTemperature", ("Ortam sıcaklığı", "°C") },
             { "Sound", ("Ses seviyesi", "dB") },
             { "Speed", ("Devir sayısı", "d/dk") },
+            { "TorqueRpm", ("Tork ölçer — devir", "d/dk") },
+            { "Torque", ("Tork ölçer — tork", "Nm") },
         };
 
         private static readonly string[] DioLabels = { "Yeşil ışık", "Pompa Başlat", "Sarı ışık", "Pompa Durdur", "Kırmızı ışık", "Örnek al", "", "EStop" };

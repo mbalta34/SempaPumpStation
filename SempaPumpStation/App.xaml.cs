@@ -187,22 +187,30 @@ namespace SempaPumpStation
             c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)4);
             Steps(3);
             Check("zone 2 cannot select source 4", c.GetInt(Ph(2) + "PowerSource.Value") == 0 && c.GetBool(Ph(2) + "SelectionRejected"));
+            // Every zone has its own flowmeters: zone 2 may take its FM1 while zone 1 uses its FM1
             c.WriteParameter(Hp(2) + "Flowmeter.Value", Ph(2) + "Flowmeter.Value", (short)1);
             Steps(3);
-            Check("zone 2 cannot take shared FM1 of zone 1", c.GetInt(Ph(2) + "Flowmeter.Value") == 2);
+            Check("zones 1 and 2 use their own FM1 at the same time",
+                  c.GetInt(Ph(1) + "Flowmeter.Value") == 1 && c.GetInt(Ph(2) + "Flowmeter.Value") == 1 && !c.GetBool(Ph(2) + "SelectionRejected"));
 
-            // The PLC never writes Hp (BluePrism FB_Hmi_*): zone 2's Hp still holds the refused 1, yet entering 1 again
-            // once it is free must count as an entry
-            c.WriteParameter(Hp(1) + "Flowmeter.Value", Ph(1) + "Flowmeter.Value", (short)3);
-            Steps(3);
-            c.WriteParameter(Hp(2) + "Flowmeter.Value", Ph(2) + "Flowmeter.Value", (short)1);
-            Steps(3);
-            Check("a refused selection can be entered again once it is free", c.GetInt(Ph(1) + "Flowmeter.Value") == 3 && c.GetInt(Ph(2) + "Flowmeter.Value") == 1);
+            // The PLC never writes Hp (BluePrism FB_Hmi_*): zone 2's Hp still holds the refused source 4, yet entering 4
+            // again once zone 1 has let it go must count as an entry
+            c.WriteParameter(Hp(1) + "PowerSource.Value", Ph(1) + "PowerSource.Value", (short)3);
+            Steps(15);
+            c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)4);
+            Steps(15);
+            Check("a refused selection can be entered again once it is free",
+                  c.GetInt(Ph(1) + "PowerSource.Value") == 3 && c.GetInt(Ph(2) + "PowerSource.Value") == 4
+                  && c.GetInt(Ph(2) + "PowerState") == Station.StateConnected);
+            c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)0);
+            Steps(15);
+            c.WriteParameter(Hp(1) + "PowerSource.Value", Ph(1) + "PowerSource.Value", (short)4);
+            Steps(15);
             c.WriteParameter(Hp(2) + "Flowmeter.Value", Ph(2) + "Flowmeter.Value", (short)2);
             Steps(3);
-            c.WriteParameter(Hp(1) + "Flowmeter.Value", Ph(1) + "Flowmeter.Value", (short)1);
-            Steps(3);
-            Check("selections restored (zone 1 FM1, zone 2 FM2)", c.GetInt(Ph(1) + "Flowmeter.Value") == 1 && c.GetInt(Ph(2) + "Flowmeter.Value") == 2);
+            Check("selections restored (zone 1 source 4 + FM1, zone 2 FM2)",
+                  c.GetInt(Ph(1) + "PowerSource.Value") == 4 && c.GetInt(Ph(1) + "PowerState") == Station.StateConnected
+                  && c.GetInt(Ph(1) + "Flowmeter.Value") == 1 && c.GetInt(Ph(2) + "Flowmeter.Value") == 2);
 
             // Sampling needs a test; the pump does not
             Press(Sim(1) + "PendantTakeSample");
@@ -260,9 +268,43 @@ namespace SempaPumpStation
             Check(string.Format("throttling lowers flow and raises pressure (Q {0:0.0}→{1:0.0}, Pd {2:0.00}→{3:0.00})", q1, q6, p1, p6), q6 < q1 && p6 > p1);
             Check("Pt2 scaled with its loaded 0-16 bar range", c.GetDouble(Station.AiPh("Zone1_Pt2") + "MaxPv.Value") == 16.0 && p6 < 6.0);
 
+            double fm1 = c.GetDouble(Station.AiPh("Zone1_FM1") + "Pv");
+            Check(string.Format("zone 1 flow comes from its own FM1 ({0:0.0}), zone 2 FM1 stays idle", fm1),
+                  fm1 > 0 && Math.Abs(c.GetDouble(Ph(1) + "Flow") - fm1) < 0.5 && c.GetDouble(Station.AiPh("Zone2_FM1") + "Pv") < 1.0);
+            double torque = c.GetDouble(Station.AiPh("Zone1_Torque") + "Pv"), torqueRpm = c.GetDouble(Station.AiPh("Zone1_TorqueRpm") + "Pv");
+            Check(string.Format("torque meter reads torque and speed ({0:0.0} Nm at {1:0} rpm)", torque, torqueRpm), torque > 0 && torqueRpm > 100);
+            Check("samples hold torque, torque-meter speed and cos phi (" + c.GetDouble(Station.Sample(1, 6) + "PowerFactor").ToString("0.000") + ")",
+                  c.GetDouble(Station.Sample(1, 6) + "Torque") > 0 && c.GetDouble(Station.Sample(1, 6) + "TorqueRpm") > 100
+                  && c.GetDouble(Station.Sample(1, 6) + "PowerFactor") > 0.5 && c.GetDouble(Station.Sample(1, 6) + "PowerFactor") <= 1.0);
+            Check("zone 3 has no torque channels", c.Tag(Station.AiPh("Zone3_Torque") + "Pv") == null);
+
+            // The tester in the report is whoever is logged in when the test ends
+            Await(c.Security.Auth.LoginAsync("admin", TerakkiFramework.Security.UserStore.DefaultAdminPassword));
+            var tester = c.Security.User.Account;
             int records = c.Archive.Records.Count;
             c.Click(Hp(1) + "EndTest");
             Steps(3);
+            var archived = c.Archive.Records[0];
+            Check("archive names the logged-in user as tester (" + archived.Header["TESTI_YAPAN"] + ")",
+                  tester != null && archived.Header["TESTI_YAPAN"] == (string.IsNullOrWhiteSpace(tester.DisplayName) ? tester.Username : tester.DisplayName)
+                  && archived.Samples[5].Torque > 0 && archived.Samples[5].PowerFactor > 0);
+            c.Security.Auth.Logout("Smoke");
+
+            // The Excel report: the template filled with this test (kept for a look after the run)
+            string report = TestReport.Create(archived, Path.Combine(Path.GetTempPath(), "SempaPumpStationSmoke", "Rapor_Smoke.xlsx"));
+            string sheetXml = "", chartXml = "", workbookXml = "";
+            using (var zip = System.IO.Compression.ZipFile.OpenRead(report))
+                foreach (var e in zip.Entries)
+                {
+                    string text;
+                    using (var rd = new StreamReader(e.Open())) text = rd.ReadToEnd();
+                    if (e.FullName.StartsWith("xl/worksheets/sheet")) sheetXml += text;
+                    else if (e.FullName.StartsWith("xl/charts/chart")) chartXml += text;
+                    else if (e.FullName == "xl/workbook.xml") workbookXml += text;
+                }
+            Check("Excel report filled from the template (tester, flow, torque, charts to row 37, recalculated on open)",
+                  sheetXml.Contains(archived.Header["TESTI_YAPAN"]) && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"D32\"[^>]*><v>[1-9]") && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"P37\"[^>]*><v>[1-9]")
+                  && chartXml.Contains("$D$32:$D$37") && !chartXml.Contains("$D$32:$D$51") && workbookXml.Contains("fullCalcOnLoad=\"1\""));
             Check("end test archives the samples", c.Archive.Records.Count == records + 1 && c.Archive.Records[0].Samples.Count == 6);
             Check("samples stay after end test", c.GetInt(Ph(1) + "SampleCount") == 6);
             Check("end test clears the rotation confirmation",

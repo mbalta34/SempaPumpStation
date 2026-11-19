@@ -64,9 +64,9 @@ namespace SempaPumpStation.Screens
             ctx.Scanned += (o, e) => Refresh();
         }
 
-        public string ZoneNote => _zone == 1
-            ? "Bölge 1 ve 2 ortak debimetreleri (FM1–FM5) Bölge 2'nin BNI00AJ hub'ına bağlıdır."
-            : _zone == 2 ? "FM1–FM5 Bölge 1 ve 2 tarafından ortak kullanılır." : "";
+        public string ZoneNote => Station.HasTorqueMeter(_zone)
+            ? "Debimetreler (FM1–FM5) bölgenin BNI00AJ hub'ının 0–4 portlarında; tork ölçer BNI00KM port 6 (devir) ve port 7 (tork)."
+            : "Debimetreler (FM1–FM3) bölgenin BNI00AJ hub'ında.";
 
         private bool DataOk => Ctx.IsSimulation || Ctx.GetBool("PLC_COMM_OK");
 

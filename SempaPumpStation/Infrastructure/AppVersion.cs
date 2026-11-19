@@ -13,16 +13,16 @@ namespace SempaPumpStation.Infrastructure
     {
         // ---- bump these ----
         public const int Major = 1;
-        public const int Minor = 6;
-        public const int Build = 1;
+        public const int Minor = 7;
+        public const int Build = 0;
 
         public const string ProductName = "Sempa HMI";
 
         /// <summary>
         /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
-        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.3.6). Another version in the PLC raises an alarm.
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.3.7). Another version in the PLC raises an alarm.
         /// </summary>
-        public const string ExpectedPlcVersion = "1.3.6";
+        public const string ExpectedPlcVersion = "1.3.7";
 
         /// <summary>Tooltip of the PLC version in the rail.</summary>
         public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
@@ -39,6 +39,15 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.7.0", "2026-11-19", new[]
+            {
+                "Zone 1 has its own five flowmeters on ports 0-4 of its BNI00AJ hub, like zone 2; zones 1 and 2 no longer share flowmeters.",
+                "Torque meter in zones 1 and 2 on ports 6 (speed) and 7 (torque) of the BNI00KM hub: shown on the zone and IO-Link screens, logged, and stored with every sample together with the supply's cos phi.",
+                "The Testi Yapan recipe page is gone: the tester in the archive and the report is the user logged in when the test ends.",
+                "Excel Raporu on the report screen fills the 2017 Sempa test report template (Excel) for the selected test, with two extra columns for torque and torque-meter speed.",
+                "Needs PLC program 1.3.7.",
+            }),
+
             new ChangeLogEntry("1.6.1", "2026-11-18", new[]
             {
                 "Magnetic switches (560 kW, 630 kW): the charge-spring output stays on while the switch is open, because the spring-charged contact is powered through it; it used to drop once charged, which also dropped the charged signal.",

@@ -1,4 +1,4 @@
-﻿TYPE "st_Station_Sample"
+TYPE "st_Station_Sample"
 VERSION : 0.1
    STRUCT
       Timestamp {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DTL;
@@ -21,6 +21,9 @@ VERSION : 0.1
       Current { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
       SpeedReference { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
       PumpRunning { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      Torque { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Torque meter
+      TorqueRpm { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Torque meter speed
+      PowerFactor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // cos phi of the supply
    END_STRUCT;
 
 END_TYPE

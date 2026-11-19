@@ -39,6 +39,9 @@ namespace SempaPumpStation.Screens
         public ICommand ToggleFeedbackFaultCommand { get; }
         public ICommand ToggleDriveFaultCommand { get; }
 
+        /// <summary>Zones 1 and 2 have a torque meter (torque and its own speed signal).</summary>
+        public bool HasTorqueMeter => Station.HasTorqueMeter(_zone);
+
         public ZoneViewModel(HmiContext ctx, int zone) : base(ctx)
         {
             _zone = zone;
@@ -147,9 +150,9 @@ namespace SempaPumpStation.Screens
             foreach (var c in Flowmeters)
             {
                 int device = Ctx.GetInt(Station.PositionPh(fmPositions[c.Value - 1]) + "Device.Value");
-                bool held = _zone <= 2 && Ctx.GetInt(Station.ZonePh(3 - _zone) + "Flowmeter.Value") == c.Value;
-                c.State = c.Value == flowmeter ? "active" : held ? "held" : "";
-                c.Subtitle = held ? "Bölge " + (3 - _zone) + " kullanıyor" : DeviceText(Station.Flowmeter, device);
+                // Every zone has its own flowmeters
+                c.State = c.Value == flowmeter ? "active" : "";
+                c.Subtitle = DeviceText(Station.Flowmeter, device);
             }
 
             int transmitter = Ctx.GetInt(Ph.Prefix + "DischargeTransmitter.Value");
@@ -243,6 +246,9 @@ namespace SempaPumpStation.Screens
                 Vibration = Ctx.GetDouble(p + "Vibration"),
                 Temperature = Ctx.GetDouble(p + "Temperature"),
                 PumpRunning = Ctx.GetBool(p + "PumpRunning"),
+                Torque = Ctx.GetDouble(p + "Torque"),
+                TorqueRpm = Ctx.GetDouble(p + "TorqueRpm"),
+                PowerFactor = Ctx.GetDouble(p + "PowerFactor"),
             };
         }
     }

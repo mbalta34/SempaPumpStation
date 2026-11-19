@@ -14,11 +14,11 @@ namespace SempaPumpStation.PlcInterface
             : base(c, name, "DB" + db + ".DBB" + byteOffset, DataType.STRUCT, w, r)
         {
             var k = new S7Cursor(c, db, byteOffset, w, r);
-            Shared_FM1 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Shared_FM1", db, k.Struct(), w, r));
-            Shared_FM2 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Shared_FM2", db, k.Struct(), w, r));
-            Shared_FM3 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Shared_FM3", db, k.Struct(), w, r));
-            Shared_FM4 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Shared_FM4", db, k.Struct(), w, r));
-            Shared_FM5 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Shared_FM5", db, k.Struct(), w, r));
+            Zone2_FM1 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone2_FM1", db, k.Struct(), w, r));
+            Zone2_FM2 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone2_FM2", db, k.Struct(), w, r));
+            Zone2_FM3 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone2_FM3", db, k.Struct(), w, r));
+            Zone2_FM4 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone2_FM4", db, k.Struct(), w, r));
+            Zone2_FM5 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone2_FM5", db, k.Struct(), w, r));
             Zone3_FM1 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone3_FM1", db, k.Struct(), w, r));
             Zone3_FM2 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone3_FM2", db, k.Struct(), w, r));
             Zone3_FM3 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone3_FM3", db, k.Struct(), w, r));
@@ -37,13 +37,18 @@ namespace SempaPumpStation.PlcInterface
             Zone1_Vacuummeter = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone1_Vacuummeter", db, k.Struct(), w, r));
             Zone2_Vacuummeter = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone2_Vacuummeter", db, k.Struct(), w, r));
             Zone3_Vacuummeter = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone3_Vacuummeter", db, k.Struct(), w, r));
+            Zone1_FM1 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone1_FM1", db, k.Struct(), w, r));
+            Zone1_FM2 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone1_FM2", db, k.Struct(), w, r));
+            Zone1_FM3 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone1_FM3", db, k.Struct(), w, r));
+            Zone1_FM4 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone1_FM4", db, k.Struct(), w, r));
+            Zone1_FM5 = k.Next(new st_Station_Hp_InstrumentPosition(c, name + ".Zone1_FM5", db, k.Struct(), w, r));
         }
 
-        public st_Station_Hp_InstrumentPosition Shared_FM1 { get; private set; }
-        public st_Station_Hp_InstrumentPosition Shared_FM2 { get; private set; }
-        public st_Station_Hp_InstrumentPosition Shared_FM3 { get; private set; }
-        public st_Station_Hp_InstrumentPosition Shared_FM4 { get; private set; }
-        public st_Station_Hp_InstrumentPosition Shared_FM5 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone2_FM1 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone2_FM2 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone2_FM3 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone2_FM4 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone2_FM5 { get; private set; }
         public st_Station_Hp_InstrumentPosition Zone3_FM1 { get; private set; }
         public st_Station_Hp_InstrumentPosition Zone3_FM2 { get; private set; }
         public st_Station_Hp_InstrumentPosition Zone3_FM3 { get; private set; }
@@ -62,5 +67,10 @@ namespace SempaPumpStation.PlcInterface
         public st_Station_Hp_InstrumentPosition Zone1_Vacuummeter { get; private set; }
         public st_Station_Hp_InstrumentPosition Zone2_Vacuummeter { get; private set; }
         public st_Station_Hp_InstrumentPosition Zone3_Vacuummeter { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone1_FM1 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone1_FM2 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone1_FM3 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone1_FM4 { get; private set; }
+        public st_Station_Hp_InstrumentPosition Zone1_FM5 { get; private set; }
     }
 }

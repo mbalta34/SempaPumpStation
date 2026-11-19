@@ -33,6 +33,7 @@ namespace SempaPumpStation.Screens
                 if (!Set(ref _selected, value)) return;
                 BuildChart();
                 OnPropertyChanged(nameof(HasSelection));
+                CreateReportCommand?.RaiseCanExecuteChanged();
             }
         }
 
@@ -47,9 +48,9 @@ namespace SempaPumpStation.Screens
         public ICommand SelectPompaCommand { get; }
         public ICommand SelectMotorCommand { get; }
         public ICommand SelectHatCommand { get; }
-        public ICommand SelectTestiYapanCommand { get; }
         public ICommand OpenFileCommand { get; }
         public ICommand OpenFolderCommand { get; }
+        public SyncCommand CreateReportCommand { get; }
 
         public ReportViewModel(HmiContext ctx) : base(ctx)
         {
@@ -57,12 +58,27 @@ namespace SempaPumpStation.Screens
             SelectPompaCommand = new SyncCommand(() => Ctx.Navigate("PompaRecipe"));
             SelectMotorCommand = new SyncCommand(() => Ctx.Navigate("MotorRecipe"));
             SelectHatCommand = new SyncCommand(() => Ctx.Navigate("HatRecipe"));
-            SelectTestiYapanCommand = new SyncCommand(() => Ctx.Navigate("TestiYapan"));
             OpenFileCommand = new SyncCommand(() => Open(_selected?.File));
             OpenFolderCommand = new SyncCommand(() => { Directory.CreateDirectory(TestArchive.Folder); Open(TestArchive.Folder); });
+            CreateReportCommand = new SyncCommand(CreateReport, () => _selected != null && _selected.Samples.Count > 0);
 
             ctx.Archive.Archived += r => Selected = r;
             Selected = Records.FirstOrDefault();
+        }
+
+        /// <summary>Fills the Excel report template with the selected test and opens it.</summary>
+        private void CreateReport()
+        {
+            if (_selected == null) return;
+            try
+            {
+                string path = TestReport.Create(_selected);
+                if (_selected.Samples.Count > TestReport.MaxSamples)
+                    MessageBox.Show("Raporda ilk " + TestReport.MaxSamples + " numune var (şablonda " + TestReport.MaxSamples + " satır bulunur); bu testte "
+                                    + _selected.Samples.Count + " numune alındı. Tüm numuneler CSV dosyasında.", "Excel raporu");
+                Open(path);
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Rapor oluşturulamadı"); }
         }
 
         private static void Open(string path)

@@ -112,19 +112,4 @@ namespace SempaPumpStation.Screens
         protected override IReadOnlyDictionary<string, string> ReportMap => new Dictionary<string, string>();
     }
 
-    public sealed class TestiYapanRecipeViewModel : RecipeEditorViewModel
-    {
-        public TestiYapanRecipeViewModel(HmiContext ctx) : base(ctx) { }
-        public override string Key => "TestiYapan";
-        public override string Title => "Testi Yapan";
-        public override string Category => "TestiYapan";
-        protected override IReadOnlyList<RecipeFieldDef> Defs => new[]
-        {
-            new RecipeFieldDef("Testi Yapan Personel", "TESTI_YAPAN"),
-        };
-        protected override IReadOnlyDictionary<string, string> ReportMap => new Dictionary<string, string>
-        {
-            { "TESTI_YAPAN", "WRT_TESTI_YAPAN" },
-        };
-    }
 }

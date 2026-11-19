@@ -25,6 +25,12 @@ namespace SempaPumpStation.Infrastructure
             new Entry { Description = "Siemens Mag5000 DN600", Serial = "SI-7ME6520", Unit = "m³/h", MaxPv = 5000, FilterType = 2 },
             new Entry { Description = "E+H Promag DN100", Serial = "EH-P10-3381", Unit = "m³/h", MaxPv = 150, FilterType = 1 },
             new Entry { Description = "E+H Promag DN200", Serial = "EH-P10-3412", Unit = "m³/h", MaxPv = 650, FilterType = 1 },
+            // Zone 1's own flowmeters (devices 9..13)
+            new Entry { Description = "Krohne Optiflux DN80", Serial = "KR-A12301", Unit = "m³/h", MaxPv = 100, FilterType = 1 },
+            new Entry { Description = "Krohne Optiflux DN125", Serial = "KR-A12317", Unit = "m³/h", MaxPv = 250, FilterType = 1 },
+            new Entry { Description = "E+H Promag DN150", Serial = "EH-P10-3455", Unit = "m³/h", MaxPv = 350, FilterType = 1 },
+            new Entry { Description = "E+H Promag DN250", Serial = "EH-P10-3478", Unit = "m³/h", MaxPv = 1000, FilterType = 1 },
+            new Entry { Description = "Siemens Mag5000 DN400", Serial = "SI-7ME6541", Unit = "m³/h", MaxPv = 2500, FilterType = 2 },
         };
 
         private static readonly Entry[] Transmitters =
@@ -85,11 +91,16 @@ namespace SempaPumpStation.Infrastructure
         {
             switch (position.Name)
             {
-                case "Shared_FM1": return 1;
-                case "Shared_FM2": return 2;
-                case "Shared_FM3": return 3;
-                case "Shared_FM4": return 4;
-                case "Shared_FM5": return 6;
+                case "Zone2_FM1": return 1;
+                case "Zone2_FM2": return 2;
+                case "Zone2_FM3": return 3;
+                case "Zone2_FM4": return 4;
+                case "Zone2_FM5": return 6;
+                case "Zone1_FM1": return 9;
+                case "Zone1_FM2": return 10;
+                case "Zone1_FM3": return 11;
+                case "Zone1_FM4": return 12;
+                case "Zone1_FM5": return 13;
                 case "Zone3_FM1": return 7;
                 case "Zone3_FM2": return 8;
                 case "Zone3_FM3": return 5;

@@ -18,8 +18,8 @@ namespace SempaPumpStation.Infrastructure
     /// <summary>An instrument position (an analog input place) that a library device can be mounted on.</summary>
     public sealed class InstrumentPositionInfo
     {
-        public int Index;          // 1..23, the PLC's position number
-        public string Name;        // "Shared_FM1", "Zone2_Pt3", "Zone1_Vacuummeter"
+        public int Index;          // 1..28, the PLC's position number
+        public string Name;        // "Zone2_FM1", "Zone2_Pt3", "Zone1_Vacuummeter"
         public int Category;       // 1 flowmeter, 2 pressure transmitter, 3 vacuummeter
         public int[] Zones;        // the zones that measure with this position
         public string Label;       // operator label: "FM1", "Pt3", "Vakum"
@@ -37,7 +37,8 @@ namespace SempaPumpStation.Infrastructure
         public const int SourceCount = 8;
         public const int SampleCapacity = 50;
         public const int LibrarySize = 100;
-        public const int SharedFlowmeterCount = 5;
+        /// <summary>Zones 1 and 2 each have 5 flowmeters of their own (first 5 ports of their BNI00AJ).</summary>
+        public const int ZoneFlowmeterCount = 5;
         public const int Zone3FlowmeterCount = 3;
         public const int TransmitterCount = 4;
 
@@ -64,7 +65,7 @@ namespace SempaPumpStation.Infrastructure
 
         public static readonly string[] TransmitterNames = { "Pt1", "Pt2", "Pt3", "Pt4" };
 
-        /// <summary>The 23 instrument positions in the PLC's order (the Assigned array index).</summary>
+        /// <summary>The 28 instrument positions in the PLC's order (the Assigned array index).</summary>
         public static readonly InstrumentPositionInfo[] Positions = BuildPositions();
 
         private static InstrumentPositionInfo[] BuildPositions()
@@ -73,11 +74,13 @@ namespace SempaPumpStation.Infrastructure
             void Add(string name, int category, string label, params int[] zones) =>
                 list.Add(new InstrumentPositionInfo { Index = list.Count + 1, Name = name, Category = category, Label = label, Zones = zones });
 
-            for (int f = 1; f <= SharedFlowmeterCount; f++) Add("Shared_FM" + f, Flowmeter, "FM" + f, 1, 2);
+            for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone2_FM" + f, Flowmeter, "FM" + f, 2);
             for (int f = 1; f <= Zone3FlowmeterCount; f++) Add("Zone3_FM" + f, Flowmeter, "FM" + f, 3);
             for (int z = 1; z <= ZoneCount; z++)
                 for (int t = 1; t <= TransmitterCount; t++) Add("Zone" + z + "_Pt" + t, PressureTransmitter, "Pt" + t, z);
             for (int z = 1; z <= ZoneCount; z++) Add("Zone" + z + "_Vacuummeter", Vacuummeter, "Vakum", z);
+            // Added after the original 23, so the PLC numbering of those stays
+            for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone1_FM" + f, Flowmeter, "FM" + f, 1);
             return list.ToArray();
         }
 
@@ -85,10 +88,12 @@ namespace SempaPumpStation.Infrastructure
 
         /// <summary>The flowmeter positions a zone measures with, in selection order (flowmeter 1..n).</summary>
         public static string[] FlowmeterPositions(int zone) =>
-            zone == 3 ? new[] { "Zone3_FM1", "Zone3_FM2", "Zone3_FM3" }
-                      : new[] { "Shared_FM1", "Shared_FM2", "Shared_FM3", "Shared_FM4", "Shared_FM5" };
+            Enumerable.Range(1, FlowmeterCount(zone)).Select(f => "Zone" + zone + "_FM" + f).ToArray();
 
-        public static int FlowmeterCount(int zone) => zone == 3 ? Zone3FlowmeterCount : SharedFlowmeterCount;
+        public static int FlowmeterCount(int zone) => zone == 3 ? Zone3FlowmeterCount : ZoneFlowmeterCount;
+
+        /// <summary>Zones with a torque meter (BNI00KM port 6 speed, port 7 torque).</summary>
+        public static bool HasTorqueMeter(int zone) => zone == 1 || zone == 2;
 
         public static string TransmitterPosition(int zone, int t) => "Zone" + zone + "_Pt" + t;
         public static string VacuummeterPosition(int zone) => "Zone" + zone + "_Vacuummeter";
@@ -104,9 +109,10 @@ namespace SempaPumpStation.Infrastructure
                 for (int t = 1; t <= TransmitterCount; t++) yield return TransmitterPosition(z, t);
                 yield return VacuummeterPosition(z);
                 foreach (var s in ZoneSensors) yield return "Zone" + z + "_" + s;
+                if (HasTorqueMeter(z)) { yield return "Zone" + z + "_TorqueRpm"; yield return "Zone" + z + "_Torque"; }
             }
-            for (int f = 1; f <= SharedFlowmeterCount; f++) yield return "Shared_FM" + f;
-            for (int f = 1; f <= Zone3FlowmeterCount; f++) yield return "Zone3_FM" + f;
+            for (int z = 1; z <= ZoneCount; z++)
+                foreach (var p in FlowmeterPositions(z)) yield return p;
         }
 
         public static string CategoryName(int category) =>
@@ -185,6 +191,7 @@ namespace SempaPumpStation.Infrastructure
             ("Flow", 'R'), ("DischargePressure", 'R'), ("SuctionPressure", 'R'),
             ("WaterTemperature", 'R'), ("AmbientTemperature", 'R'), ("Vibration", 'R'), ("Temperature", 'R'),
             ("Sound", 'R'), ("Speed", 'R'), ("Voltage", 'R'), ("Current", 'R'), ("SpeedReference", 'R'), ("PumpRunning", 'B'),
+            ("Torque", 'R'), ("TorqueRpm", 'R'), ("PowerFactor", 'R'),
         };
 
         /// <summary>st_Station_Instrument members with the tag data kind.</summary>

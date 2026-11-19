@@ -21,7 +21,6 @@ namespace SempaPumpStation.Infrastructure
     /// <summary>The analog inputs grouped as on the station: per zone, and the flowmeters zones 1 and 2 share.</summary>
     public static class AnalogInputList
     {
-        public const string SharedGroup = "ORTAK DEBİMETRELER (BÖLGE 1–2)";
 
         private static readonly Dictionary<string, (string Label, string Unit)> Sensors = new Dictionary<string, (string, string)>
         {
@@ -31,6 +30,8 @@ namespace SempaPumpStation.Infrastructure
             { "Temperature", ("Motor sıcaklığı", "°C") },
             { "Sound", ("Ses seviyesi", "dB") },
             { "Speed", ("Devir", "d/dk") },
+            { "TorqueRpm", ("Tork ölçer devir", "d/dk") },
+            { "Torque", ("Tork ölçer tork", "Nm") },
         };
 
         public static readonly AnalogInputInfo[] All = Build();
@@ -46,7 +47,7 @@ namespace SempaPumpStation.Infrastructure
                 var info = new AnalogInputInfo { Name = name, Position = position };
                 if (position != null)
                 {
-                    info.Group = position.Zones.Length > 1 ? SharedGroup : "BÖLGE " + position.Zones[0];
+                    info.Group = "BÖLGE " + position.Zones[0];
                     info.Label = position.Category == Station.Vacuummeter ? "Vakummetre (emme)"
                                : position.Category == Station.PressureTransmitter ? position.Label + " basma transmitteri"
                                : position.Label + " debimetre";
@@ -60,8 +61,8 @@ namespace SempaPumpStation.Infrastructure
                 }
                 list.Add(info);
             }
-            // Zones in order, the shared flowmeters last
-            return list.OrderBy(a => a.Group == SharedGroup ? 9 : 0).ThenBy(a => a.Group).ToArray();
+            // Zones in order, each with its own flowmeters
+            return list.OrderBy(a => a.Group).ToArray();
         }
     }
 }

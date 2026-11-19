@@ -136,7 +136,7 @@ namespace SempaPumpStation.Infrastructure
             B(t, "DALGIC_PMP_SEL");
 
             // ---- Report values (WRT_* = master data selected from the recipes) ----
-            S(t, "WRT_FIRMA_ADI"); S(t, "WRT_ADRES"); S(t, "WRT_TESTI_YAPAN");
+            S(t, "WRT_FIRMA_ADI"); S(t, "WRT_ADRES");
             S(t, "WRT_POMPA_TIPI"); S(t, "WRT_PMP_SERI_NO"); S(t, "WRT_PMP_EMME_CAP");
             S(t, "WRT_PMP_BAS_CAP"); S(t, "WRT_PMP_MIL_MALZ"); S(t, "WRT_PMP_MONTAJ_TIP");
             S(t, "WRT_CARK_MALZ"); S(t, "WRT_CARK_CAPI"); S(t, "WRT_SALMAST_TIPI"); S(t, "WRT_SALYANGOZ_MALZ");
@@ -164,9 +164,6 @@ namespace SempaPumpStation.Infrastructure
             R(t, "HAT_BAS_IC_CAPI"); R(t, "HAT_UZUNLUGU"); R(t, "GEO_YUKSEKLIK");
             I(t, "BASMA_DIRSEK_ADET"); I(t, "EMME_RED_ADET");
             R(t, "FDUZ_DEGERI"); R(t, "FDIRS_DEGERI"); R(t, "FRED_DEGERI");
-
-            // ---- Testi Yapan recipe ----
-            S(t, "TESTI_YAPAN");
         }
 
         /// <summary>HMI-local starting values: the selected report master data and the line geometry.</summary>
@@ -182,7 +179,6 @@ namespace SempaPumpStation.Infrastructure
 
                 { "WRT_FIRMA_ADI", "AKDENIZ SU ARITMA A.Ş." },
                 { "WRT_ADRES", "OSB 12. Cadde No:34, Konya" },
-                { "WRT_TESTI_YAPAN", "İsmet Y." },
                 { "WRT_POMPA_TIPI", "NM 65/250 A" },
                 { "WRT_PMP_SERI_NO", "P-2024-8817" },
                 { "WRT_PMP_EMME_CAP", "DN200" },
@@ -209,7 +205,6 @@ namespace SempaPumpStation.Infrastructure
                 { "HAT_BAS_IC_CAPI", 150.0f }, { "HAT_UZUNLUGU", 6.0f }, { "GEO_YUKSEKLIK", 0.6f },
                 { "BASMA_DIRSEK_ADET", 2 }, { "EMME_RED_ADET", 1 },
                 { "FDUZ_DEGERI", 0.02f }, { "FDIRS_DEGERI", 0.3f }, { "FRED_DEGERI", 0.2f },
-                { "TESTI_YAPAN", "İsmet Y." },
             };
         }
 
