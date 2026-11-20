@@ -1,4 +1,4 @@
-﻿TYPE "st_Io_Hp_DigitalInputs"
+TYPE "st_Io_Hp_DigitalInputs"
 VERSION : 0.1
    STRUCT
       Zone1_K7k5Ss_Open { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
@@ -23,6 +23,7 @@ VERSION : 0.1
       Zone1_PendantStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone1_PendantTakeSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone1_EStopOk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
+      Zone1_PanelEStopOk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone2_K7k5Ss_Open { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone2_K7k5Ss_Closed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone2_K7k5Vfd_Open { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
@@ -45,6 +46,7 @@ VERSION : 0.1
       Zone2_PendantStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone2_PendantTakeSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone2_EStopOk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
+      Zone2_PanelEStopOk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone3_K7k5Ss_Open { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone3_K7k5Ss_Closed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone3_K7k5Vfd_Open { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
@@ -67,6 +69,7 @@ VERSION : 0.1
       Zone3_PendantStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone3_PendantTakeSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Zone3_EStopOk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
+      Zone3_PanelEStopOk { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Drive_7k5Ss_Running { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Drive_7k5Ss_Fault { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";
       Drive_7k5Vfd_Running { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalInput";

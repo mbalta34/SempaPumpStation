@@ -119,7 +119,7 @@ namespace SempaPumpStation.Infrastructure.Plc
     public sealed class InstrumentPosition
     {
         private const int KeyFactor = 1000;
-        private static readonly int PositionCount = Station.Positions.Length;   // POSITION_COUNT (28)
+        private static readonly int PositionCount = Station.Positions.Length;   // POSITION_COUNT (25)
 
         private readonly InstrumentPositionInfo _info;
         private readonly string _hp, _ph;

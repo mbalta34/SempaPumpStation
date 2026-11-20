@@ -25,7 +25,6 @@ namespace SempaPumpStation.PlcInterface
             Zone1_Temperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Temperature", db, k.Struct(), w, r));
             Zone1_Sound = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Sound", db, k.Struct(), w, r));
             Zone1_Speed = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Speed", db, k.Struct(), w, r));
-            Zone1_TorqueRpm = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_TorqueRpm", db, k.Struct(), w, r));
             Zone1_Torque = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Torque", db, k.Struct(), w, r));
             Zone2_Pt1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Pt1", db, k.Struct(), w, r));
             Zone2_Pt2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Pt2", db, k.Struct(), w, r));
@@ -38,7 +37,6 @@ namespace SempaPumpStation.PlcInterface
             Zone2_Temperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Temperature", db, k.Struct(), w, r));
             Zone2_Sound = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Sound", db, k.Struct(), w, r));
             Zone2_Speed = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Speed", db, k.Struct(), w, r));
-            Zone2_TorqueRpm = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_TorqueRpm", db, k.Struct(), w, r));
             Zone2_Torque = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Torque", db, k.Struct(), w, r));
             Zone3_Pt1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Pt1", db, k.Struct(), w, r));
             Zone3_Pt2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Pt2", db, k.Struct(), w, r));
@@ -51,19 +49,17 @@ namespace SempaPumpStation.PlcInterface
             Zone3_Temperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Temperature", db, k.Struct(), w, r));
             Zone3_Sound = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Sound", db, k.Struct(), w, r));
             Zone3_Speed = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Speed", db, k.Struct(), w, r));
+            Zone3_Torque = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Torque", db, k.Struct(), w, r));
             Zone1_FM1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_FM1", db, k.Struct(), w, r));
             Zone1_FM2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_FM2", db, k.Struct(), w, r));
-            Zone1_FM3 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_FM3", db, k.Struct(), w, r));
-            Zone1_FM4 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_FM4", db, k.Struct(), w, r));
-            Zone1_FM5 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_FM5", db, k.Struct(), w, r));
             Zone2_FM1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_FM1", db, k.Struct(), w, r));
             Zone2_FM2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_FM2", db, k.Struct(), w, r));
             Zone2_FM3 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_FM3", db, k.Struct(), w, r));
             Zone2_FM4 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_FM4", db, k.Struct(), w, r));
-            Zone2_FM5 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_FM5", db, k.Struct(), w, r));
             Zone3_FM1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_FM1", db, k.Struct(), w, r));
             Zone3_FM2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_FM2", db, k.Struct(), w, r));
             Zone3_FM3 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_FM3", db, k.Struct(), w, r));
+            Zone3_FM4 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_FM4", db, k.Struct(), w, r));
         }
 
         public st_Io_Hp_AnalogInput Zone1_Pt1 { get; private set; }
@@ -77,7 +73,6 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_AnalogInput Zone1_Temperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_Sound { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_Speed { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_TorqueRpm { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_Torque { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Pt1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Pt2 { get; private set; }
@@ -90,7 +85,6 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_AnalogInput Zone2_Temperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Sound { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Speed { get; private set; }
-        public st_Io_Hp_AnalogInput Zone2_TorqueRpm { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Torque { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Pt1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Pt2 { get; private set; }
@@ -103,18 +97,16 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_AnalogInput Zone3_Temperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Sound { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Speed { get; private set; }
+        public st_Io_Hp_AnalogInput Zone3_Torque { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_FM1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_FM2 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_FM3 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_FM4 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_FM5 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_FM1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_FM2 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_FM3 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_FM4 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone2_FM5 { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_FM1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_FM2 { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_FM3 { get; private set; }
+        public st_Io_Hp_AnalogInput Zone3_FM4 { get; private set; }
     }
 }

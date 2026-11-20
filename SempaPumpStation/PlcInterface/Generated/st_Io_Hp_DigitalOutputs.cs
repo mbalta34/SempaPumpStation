@@ -29,6 +29,11 @@ namespace SempaPumpStation.PlcInterface
             Zone1_LampGreen = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampGreen", db, k.Struct(), w, r));
             Zone1_LampYellow = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampYellow", db, k.Struct(), w, r));
             Zone1_LampRed = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampRed", db, k.Struct(), w, r));
+            Zone1_LampStart = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampStart", db, k.Struct(), w, r));
+            Zone1_LampStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampStop", db, k.Struct(), w, r));
+            Zone1_LampTakeSample = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampTakeSample", db, k.Struct(), w, r));
+            Zone1_LampEStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampEStop", db, k.Struct(), w, r));
+            Zone1_LampPanelEStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone1_LampPanelEStop", db, k.Struct(), w, r));
             Zone2_K7k5Ss_Close = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_K7k5Ss_Close", db, k.Struct(), w, r));
             Zone2_K7k5Vfd_Close = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_K7k5Vfd_Close", db, k.Struct(), w, r));
             Zone2_K37Ss_Close = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_K37Ss_Close", db, k.Struct(), w, r));
@@ -44,6 +49,11 @@ namespace SempaPumpStation.PlcInterface
             Zone2_LampGreen = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampGreen", db, k.Struct(), w, r));
             Zone2_LampYellow = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampYellow", db, k.Struct(), w, r));
             Zone2_LampRed = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampRed", db, k.Struct(), w, r));
+            Zone2_LampStart = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampStart", db, k.Struct(), w, r));
+            Zone2_LampStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampStop", db, k.Struct(), w, r));
+            Zone2_LampTakeSample = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampTakeSample", db, k.Struct(), w, r));
+            Zone2_LampEStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampEStop", db, k.Struct(), w, r));
+            Zone2_LampPanelEStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone2_LampPanelEStop", db, k.Struct(), w, r));
             Zone3_K7k5Ss_Close = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_K7k5Ss_Close", db, k.Struct(), w, r));
             Zone3_K7k5Vfd_Close = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_K7k5Vfd_Close", db, k.Struct(), w, r));
             Zone3_K37Ss_Close = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_K37Ss_Close", db, k.Struct(), w, r));
@@ -59,6 +69,11 @@ namespace SempaPumpStation.PlcInterface
             Zone3_LampGreen = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampGreen", db, k.Struct(), w, r));
             Zone3_LampYellow = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampYellow", db, k.Struct(), w, r));
             Zone3_LampRed = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampRed", db, k.Struct(), w, r));
+            Zone3_LampStart = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampStart", db, k.Struct(), w, r));
+            Zone3_LampStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampStop", db, k.Struct(), w, r));
+            Zone3_LampTakeSample = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampTakeSample", db, k.Struct(), w, r));
+            Zone3_LampEStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampEStop", db, k.Struct(), w, r));
+            Zone3_LampPanelEStop = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Zone3_LampPanelEStop", db, k.Struct(), w, r));
             Drive_7k5Ss_Run = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Drive_7k5Ss_Run", db, k.Struct(), w, r));
             Drive_7k5Vfd_Run = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Drive_7k5Vfd_Run", db, k.Struct(), w, r));
             Drive_37Ss_Run = k.Next(new st_Io_Hp_DigitalOutput(c, name + ".Drive_37Ss_Run", db, k.Struct(), w, r));
@@ -84,6 +99,11 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_DigitalOutput Zone1_LampGreen { get; private set; }
         public st_Io_Hp_DigitalOutput Zone1_LampYellow { get; private set; }
         public st_Io_Hp_DigitalOutput Zone1_LampRed { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone1_LampStart { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone1_LampStop { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone1_LampTakeSample { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone1_LampEStop { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone1_LampPanelEStop { get; private set; }
         public st_Io_Hp_DigitalOutput Zone2_K7k5Ss_Close { get; private set; }
         public st_Io_Hp_DigitalOutput Zone2_K7k5Vfd_Close { get; private set; }
         public st_Io_Hp_DigitalOutput Zone2_K37Ss_Close { get; private set; }
@@ -99,6 +119,11 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_DigitalOutput Zone2_LampGreen { get; private set; }
         public st_Io_Hp_DigitalOutput Zone2_LampYellow { get; private set; }
         public st_Io_Hp_DigitalOutput Zone2_LampRed { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone2_LampStart { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone2_LampStop { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone2_LampTakeSample { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone2_LampEStop { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone2_LampPanelEStop { get; private set; }
         public st_Io_Hp_DigitalOutput Zone3_K7k5Ss_Close { get; private set; }
         public st_Io_Hp_DigitalOutput Zone3_K7k5Vfd_Close { get; private set; }
         public st_Io_Hp_DigitalOutput Zone3_K37Ss_Close { get; private set; }
@@ -114,6 +139,11 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_DigitalOutput Zone3_LampGreen { get; private set; }
         public st_Io_Hp_DigitalOutput Zone3_LampYellow { get; private set; }
         public st_Io_Hp_DigitalOutput Zone3_LampRed { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone3_LampStart { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone3_LampStop { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone3_LampTakeSample { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone3_LampEStop { get; private set; }
+        public st_Io_Hp_DigitalOutput Zone3_LampPanelEStop { get; private set; }
         public st_Io_Hp_DigitalOutput Drive_7k5Ss_Run { get; private set; }
         public st_Io_Hp_DigitalOutput Drive_7k5Vfd_Run { get; private set; }
         public st_Io_Hp_DigitalOutput Drive_37Ss_Run { get; private set; }

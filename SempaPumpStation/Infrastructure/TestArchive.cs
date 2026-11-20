@@ -32,8 +32,7 @@ namespace SempaPumpStation.Infrastructure
         public double Current { get; set; }
         public double SpeedReference { get; set; }
         public bool PumpRunning { get; set; }
-        public double Torque { get; set; }        // Nm, torque meter (zones 1 and 2)
-        public double TorqueRpm { get; set; }     // rpm, torque meter
+        public double Torque { get; set; }        // Nm, torque meter
         public double PowerFactor { get; set; }   // cos phi of the supply
 
         // Derived
@@ -124,8 +123,8 @@ namespace SempaPumpStation.Infrastructure
         private void Archive(int z)
         {
             string s = Station.Samples(z);
-            int testNo = _ctx.GetInt("GLOBAL_DENEY_NO");
-            _ctx.SetValue("GLOBAL_DENEY_NO", testNo + 1);
+            // The PLC numbers the tests (retained "StationCounters".NextTestNo, taken at start test)
+            int testNo = _ctx.GetInt(s + "TestNo");
 
             var r = new TestRecord
             {
@@ -189,7 +188,6 @@ namespace SempaPumpStation.Infrastructure
                 SpeedReference = _ctx.GetDouble(p + "SpeedReference"),
                 PumpRunning = _ctx.GetBool(p + "PumpRunning"),
                 Torque = _ctx.GetDouble(p + "Torque"),
-                TorqueRpm = _ctx.GetDouble(p + "TorqueRpm"),
                 PowerFactor = _ctx.GetDouble(p + "PowerFactor"),
             };
         }
@@ -212,7 +210,7 @@ namespace SempaPumpStation.Infrastructure
             "No", "Zaman", "Kaynak", "Debimetre", "BasincTr", "DebimetreCihaz", "BasincTrCihaz", "VakumCihaz",
             "Debi_m3h", "BasmaBasinci_bar", "EmmeBasinci_bar", "Hm_m", "HidrolikGuc_kW",
             "SuSicakligi_C", "OrtamSicakligi_C", "Titresim_mms", "MotorSicakligi_C", "Ses_dB", "Devir_dk",
-            "Gerilim_V", "Akim_A", "HizRef_yuzde", "PompaCalisiyor", "Tork_Nm", "TorkDevir_dk", "CosPhi",
+            "Gerilim_V", "Akim_A", "HizRef_yuzde", "PompaCalisiyor", "Tork_Nm", "CosPhi",
         };
 
         private const int OldColumnCount = 23;
@@ -234,7 +232,7 @@ namespace SempaPumpStation.Infrastructure
                     s.FlowmeterDevice.ToString(Inv), s.DischargeTransmitterDevice.ToString(Inv), s.VacuummeterDevice.ToString(Inv),
                     N(s.Flow), N(s.DischargePressure, "0.000"), N(s.SuctionPressure, "0.000"), N(s.Head), N(s.HydraulicPower),
                     N(s.WaterTemperature), N(s.AmbientTemperature), N(s.Vibration), N(s.Temperature), N(s.Sound), N(s.Speed, "0"),
-                    N(s.Voltage), N(s.Current), N(s.SpeedReference), s.PumpRunning ? "1" : "0", N(s.Torque, "0.0"), N(s.TorqueRpm, "0"), N(s.PowerFactor, "0.000"),
+                    N(s.Voltage), N(s.Current), N(s.SpeedReference), s.PumpRunning ? "1" : "0", N(s.Torque, "0.0"), N(s.PowerFactor, "0.000"),
                 }));
             }
             File.WriteAllText(r.File, sb.ToString(), new UTF8Encoding(true));
@@ -263,7 +261,7 @@ namespace SempaPumpStation.Infrastructure
             try
             {
                 var r = new TestRecord { File = file };
-                bool header = false;
+                string[] columns = null;   // the header row: torque and cos phi are found by name (1.7 archives also have TorkDevir_dk)
                 foreach (var line in File.ReadAllLines(file, Encoding.UTF8))
                 {
                     if (line.StartsWith("#"))
@@ -278,9 +276,10 @@ namespace SempaPumpStation.Infrastructure
                         else r.Header[k] = v;
                         continue;
                     }
-                    if (!header) { header = true; continue; }
+                    if (columns == null) { columns = line.Split(';'); continue; }
 
                     var c = line.Split(';');
+                    double Named(string name) { int at = Array.IndexOf(columns, name); return at >= 0 && at < c.Length ? ParseDouble(c[at]) : 0; }
                     if (c.Length < OldColumnCount) continue;   // archives from before 1.7 have no torque and cos phi
                     r.Samples.Add(new TestSample
                     {
@@ -294,9 +293,8 @@ namespace SempaPumpStation.Infrastructure
                         Temperature = ParseDouble(c[16]), Sound = ParseDouble(c[17]), Speed = ParseDouble(c[18]),
                         Voltage = ParseDouble(c[19]), Current = ParseDouble(c[20]), SpeedReference = ParseDouble(c[21]),
                         PumpRunning = c[22] == "1",
-                        Torque = c.Length > 23 ? ParseDouble(c[23]) : 0,
-                        TorqueRpm = c.Length > 24 ? ParseDouble(c[24]) : 0,
-                        PowerFactor = c.Length > 25 ? ParseDouble(c[25]) : 0,
+                        Torque = Named("Tork_Nm"),
+                        PowerFactor = Named("CosPhi"),
                     });
                 }
                 return r;

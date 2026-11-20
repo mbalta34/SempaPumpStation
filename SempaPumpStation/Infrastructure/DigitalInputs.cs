@@ -44,6 +44,7 @@ namespace SempaPumpStation.Infrastructure
                 Add(zone + "PendantStop", z, "Pandant STOP");
                 Add(zone + "PendantTakeSample", z, "Pandant NUMUNE AL");
                 Add(zone + "EStopOk", z, "Acil stop sağlam");
+                Add(zone + "PanelEStopOk", z, "Pano acil stop sağlam");
             }
             foreach (var s in Station.Sources)
             {

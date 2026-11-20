@@ -18,10 +18,10 @@ namespace SempaPumpStation.PlcInterface
             Zone2_FM2 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone2_FM2", db, k.Struct(), w, r));
             Zone2_FM3 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone2_FM3", db, k.Struct(), w, r));
             Zone2_FM4 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone2_FM4", db, k.Struct(), w, r));
-            Zone2_FM5 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone2_FM5", db, k.Struct(), w, r));
             Zone3_FM1 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone3_FM1", db, k.Struct(), w, r));
             Zone3_FM2 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone3_FM2", db, k.Struct(), w, r));
             Zone3_FM3 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone3_FM3", db, k.Struct(), w, r));
+            Zone3_FM4 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone3_FM4", db, k.Struct(), w, r));
             Zone1_Pt1 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_Pt1", db, k.Struct(), w, r));
             Zone1_Pt2 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_Pt2", db, k.Struct(), w, r));
             Zone1_Pt3 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_Pt3", db, k.Struct(), w, r));
@@ -39,19 +39,16 @@ namespace SempaPumpStation.PlcInterface
             Zone3_Vacuummeter = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone3_Vacuummeter", db, k.Struct(), w, r));
             Zone1_FM1 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_FM1", db, k.Struct(), w, r));
             Zone1_FM2 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_FM2", db, k.Struct(), w, r));
-            Zone1_FM3 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_FM3", db, k.Struct(), w, r));
-            Zone1_FM4 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_FM4", db, k.Struct(), w, r));
-            Zone1_FM5 = k.Next(new st_Station_Ph_InstrumentPosition(c, name + ".Zone1_FM5", db, k.Struct(), w, r));
         }
 
         public st_Station_Ph_InstrumentPosition Zone2_FM1 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone2_FM2 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone2_FM3 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone2_FM4 { get; private set; }
-        public st_Station_Ph_InstrumentPosition Zone2_FM5 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone3_FM1 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone3_FM2 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone3_FM3 { get; private set; }
+        public st_Station_Ph_InstrumentPosition Zone3_FM4 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone1_Pt1 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone1_Pt2 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone1_Pt3 { get; private set; }
@@ -69,8 +66,5 @@ namespace SempaPumpStation.PlcInterface
         public st_Station_Ph_InstrumentPosition Zone3_Vacuummeter { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone1_FM1 { get; private set; }
         public st_Station_Ph_InstrumentPosition Zone1_FM2 { get; private set; }
-        public st_Station_Ph_InstrumentPosition Zone1_FM3 { get; private set; }
-        public st_Station_Ph_InstrumentPosition Zone1_FM4 { get; private set; }
-        public st_Station_Ph_InstrumentPosition Zone1_FM5 { get; private set; }
     }
 }

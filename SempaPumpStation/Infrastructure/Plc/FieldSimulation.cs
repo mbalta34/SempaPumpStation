@@ -24,6 +24,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly bool[,] _springCharged = new bool[4, 9];
         private readonly double[,] _springTimer = new double[4, 9];
         private readonly bool[,] _chargeOutput = new bool[4, 9];   // charge-spring DO as last driven
+        private readonly bool?[,] _byHand = new bool?[4, 9];      // a device someone holds closed (true) or open (false)
 
         // Drives (1-based source)
         private readonly bool[] _driveRunning = new bool[9];
@@ -47,6 +48,9 @@ namespace SempaPumpStation.Infrastructure.Plc
         }
 
         // ---------------------------------------------------------------- PLC inputs
+        /// <summary>Someone closes (true) or opens (false) a power device by hand, against its coil; null lets it go.</summary>
+        public void HoldByHand(int z, int s, bool? closed) => _byHand[z, s] = closed;
+
         public bool EStopPressed(int z) => _t.B(Station.SimZone(z) + "EStopPressed");
         private bool FeedbackFault(int z) => _t.B(Station.SimZone(z) + "FeedbackFault");
 
@@ -65,6 +69,8 @@ namespace SempaPumpStation.Infrastructure.Plc
         public bool PendantStop(int z) => _t.B(Station.SimZone(z) + "PendantStop");
         public bool PendantTakeSample(int z) => _t.B(Station.SimZone(z) + "PendantTakeSample");
         public bool EStopOk(int z) => !EStopPressed(z);   // normally closed contact
+        public bool PanelEStopPressed(int z) => _t.B(Station.SimZone(z) + "PanelEStopPressed");
+        public bool PanelEStopOk(int z) => !PanelEStopPressed(z);
         public bool DriveRunning(int s) => _driveRunning[s];
         public bool DriveFault(int s) => _t.B(Station.SimDrive(s) + "Fault");
 
@@ -84,7 +90,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
                 var o = outputs[z];
-                bool eStop = EStopPressed(z);   // the hardwired E-stop circuit drops every coil of the zone
+                bool eStop = EStopPressed(z) || PanelEStopPressed(z);   // the hardwired E-stop circuit drops every coil of the zone
 
                 for (int s = 1; s <= 6; s++)
                     _closed[z, s] = FollowCoil(z, s, o.ContactorClose[s] && !eStop, c);
@@ -106,6 +112,9 @@ namespace SempaPumpStation.Infrastructure.Plc
                     else _springTimer[z, s] = 0;
                     _chargeOutput[z, s] = o.SwitchChargeSpring[s];
                 }
+
+                for (int s = 1; s <= Station.SourceCount; s++)
+                    if (_byHand[z, s].HasValue) _closed[z, s] = _byHand[z, s].Value;
             }
 
             // Drives: a drive has power while one zone has its device closed
@@ -262,16 +271,12 @@ namespace SempaPumpStation.Infrastructure.Plc
                 Sensor("Zone" + z + "_Temperature", _motorTemp[z] + Noise(0.05), 0, 150);
                 Sensor("Zone" + z + "_Sound", 42.0 + 38.0 * sp + Noise(0.4), 30, 130);
                 Sensor("Zone" + z + "_Speed", ZoneRpm(z) + (sp > 0.01 ? Noise(2.0) : 0), 0, 3600);
-                if (Station.HasTorqueMeter(z))
-                {
-                    // Torque meter on the shaft: speed, and torque from the shaft power (hydraulic power over a
-                    // pump efficiency of about 0.70): T [Nm] = P [kW] * 9549 / n [rpm]
-                    double rpm = ZoneRpm(z);
-                    double shaftKw = _flow[z] * _head[z] / 367.2 / 0.70;
-                    double torque = rpm > 50 ? shaftKw * 9549.0 / rpm : 0.0;
-                    Sensor("Zone" + z + "_TorqueRpm", rpm + (sp > 0.01 ? Noise(1.5) : 0), 0, 3600);
-                    Sensor("Zone" + z + "_Torque", torque + (torque > 0.5 ? Noise(torque * 0.003) : 0), 0, 1000);
-                }
+                // Torque meter on the shaft: torque from the shaft power (hydraulic power over a pump efficiency of about
+                // 0.70): T [Nm] = P [kW] * 9549 / n [rpm]
+                double rpm = ZoneRpm(z);
+                double shaftKw = _flow[z] * _head[z] / 367.2 / 0.70;
+                double torque = rpm > 50 ? shaftKw * 9549.0 / rpm : 0.0;
+                Sensor("Zone" + z + "_Torque", torque + (torque > 0.5 ? Noise(torque * 0.003) : 0), 0, 1000);
             }
 
             // The flow of a zone passes through the flowmeter it has selected (every zone has its own)

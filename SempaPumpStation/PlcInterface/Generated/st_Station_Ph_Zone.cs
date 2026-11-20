@@ -47,6 +47,8 @@ namespace SempaPumpStation.PlcInterface
             ConfirmRotation = k.Next(new st_Hmi_Ph_CommandButton(c, name + ".ConfirmRotation", db, k.Struct(), w, r));
             RotationState = k.Leaf(name + ".RotationState", DataType.INT);
             RotationRemaining = k.Leaf(name + ".RotationRemaining", DataType.REAL);
+            SafetyStop = k.Leaf(name + ".SafetyStop", DataType.BOOL);
+            ManipulatedDevice = k.Leaf(name + ".ManipulatedDevice", DataType.INT);
         }
 
         public st_Hmi_Ph_ParameterInt PowerSource { get; private set; }
@@ -82,5 +84,7 @@ namespace SempaPumpStation.PlcInterface
         public st_Hmi_Ph_CommandButton ConfirmRotation { get; private set; }
         public SiemensS7PlcTag RotationState { get; private set; }
         public SiemensS7PlcTag RotationRemaining { get; private set; }
+        public SiemensS7PlcTag SafetyStop { get; private set; }
+        public SiemensS7PlcTag ManipulatedDevice { get; private set; }
     }
 }

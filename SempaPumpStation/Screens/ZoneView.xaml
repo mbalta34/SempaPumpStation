@@ -49,6 +49,10 @@
                             <TextBlock Text="ACİL STOP — bırakın ve Arıza Reset'e basın" FontSize="12" FontWeight="SemiBold" Foreground="#FF8A80"/>
                         </Border>
                         <Border Style="{StaticResource Pill}" Margin="0,0,10,0" Background="#4A1C1C"
+                                Visibility="{Binding Ph[SafetyStop].TagValue, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="{Binding SafetyStopText}" FontSize="12" FontWeight="SemiBold" Foreground="#FF8A80"/>
+                        </Border>
+                        <Border Style="{StaticResource Pill}" Margin="0,0,10,0" Background="#4A1C1C"
                                 Visibility="{Binding Ph[DeviceFault].TagValue, Converter={StaticResource BoolVis}}">
                             <TextBlock Text="CİHAZ ARIZASI" FontSize="12" FontWeight="SemiBold" Foreground="#FF8A80"/>
                         </Border>
@@ -143,20 +147,16 @@
                                       Value="{Binding Ph[SuctionPressure].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.000}"/>
                         <c:MetricTile Caption="DEVİR" Unit="d/dk" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[Speed.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0}"/>
-                        <c:MetricTile Caption="TORK" Unit="Nm" ValueSize="22" Margin="0,0,0,8" Visibility="{Binding HasTorqueMeter, Converter={StaticResource BoolVis}}"
+                        <c:MetricTile Caption="TORK" Unit="Nm" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding Ai[Torque.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="TORK ÖLÇER DEVRİ" Unit="d/dk" ValueSize="22" Margin="0,0,8,8" Visibility="{Binding HasTorqueMeter, Converter={StaticResource BoolVis}}"
-                                      Value="{Binding Ai[TorqueRpm.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0}"/>
-                        <c:MetricTile Caption="SU SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,0,8"
+                        <c:MetricTile Caption="SU SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[WaterTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="MOTOR SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
+                        <c:MetricTile Caption="MOTOR SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding Ai[Temperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="TİTREŞİM" Unit="mm/s" ValueSize="22" Margin="0,0,0,8"
+                        <c:MetricTile Caption="TİTREŞİM" Unit="mm/s" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[Vibration.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.00}"/>
-                        <c:MetricTile Caption="SES" Unit="dB" ValueSize="22" Margin="0,0,8,8"
+                        <c:MetricTile Caption="SES" Unit="dB" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding Ai[Sound.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="ORTAM SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,0,8"
-                                      Value="{Binding Ai[AmbientTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                         <c:MetricTile Caption="POMPA GÜCÜ (Pp)" Unit="kW" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Run}"
                                       Value="{Binding PowerText}"/>
                         <c:MetricTile Caption="VERİM" Unit="%" ValueSize="22" Margin="0,0,0,8" ValueBrush="{StaticResource B.Accent}"
@@ -165,6 +165,8 @@
                                       Value="{Binding VoltageText}"/>
                         <c:MetricTile Caption="AKIM" Unit="A" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding CurrentText}"/>
+                        <c:MetricTile Caption="ORTAM SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding Ai[AmbientTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                     </UniformGrid>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="2,4,0,0"
                                Text="Güç, gerilim ve akım seçili kaynağın PM5550 enerji analizöründen; verim = hidrolik güç / elektriksel güç."/>
@@ -284,8 +286,7 @@
                                     <DataGridTextColumn Header="Ps bar" Binding="{Binding SuctionPressure, StringFormat=0.000}" Width="*"/>
                                     <DataGridTextColumn Header="Hm m" Binding="{Binding Head, StringFormat=0.0}" Width="*"/>
                                     <DataGridTextColumn Header="d/dk" Binding="{Binding Speed, StringFormat=0}" Width="*"/>
-                                    <DataGridTextColumn Header="Nm" Binding="{Binding Torque, StringFormat=0.0}" Width="*"
-                                                        Visibility="{Binding Source={x:Reference SampleContext}, Path=DataContext.HasTorqueMeter, Converter={StaticResource BoolVis}}"/>
+                                    <DataGridTextColumn Header="Nm" Binding="{Binding Torque, StringFormat=0.0}" Width="*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>
@@ -310,9 +311,13 @@
                         </StackPanel>
 
                         <StackPanel Margin="0,0,24,0">
-                            <TextBlock Text="ACİL STOP BUTONU" Style="{StaticResource T.Label}" FontSize="10" Margin="0,0,0,4"/>
-                            <Button Style="{StaticResource Btn.Danger}" Command="{Binding ToggleEStopCommand}"
-                                    Content="{Binding Sim[EStopPressed].TagValue, Converter={StaticResource BoolText}, ConverterParameter=Basılı — bırak|Bas}"/>
+                            <TextBlock Text="ACİL STOP: PANDANT · PANO" Style="{StaticResource T.Label}" FontSize="10" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource Btn.Danger}" Margin="0,0,6,0" Command="{Binding ToggleEStopCommand}"
+                                        Content="{Binding Sim[EStopPressed].TagValue, Converter={StaticResource BoolText}, ConverterParameter=Basılı — bırak|Bas}"/>
+                                <Button Style="{StaticResource Btn.Danger}" Command="{Binding TogglePanelEStopCommand}"
+                                        Content="{Binding Sim[PanelEStopPressed].TagValue, Converter={StaticResource BoolText}, ConverterParameter=Basılı — bırak|Bas}"/>
+                            </StackPanel>
                         </StackPanel>
 
                         <StackPanel Margin="0,0,24,0" Width="260">

@@ -30,8 +30,7 @@ namespace SempaPumpStation.Infrastructure
             { "Temperature", ("Motor sıcaklığı", "°C") },
             { "Sound", ("Ses seviyesi", "dB") },
             { "Speed", ("Devir", "d/dk") },
-            { "TorqueRpm", ("Tork ölçer devir", "d/dk") },
-            { "Torque", ("Tork ölçer tork", "Nm") },
+            { "Torque", ("Tork", "Nm") },
         };
 
         public static readonly AnalogInputInfo[] All = Build();

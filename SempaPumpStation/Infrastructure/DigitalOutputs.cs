@@ -45,6 +45,11 @@ namespace SempaPumpStation.Infrastructure
                 Add(zone + "LampGreen", z, "Yeşil ışık");
                 Add(zone + "LampYellow", z, "Sarı ışık");
                 Add(zone + "LampRed", z, "Kırmızı ışık");
+                Add(zone + "LampStart", z, "Başlat butonu lambası");
+                Add(zone + "LampStop", z, "Durdur butonu lambası");
+                Add(zone + "LampTakeSample", z, "Örnek al butonu lambası");
+                Add(zone + "LampEStop", z, "Acil stop butonu lambası");
+                Add(zone + "LampPanelEStop", z, "Pano acil stop lambası");
             }
             foreach (var s in Station.Sources)
                 Add("Drive_" + s.Drive + "_Run", 0, s.Name + " çalıştır");

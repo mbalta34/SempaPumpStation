@@ -1,0 +1,13 @@
+DATA_BLOCK "StationCounters"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+   STRUCT 
+      NextTestNo : DInt;   // Retained: the number the next started test gets; FB_Station_Zone counts it up at start test
+   END_STRUCT;
+
+
+BEGIN
+   NextTestNo := 1;
+
+END_DATA_BLOCK
+

@@ -37,9 +37,9 @@ namespace SempaPumpStation.Infrastructure
         public const int SourceCount = 8;
         public const int SampleCapacity = 50;
         public const int LibrarySize = 100;
-        /// <summary>Zones 1 and 2 each have 5 flowmeters of their own (first 5 ports of their BNI00AJ).</summary>
-        public const int ZoneFlowmeterCount = 5;
-        public const int Zone3FlowmeterCount = 3;
+        /// <summary>Every zone has flowmeters of its own: zones 2 and 3 four (BNI00KM ports 4-7), zone 1 two (BNI00AJ ports 0-1).</summary>
+        public const int ZoneFlowmeterCount = 4;
+        public const int Zone1FlowmeterCount = 2;
         public const int TransmitterCount = 4;
 
         public const int Flowmeter = 1;
@@ -63,9 +63,16 @@ namespace SempaPumpStation.Infrastructure
 
         public static PowerSourceInfo Source(int id) => id >= 1 && id <= SourceCount ? Sources[id - 1] : null;
 
+        /// <summary>The power device of a source inside a zone: "37 kW VFD kontaktörü", "630 kW VFD şalteri".</summary>
+        public static string DeviceText(int source)
+        {
+            var s = Source(source);
+            return s == null ? "" : s.Name + (s.IsMagneticSwitch ? " şalteri" : " kontaktörü");
+        }
+
         public static readonly string[] TransmitterNames = { "Pt1", "Pt2", "Pt3", "Pt4" };
 
-        /// <summary>The 28 instrument positions in the PLC's order (the Assigned array index).</summary>
+        /// <summary>The 25 instrument positions in the PLC's order (the Assigned array index).</summary>
         public static readonly InstrumentPositionInfo[] Positions = BuildPositions();
 
         private static InstrumentPositionInfo[] BuildPositions()
@@ -75,12 +82,12 @@ namespace SempaPumpStation.Infrastructure
                 list.Add(new InstrumentPositionInfo { Index = list.Count + 1, Name = name, Category = category, Label = label, Zones = zones });
 
             for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone2_FM" + f, Flowmeter, "FM" + f, 2);
-            for (int f = 1; f <= Zone3FlowmeterCount; f++) Add("Zone3_FM" + f, Flowmeter, "FM" + f, 3);
+            for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone3_FM" + f, Flowmeter, "FM" + f, 3);
             for (int z = 1; z <= ZoneCount; z++)
                 for (int t = 1; t <= TransmitterCount; t++) Add("Zone" + z + "_Pt" + t, PressureTransmitter, "Pt" + t, z);
             for (int z = 1; z <= ZoneCount; z++) Add("Zone" + z + "_Vacuummeter", Vacuummeter, "Vakum", z);
             // Added after the original 23, so the PLC numbering of those stays
-            for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone1_FM" + f, Flowmeter, "FM" + f, 1);
+            for (int f = 1; f <= Zone1FlowmeterCount; f++) Add("Zone1_FM" + f, Flowmeter, "FM" + f, 1);
             return list.ToArray();
         }
 
@@ -90,16 +97,13 @@ namespace SempaPumpStation.Infrastructure
         public static string[] FlowmeterPositions(int zone) =>
             Enumerable.Range(1, FlowmeterCount(zone)).Select(f => "Zone" + zone + "_FM" + f).ToArray();
 
-        public static int FlowmeterCount(int zone) => zone == 3 ? Zone3FlowmeterCount : ZoneFlowmeterCount;
-
-        /// <summary>Zones with a torque meter (BNI00KM port 6 speed, port 7 torque).</summary>
-        public static bool HasTorqueMeter(int zone) => zone == 1 || zone == 2;
+        public static int FlowmeterCount(int zone) => zone == 1 ? Zone1FlowmeterCount : ZoneFlowmeterCount;
 
         public static string TransmitterPosition(int zone, int t) => "Zone" + zone + "_Pt" + t;
         public static string VacuummeterPosition(int zone) => "Zone" + zone + "_Vacuummeter";
 
         /// <summary>Per-zone analog sensors besides the instrument positions.</summary>
-        public static readonly string[] ZoneSensors = { "WaterTemperature", "AmbientTemperature", "Vibration", "Temperature", "Sound", "Speed" };
+        public static readonly string[] ZoneSensors = { "WaterTemperature", "AmbientTemperature", "Vibration", "Temperature", "Sound", "Speed", "Torque" };
 
         /// <summary>Every analog input channel of the "Io".AnalogInputs collection.</summary>
         public static IEnumerable<string> AnalogInputs()
@@ -109,7 +113,6 @@ namespace SempaPumpStation.Infrastructure
                 for (int t = 1; t <= TransmitterCount; t++) yield return TransmitterPosition(z, t);
                 yield return VacuummeterPosition(z);
                 foreach (var s in ZoneSensors) yield return "Zone" + z + "_" + s;
-                if (HasTorqueMeter(z)) { yield return "Zone" + z + "_TorqueRpm"; yield return "Zone" + z + "_Torque"; }
             }
             for (int z = 1; z <= ZoneCount; z++)
                 foreach (var p in FlowmeterPositions(z)) yield return p;
@@ -142,6 +145,8 @@ namespace SempaPumpStation.Infrastructure
         public static string AiHp(string channel) => "MaintenanceHp.Io.AnalogInputs." + channel + ".";
         public static string AiPh(string channel) => "MaintenancePh.Io.AnalogInputs." + channel + ".";
         public static string Samples(int zone) => "StationSamples.Zone[" + zone + "].";
+        /// <summary>"StationCounters".NextTestNo: the retained number the next started test gets.</summary>
+        public const string NextTestNo = "StationCounters.NextTestNo";
         public static string Sample(int zone, int index) => Samples(zone) + "Samples[" + index + "].";
         public static string LibraryEntry(int category, int device) => "StationInstruments." + LibraryArray(category) + "[" + device + "].";
         public static string SimZone(int zone) => "Sim.Zone" + zone + ".";
@@ -191,7 +196,7 @@ namespace SempaPumpStation.Infrastructure
             ("Flow", 'R'), ("DischargePressure", 'R'), ("SuctionPressure", 'R'),
             ("WaterTemperature", 'R'), ("AmbientTemperature", 'R'), ("Vibration", 'R'), ("Temperature", 'R'),
             ("Sound", 'R'), ("Speed", 'R'), ("Voltage", 'R'), ("Current", 'R'), ("SpeedReference", 'R'), ("PumpRunning", 'B'),
-            ("Torque", 'R'), ("TorqueRpm", 'R'), ("PowerFactor", 'R'),
+            ("Torque", 'R'), ("PowerFactor", 'R'),
         };
 
         /// <summary>st_Station_Instrument members with the tag data kind.</summary>

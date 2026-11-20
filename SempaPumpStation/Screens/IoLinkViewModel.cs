@@ -64,9 +64,9 @@ namespace SempaPumpStation.Screens
             ctx.Scanned += (o, e) => Refresh();
         }
 
-        public string ZoneNote => Station.HasTorqueMeter(_zone)
-            ? "Debimetreler (FM1–FM5) bölgenin BNI00AJ hub'ının 0–4 portlarında; tork ölçer BNI00KM port 6 (devir) ve port 7 (tork)."
-            : "Debimetreler (FM1–FM3) bölgenin BNI00AJ hub'ında.";
+        public string ZoneNote => _zone == 1
+            ? "Debimetreler (FM1–FM2) BNI00AJ port 0–1; tork ölçer port 2, devir port 3. Basınç transmitterleri BNI0007 port 0–3."
+            : "Debimetreler (FM1–FM4) BNI00KM port 4–7, basınç transmitterleri port 0–3; tork ölçer BNI00AJ port 0, devir port 1.";
 
         private bool DataOk => Ctx.IsSimulation || Ctx.GetBool("PLC_COMM_OK");
 
@@ -256,13 +256,19 @@ namespace SempaPumpStation.Screens
 
         private string DioState(int port)
         {
-            string ph = Station.ZonePh(_zone);
+            // Pin 2 / pin 4 as the channels read and drive them ("Io".DigitalInputs / DigitalOutputs)
+            string zone = "Zone" + _zone + "_";
+            string Lamp(string n) => Ctx.GetBool("MaintenancePh.Io.DigitalOutputs." + zone + n + ".Pv") ? "yanıyor" : "sönük";
+            bool In(string n) => Ctx.GetBool("MaintenancePh.Io.DigitalInputs." + zone + n + ".Pv");
             switch (port)
             {
-                case 0: return Ctx.GetBool(ph + "LampGreen") ? "Yanıyor" : "Sönük";
-                case 2: return Ctx.GetBool(ph + "LampYellow") ? "Yanıyor" : "Sönük";
-                case 4: return Ctx.GetBool(ph + "LampRed") ? "Yanıyor" : "Sönük";
-                case 7: return Ctx.GetBool(ph + "EStop") ? "ACİL STOP" : "Normal";
+                case 0: return "Yeşil " + Lamp("LampGreen") + " · Sarı " + Lamp("LampYellow");
+                case 1: return (In("PendantStart") ? "Basılı" : "—") + " · lamba " + Lamp("LampStart");
+                case 2: return "Kırmızı " + Lamp("LampRed");
+                case 3: return (In("PendantStop") ? "Basılı" : "—") + " · lamba " + Lamp("LampStop");
+                case 5: return (In("PendantTakeSample") ? "Basılı" : "—") + " · lamba " + Lamp("LampTakeSample");
+                case 6: return (In("PanelEStopOk") ? "Normal" : "BASILI") + " · lamba " + Lamp("LampPanelEStop");
+                case 7: return (In("EStopOk") ? "Normal" : "BASILI") + " · lamba " + Lamp("LampEStop");
                 default: return "";
             }
         }

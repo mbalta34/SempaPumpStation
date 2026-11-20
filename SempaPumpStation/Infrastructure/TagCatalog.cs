@@ -33,6 +33,7 @@ namespace SempaPumpStation.Infrastructure
                 for (int z = 1; z <= Station.ZoneCount; z++) AddIoLink(t, z);
                 for (int s = 1; s <= Station.SourceCount; s++) AddPowermeter(t, s);
                 S(t, "StationPh.PlcVersion");
+                D(t, Station.NextTestNo);
                 foreach (var o in DigitalOutputs.All) AddDigitalOutput(t, o);
                 foreach (var i in DigitalInputs.All) { B(t, i.Ph + "Pv"); B(t, i.Ph + "RawValue"); B(t, i.Ph + "WireBreak"); B(t, i.Ph + "ForcingActive"); }
                 foreach (var o in AnalogOutputList.All)
@@ -56,9 +57,9 @@ namespace SempaPumpStation.Infrastructure
             foreach (var n in Station.ZoneButtons) { B(t, hp + n + ".Click"); B(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
 
             I(t, ph + "PowerState");
-            foreach (var n in new[] { "PumpRunning", "DeviceFault", "DriveFault", "EStop", "SelectionRejected", "TestActive", "SampleBufferFull", "LampGreen", "LampYellow", "LampRed" })
+            foreach (var n in new[] { "PumpRunning", "DeviceFault", "DriveFault", "EStop", "SafetyStop", "SelectionRejected", "TestActive", "SampleBufferFull", "LampGreen", "LampYellow", "LampRed" })
                 B(t, ph + n);
-            I(t, ph + "SampleCount");
+            I(t, ph + "SampleCount"); I(t, ph + "ManipulatedDevice");
             foreach (var n in new[] { "Flow", "DischargePressure", "SuctionPressure" }) R(t, ph + n);
             foreach (var n in new[] { "FlowmeterDevice", "DischargeTransmitterDevice", "VacuummeterDevice" }) I(t, ph + n);
         }
@@ -109,7 +110,7 @@ namespace SempaPumpStation.Infrastructure
         private static void AddSamples(List<TagDefinition> t, int z)
         {
             string s = Station.Samples(z);
-            B(t, s + "TestActive"); Dtl(t, s + "TestStarted"); Dtl(t, s + "TestEnded"); I(t, s + "Count");
+            B(t, s + "TestActive"); Dtl(t, s + "TestStarted"); Dtl(t, s + "TestEnded"); I(t, s + "Count"); D(t, s + "TestNo");
             for (int i = 1; i <= Station.SampleCapacity; i++)
                 foreach (var f in Station.SampleFields) Add(t, Station.Sample(z, i) + f.Name, f.Kind);
         }
@@ -120,7 +121,7 @@ namespace SempaPumpStation.Infrastructure
             {
                 string s = Station.SimZone(z);
                 M(t, s + "PendantStart"); M(t, s + "PendantStop"); M(t, s + "PendantTakeSample");
-                B(t, s + "EStopPressed"); B(t, s + "FeedbackFault");
+                B(t, s + "EStopPressed"); B(t, s + "PanelEStopPressed"); B(t, s + "FeedbackFault");
                 R(t, s + "ValveOpening");
             }
             for (int d = 1; d <= Station.SourceCount; d++)
@@ -132,7 +133,7 @@ namespace SempaPumpStation.Infrastructure
 
         private static void AddHmiLocal(List<TagDefinition> t)
         {
-            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); B(t, "PLC_INTERFACE_OK"); B(t, "PLC_VERSION_OK"); S(t, "PLC_VERSION_TEXT"); I(t, "GLOBAL_DENEY_NO");
+            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); B(t, "PLC_INTERFACE_OK"); B(t, "PLC_VERSION_OK"); S(t, "PLC_VERSION_TEXT");
             B(t, "DALGIC_PMP_SEL");
 
             // ---- Report values (WRT_* = master data selected from the recipes) ----
@@ -175,7 +176,6 @@ namespace SempaPumpStation.Infrastructure
                 { "PLC_INTERFACE_OK", true },
                 { "PLC_VERSION_OK", true },
                 { "PLC_VERSION_TEXT", "PLC —" },
-                { "GLOBAL_DENEY_NO", 1042 },
 
                 { "WRT_FIRMA_ADI", "AKDENIZ SU ARITMA A.Ş." },
                 { "WRT_ADRES", "OSB 12. Cadde No:34, Konya" },
@@ -229,6 +229,7 @@ namespace SempaPumpStation.Infrastructure
 
         private static void R(List<TagDefinition> t, string n) => t.Add(new TagDefinition { Name = n, Address = n, DataType = DataType.REAL });
         private static void I(List<TagDefinition> t, string n) => t.Add(new TagDefinition { Name = n, Address = n, DataType = DataType.INT });
+        private static void D(List<TagDefinition> t, string n) => t.Add(new TagDefinition { Name = n, Address = n, DataType = DataType.DINT });
         private static void B(List<TagDefinition> t, string n) => t.Add(new TagDefinition { Name = n, Address = n, DataType = DataType.BOOL });
         private static void M(List<TagDefinition> t, string n) => t.Add(new TagDefinition { Name = n, Address = n, DataType = DataType.MOMENTARY_BOOL });
         private static void S(List<TagDefinition> t, string n) => t.Add(new TagDefinition { Name = n, Address = n, DataType = DataType.STRING });

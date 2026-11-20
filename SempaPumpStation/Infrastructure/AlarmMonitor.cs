@@ -12,6 +12,7 @@ namespace SempaPumpStation.Infrastructure
         public string Message;
         public string Severity;      // "ALARM" | "WARN"
         public bool ActiveWhenFalse; // e.g. PLC_COMM_OK is an alarm when false
+        public int? ActiveWhenEquals; // an Int tag that is an alarm while it holds this value
     }
 
     public sealed class AlarmRow : INotifyPropertyChanged
@@ -63,7 +64,7 @@ namespace SempaPumpStation.Infrastructure
             bool changed = false;
             foreach (var d in _defs)
             {
-                bool raw = _ctx.GetBool(d.Tag);
+                bool raw = d.ActiveWhenEquals.HasValue ? _ctx.GetInt(d.Tag) == d.ActiveWhenEquals.Value : _ctx.GetBool(d.Tag);
                 bool active = d.ActiveWhenFalse ? !raw : raw;
                 bool wasActive = _activeMap.ContainsKey(d);
 
@@ -117,6 +118,13 @@ namespace SempaPumpStation.Infrastructure
                 list.Add(new AlarmDef { Tag = ph + "EStop", Message = name + "ACİL STOP", Severity = "ALARM" });
                 list.Add(new AlarmDef { Tag = ph + "DeviceFault", Message = name + "Kontaktör / şalter arızası (geri bildirim yok)", Severity = "ALARM" });
                 list.Add(new AlarmDef { Tag = ph + "DriveFault", Message = name + "Sürücü arızası", Severity = "ALARM" });
+                // A device that changed state without a command stops every motor of the station (PLC, FB_Station_Zone)
+                foreach (var s in Station.Sources)
+                    list.Add(new AlarmDef
+                    {
+                        Tag = ph + "ManipulatedDevice", ActiveWhenEquals = s.Id, Severity = "ALARM",
+                        Message = name + Station.DeviceText(s.Id) + " komutsuz konum değiştirdi (müdahale) — tüm motorlar durduruldu",
+                    });
                 list.Add(new AlarmDef { Tag = ph + "SampleBufferFull", Message = name + "Numune hafızası dolu (50)", Severity = "WARN" });
             }
             // A forced output bypasses the station program's interlocks: a warning for as long as it is forced

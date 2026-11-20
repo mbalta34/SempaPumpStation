@@ -114,6 +114,7 @@ namespace SempaPumpStation.Infrastructure
             {
                 // The retained PLC library, as a commissioned station would have it
                 foreach (var kv in InstrumentLibrarySeed.LibraryValues()) SetFromDevice(kv.Key, kv.Value);
+                SetFromDevice(Station.NextTestNo, 1042);   // the retained test counter
                 Plc = new StationPlc(new PlcTags(Tags), InstrumentLibrarySeed.MountedDevice);
             }
             else

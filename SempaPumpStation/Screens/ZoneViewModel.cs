@@ -36,11 +36,9 @@ namespace SempaPumpStation.Screens
         public ICommand ClickCommand { get; }
         public ICommand PendantCommand { get; }
         public ICommand ToggleEStopCommand { get; }
+        public ICommand TogglePanelEStopCommand { get; }
         public ICommand ToggleFeedbackFaultCommand { get; }
         public ICommand ToggleDriveFaultCommand { get; }
-
-        /// <summary>Zones 1 and 2 have a torque meter (torque and its own speed signal).</summary>
-        public bool HasTorqueMeter => Station.HasTorqueMeter(_zone);
 
         public ZoneViewModel(HmiContext ctx, int zone) : base(ctx)
         {
@@ -59,6 +57,7 @@ namespace SempaPumpStation.Screens
             ClickCommand = new SyncCommand(p => Ctx.Click(Hp.Prefix + p));
             PendantCommand = new SyncCommand(p => Ctx.Pulse(Sim.Prefix + p));
             ToggleEStopCommand = new SyncCommand(() => Ctx.Toggle(Sim.Prefix + "EStopPressed"));
+            TogglePanelEStopCommand = new SyncCommand(() => Ctx.Toggle(Sim.Prefix + "PanelEStopPressed"));
             ToggleFeedbackFaultCommand = new SyncCommand(() => Ctx.Toggle(Sim.Prefix + "FeedbackFault"));
             ToggleDriveFaultCommand = new SyncCommand(() =>
             {
@@ -106,6 +105,10 @@ namespace SempaPumpStation.Screens
 
         private string _instrumentsText;
         public string InstrumentsText { get => _instrumentsText; private set => Set(ref _instrumentsText, value); }
+
+        // A contactor or magnetic switch of some zone was manipulated: every motor is stopped until that zone is reset
+        private string _safetyStopText = "";
+        public string SafetyStopText { get => _safetyStopText; private set => Set(ref _safetyStopText, value); }
 
         private string _testText;
         public string TestText { get => _testText; private set => Set(ref _testText, value); }
@@ -179,9 +182,19 @@ namespace SempaPumpStation.Screens
             bool active = Ctx.GetBool(Samples.Prefix + "TestActive");
             string started = Ctx.GetDtl(Samples.Prefix + "TestStarted");
             string ended = Ctx.GetDtl(Samples.Prefix + "TestEnded");
-            TestText = active ? "Test sürüyor — başlangıç " + started
+            int testNo = Ctx.GetInt(Samples.Prefix + "TestNo");
+            TestText = active ? "Deney " + testNo + " sürüyor — başlangıç " + started
                      : string.IsNullOrEmpty(started) ? "Test başlatılmadı"
-                     : "Son test " + started + " → " + ended;
+                     : "Son test (Deney " + testNo + ") " + started + " → " + ended;
+
+            string manipulated = "";
+            for (int z = 1; z <= Station.ZoneCount && manipulated == ""; z++)
+            {
+                int device = Ctx.GetInt(Station.ZonePh(z) + "ManipulatedDevice");
+                if (device > 0) manipulated = "Bölge " + z + ", " + Station.DeviceText(device);
+            }
+            SafetyStopText = "MÜDAHALE" + (manipulated == "" ? "" : " (" + manipulated + ")")
+                           + " — tüm motorlar durduruldu; cihazı yerine getirip o bölgede Arıza Reset'e basın";
 
             RotationState = Ctx.GetInt(Ph.Prefix + "RotationState");
             RotationText = RotationState == Station.RotationRunning
@@ -247,7 +260,6 @@ namespace SempaPumpStation.Screens
                 Temperature = Ctx.GetDouble(p + "Temperature"),
                 PumpRunning = Ctx.GetBool(p + "PumpRunning"),
                 Torque = Ctx.GetDouble(p + "Torque"),
-                TorqueRpm = Ctx.GetDouble(p + "TorqueRpm"),
                 PowerFactor = Ctx.GetDouble(p + "PowerFactor"),
             };
         }

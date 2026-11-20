@@ -10,7 +10,7 @@ namespace SempaPumpStation.Infrastructure
 {
     /// <summary>
     /// The Excel test report: a copy of Reports\Sempa_Rapor_Sablon.xlsx (the 2017 Sempa report with two
-    /// extra columns, P torque and Q torque-meter speed) filled with an archived test. Only the input cells
+    /// extra columns, P torque and Q speed) filled with an archived test. Only the input cells
     /// are written; the template's formulas (head, power, efficiency, NPSH) and charts do the rest, and
     /// Excel recalculates them when the file is opened. Excel is not needed to create the file.
     /// </summary>
@@ -108,8 +108,7 @@ namespace SempaPumpStation.Infrastructure
             double impeller = FirstNumber(h["WRT_CARK_CAPI"]);
             if (impeller > 0) w.Number("L22", impeller); else w.Text("L22", h["WRT_CARK_CAPI"]);
 
-            // Measurements: Q, He (suction, positive under vacuum), Hb, cos φ, V, I, torque and its speed
-            bool torqueMeter = Station.HasTorqueMeter(r.Zone);
+            // Measurements: Q, He (suction, positive under vacuum), Hb, cos φ, V, I, torque and speed
             for (int i = 0; i < Math.Min(MaxSamples, r.Samples.Count); i++)
             {
                 var s = r.Samples[i];
@@ -120,23 +119,19 @@ namespace SempaPumpStation.Infrastructure
                 if (s.PowerFactor > 0 && s.PowerFactor <= 1) w.Number("J" + row, s.PowerFactor);
                 w.Number("K" + row, s.Voltage);
                 w.Number("L" + row, s.Current);
-                if (torqueMeter)
-                {
-                    w.Number("P" + row, s.Torque);
-                    w.Number("Q" + row, s.TorqueRpm);
-                }
+                w.Number("P" + row, s.Torque);
+                w.Number("Q" + row, s.Speed);
             }
 
             w.Text("A53", h["TESTI_YAPAN"]);
         }
 
-        /// <summary>Mean speed over the samples: the torque meter's where there is one, otherwise the speed sensor's.</summary>
+        /// <summary>Mean speed over the samples the pump ran in.</summary>
         private static double TestSpeed(TestRecord r)
         {
             var running = r.Samples.Where(s => s.PumpRunning).ToList();
             if (running.Count == 0) return 0;
-            var torque = running.Where(s => s.TorqueRpm > 0).ToList();
-            return torque.Count > 0 ? torque.Average(s => s.TorqueRpm) : running.Average(s => s.Speed);
+            return running.Average(s => s.Speed);
         }
 
         /// <summary>"9 · Krohne Optiflux DN80" → "Krohne Optiflux DN80"; "—" → empty.</summary>

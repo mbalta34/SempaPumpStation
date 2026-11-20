@@ -91,13 +91,14 @@ namespace SempaPumpStation.Screens
             var name = string.IsNullOrWhiteSpace(NewName) ? SelectedRecipe : NewName;
             if (string.IsNullOrWhiteSpace(name)) return;
 
-            var data = new Dictionary<string, string>();
+            var data = new List<KeyValuePair<string, string>>();
+            var labels = new Dictionary<string, string>();
             foreach (var d in Defs)
             {
-                var v = Ctx.Tag(d.TagName)?.TagValue;
-                data[d.TagName] = ToText(v);
+                data.Add(new KeyValuePair<string, string>(d.TagName, ToText(Ctx.Tag(d.TagName)?.TagValue)));
+                labels[d.TagName] = d.Label;
             }
-            RecipeStore.Save(Category, name, data);
+            RecipeStore.Save(Category, name, data, labels);
             RefreshList();
             SelectedRecipe = name;
         }

@@ -5,10 +5,10 @@ VERSION : 0.1
       Zone2_FM2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone2_FM3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone2_FM4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
-      Zone2_FM5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone3_FM1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone3_FM2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone3_FM3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
+      Zone3_FM4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone1_Pt1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone1_Pt2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone1_Pt3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
@@ -26,9 +26,6 @@ VERSION : 0.1
       Zone3_Vacuummeter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone1_FM1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
       Zone1_FM2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
-      Zone1_FM3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
-      Zone1_FM4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
-      Zone1_FM5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Station_Hp_InstrumentPosition";
    END_STRUCT;
 
 END_TYPE

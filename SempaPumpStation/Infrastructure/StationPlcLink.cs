@@ -42,6 +42,8 @@ namespace SempaPumpStation.Infrastructure
         public MaintenanceHpDb MaintenanceHp { get; }
         /// <summary>Raw values of the IO-Link hubs, for the IO-Link screen.</summary>
         public IoLinkDb IoLink { get; }
+        /// <summary>The retained test counter.</summary>
+        public StationCountersDb Counters { get; }
         /// <summary>The PM5550 power meters, one per power source.</summary>
         public PowermetersDb Powermeters { get; }
 
@@ -69,6 +71,7 @@ namespace SempaPumpStation.Infrastructure
             Maintenance = new MaintenancePhDb(_connection, w, ReadPlan.DbBulk);
             MaintenanceHp = new MaintenanceHpDb(_connection, w, ReadPlan.Individual);
             IoLink = new IoLinkDb(_connection, w, ReadPlan.DbBulk);
+            Counters = new StationCountersDb(_connection, w, ReadPlan.DbBulk);
             Powermeters = new PowermetersDb(_connection, w, ReadPlan.DbBulk);
 
             // Status and live values fast; the sample buffers once a second (12 kB, consistent with
@@ -85,6 +88,7 @@ namespace SempaPumpStation.Infrastructure
             AddPlan("SAMPLES", 1000, StationSamplesDb.Number, 0, S7Layout.SizeOf(Samples), Samples);
             AddPlan("LIBRARY", 5000, StationInstrumentsDb.Number, 0, S7Layout.SizeOf(Library), Library);
             AddPlan("IOLINK", 500, IoLinkDb.Number, 0, S7Layout.SizeOf(IoLink), IoLink);
+            AddPlan("COUNTERS", 1000, StationCountersDb.Number, 0, S7Layout.SizeOf(Counters), Counters);
             AddPlan("POWER", 500, PowermetersDb.Number, 0, S7Layout.SizeOf(Powermeters), Powermeters);
 
             // Logged so a drift between these models and the PLC's DBs shows up at once (compare with
@@ -108,9 +112,9 @@ namespace SempaPumpStation.Infrastructure
             _connection.RegisterTagToPlan(id, tag);
         }
 
-        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog and digital inputs, the digital outputs (state and forcing), the analog outputs, the IO-Link hubs and the power meters.</summary>
+        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog and digital inputs, the digital outputs (state and forcing), the analog outputs, the IO-Link hubs, the test counter and the power meters.</summary>
         public IEnumerable<SiemensS7PlcTag> Leaves() =>
-            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, Maintenance.Io.AnalogOutputs, MaintenanceHp.Io.DigitalOutputs, IoLink, Powermeters }.SelectMany(Flatten);
+            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, Maintenance.Io.AnalogOutputs, MaintenanceHp.Io.DigitalOutputs, IoLink, Counters, Powermeters }.SelectMany(Flatten);
 
         private static IEnumerable<SiemensS7PlcTag> Flatten(SiemensS7PlcTag tag)
         {

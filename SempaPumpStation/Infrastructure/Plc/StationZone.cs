@@ -8,14 +8,16 @@ namespace SempaPumpStation.Infrastructure.Plc
         public readonly bool[] DeviceOpen = new bool[9];
         public readonly bool[] DeviceClosed = new bool[9];
         public readonly bool[] SpringCharged = new bool[9];   // only 7 and 8 are used
-        public bool PendantStart, PendantStop, PendantTakeSample, EStopOk;
+        public bool PendantStart, PendantStop, PendantTakeSample, EStopOk, PanelEStopOk;
         public bool DriveRunning, DriveFault;
+        /// <summary>A power device of some zone was manipulated: every motor stays stopped until it is reset.</summary>
+        public bool SafetyStop;
         public readonly double[] Flowmeters = new double[6];
         public readonly double[] DischargeTransmitters = new double[5];
         public readonly int[] FlowmeterDevices = new int[6];
         public readonly int[] DischargeTransmitterDevices = new int[5];
         public int VacuummeterDevice;
-        public double Vacuummeter, WaterTemperature, AmbientTemperature, Vibration, Temperature, Sound, Speed, Voltage, Current, Torque, TorqueRpm, PowerFactor;
+        public double Vacuummeter, WaterTemperature, AmbientTemperature, Vibration, Temperature, Sound, Speed, Voltage, Current, Torque, PowerFactor;
     }
 
     /// <summary>st_Station_ZoneOutputs.</summary>
@@ -29,6 +31,10 @@ namespace SempaPumpStation.Infrastructure.Plc
         public double SpeedReference;
         public int SelectedSource, SelectedFlowmeter;
         public bool LampGreen, LampYellow, LampRed;
+        /// <summary>Button lamps: start = running, stop = stopped, take sample = 1 s per press, E-stops = off while pressed.</summary>
+        public bool LampStart, LampStop, LampTakeSample, LampEStop, LampPanelEStop;
+        /// <summary>A power device of this zone was manipulated (latched until reset).</summary>
+        public bool Manipulated;
 
         /// <summary>A copy, for what the outputs actually drive after forcing ("Io".DigitalOutputs).</summary>
         public ZoneOutputs Clone()
@@ -37,7 +43,8 @@ namespace SempaPumpStation.Infrastructure.Plc
             {
                 RunRequest = RunRequest, SpeedReference = SpeedReference,
                 SelectedSource = SelectedSource, SelectedFlowmeter = SelectedFlowmeter,
-                LampGreen = LampGreen, LampYellow = LampYellow, LampRed = LampRed,
+                LampGreen = LampGreen, LampYellow = LampYellow, LampRed = LampRed, Manipulated = Manipulated,
+                LampStart = LampStart, LampStop = LampStop, LampTakeSample = LampTakeSample, LampEStop = LampEStop, LampPanelEStop = LampPanelEStop,
             };
             ContactorClose.CopyTo(c.ContactorClose, 0);
             SwitchOpen.CopyTo(c.SwitchOpen, 0);
@@ -49,7 +56,7 @@ namespace SempaPumpStation.Infrastructure.Plc
 
     /// <summary>
     /// Port of FB_Station_Zone (with its FB_Station_ZoneHmi) as it is in MainPLC: selection guard,
-    /// break-before-make power devices, E-stop latch, pump run request, test and sampling, tower lamp.
+    /// break-before-make power devices, E-stop latch, manipulation stop, pump run request, test and sampling, tower lamp.
     /// hp/ph/samples are the zone's StationHp / StationPh / StationSamples tags.
     /// </summary>
     public sealed class StationZone
@@ -73,6 +80,8 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly Contactor[] _contactors = new Contactor[7];
         private readonly MagneticSwitch[] _switches = new MagneticSwitch[9];
         private readonly RTrig _startTrigger = new RTrig(), _sampleTrigger = new RTrig();
+        private readonly Tp _sampleLamp = new Tp();
+        private const double SampleLampMs = 1000;
 
         private int _selectedSource, _selectedFlowmeter, _selectedTransmitter;
         private bool _runRequest, _eStop, _selectionRejected;
@@ -80,6 +89,9 @@ namespace SempaPumpStation.Infrastructure.Plc
         // Rotation test (Station.Rotation* states)
         private bool _rotationRequest, _rotationAllowed;
         private int _rotationState, _rotationSource;
+
+        // The first device (1-8) found manipulated, 0 none; kept until reset
+        private int _manipulation;
         private double _rotationElapsedMs;
         private const double RotationDefaultTime = 3.0, RotationMaxTime = 600.0;
 
@@ -96,7 +108,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             _switches[8] = new MagneticSwitch();
 
             // Retained selections, as the PLC would have them after a restart
-            _flowmeter.RetainValue = zone == 2 ? 2 : 1;   // zones 1 and 2 share the flowmeters
+            _flowmeter.RetainValue = zone == 2 ? 2 : 1;
             _dischargeTransmitter.RetainValue = 2;
             _speedReference.RetainValue = 80.0;
             _rotationTestTime.RetainValue = 3.0;
@@ -127,8 +139,8 @@ namespace SempaPumpStation.Infrastructure.Plc
             bool resetFault = _resetFault.QR;
 
             // ---------------------------------------------------------------- emergency stop
-            // The E-stop contact is normally closed, so eStopOk is FALSE while the button is pressed or the wire is broken.
-            if (!inputs.EStopOk) _eStop = true;
+            // Both E-stops (pendant and panel) are normally closed: their input is FALSE while pressed or the wire is broken
+            if (!inputs.EStopOk || !inputs.PanelEStopOk) _eStop = true;
             else if (resetFault) _eStop = false;
 
             // ---------------------------------------------------------------- selection guard
@@ -174,6 +186,9 @@ namespace SempaPumpStation.Infrastructure.Plc
             // and no other zone has selected or closed the same source. An E-stop opens every device.
             var isOpen = new bool[9];
             var request = new bool[9];
+            // After a manipulation (here or in another zone) nothing closes until it is reset: a closed device stays
+            // closed, one that opened (by hand, or for break-before-make) stays open, so nothing returns on its own
+            bool frozen = _manipulation != 0 || inputs.SafetyStop;
             for (int i = 1; i <= SourceCount; i++)
                 isOpen[i] = inputs.DeviceOpen[i] && !inputs.DeviceClosed[i];
 
@@ -182,7 +197,8 @@ namespace SempaPumpStation.Infrastructure.Plc
                 bool othersOpen = true;
                 for (int j = 1; j <= SourceCount; j++)
                     if (j != i && !isOpen[j]) othersOpen = false;
-                request[i] = _selectedSource == i && othersOpen && !sourceHeldByOtherZone[i] && !_eStop;
+                request[i] = _selectedSource == i && othersOpen && !sourceHeldByOtherZone[i] && !_eStop
+                             && (!frozen || (inputs.DeviceClosed[i] && !inputs.DeviceOpen[i]));
             }
 
             var devices = new PowerDevice[9];
@@ -200,6 +216,20 @@ namespace SempaPumpStation.Infrastructure.Plc
                 outputs.SwitchChargeSpring[i] = _switches[i].CmdChargeSpring;
                 devices[i] = _switches[i];
             }
+
+            // ---------------------------------------------------------------- manipulation
+            // A contactor or magnetic switch that changes state without a command stops every motor of the station
+            // (FB_Station_Main drops all drive runs). The first such device is kept until it is back in its commanded
+            // position and the fault is reset. inputs.SafetyStop is a manipulation in another zone.
+            bool anyManipulated = false;
+            for (int i = 1; i <= SourceCount; i++)
+                if (devices[i].Manipulated)
+                {
+                    anyManipulated = true;
+                    if (_manipulation == 0) _manipulation = i;
+                }
+            if (resetFault && !anyManipulated) _manipulation = 0;
+            bool stopAll = _manipulation != 0 || inputs.SafetyStop;
 
             bool deviceFault = false, allOpen = true;
             for (int i = 1; i <= SourceCount; i++)
@@ -226,11 +256,11 @@ namespace SempaPumpStation.Infrastructure.Plc
             // ---------------------------------------------------------------- pump
             _startTrigger.Run(inputs.PendantStart);
 
-            if (_startTrigger.Q && deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop && !_rotationRequest)
+            if (_startTrigger.Q && deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop && !stopAll && !_rotationRequest)
                 _runRequest = true;
 
             // Stop wins over start
-            if (inputs.PendantStop || _stop.QR || deviceFault || !deviceClosed || inputs.DriveFault || _eStop)
+            if (inputs.PendantStop || _stop.QR || deviceFault || !deviceClosed || inputs.DriveFault || _eStop || stopAll)
                 _runRequest = false;
 
             // ---------------------------------------------------------------- rotation test
@@ -246,7 +276,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 _rotationState = Station.RotationNone;
             }
 
-            _rotationAllowed = deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop
+            _rotationAllowed = deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop && !stopAll
                                && !_runRequest && !inputs.DriveRunning && !testActive
                                && _rotationState != Station.RotationRunning;
 
@@ -256,8 +286,8 @@ namespace SempaPumpStation.Infrastructure.Plc
                 _rotationState = Station.RotationRunning;
             }
 
-            // Stop, a fault or the E-stop aborts it unconfirmed
-            if (_rotationRequest && (inputs.PendantStop || _stop.QR || deviceFault || inputs.DriveFault || _eStop))
+            // Stop, a fault, the E-stop or a manipulation aborts it unconfirmed
+            if (_rotationRequest && (inputs.PendantStop || _stop.QR || deviceFault || inputs.DriveFault || _eStop || stopAll))
             {
                 _rotationRequest = false;
                 _rotationState = Station.RotationNone;
@@ -301,6 +331,10 @@ namespace SempaPumpStation.Infrastructure.Plc
             {
                 testActive = true;
                 count = 0;
+                // The test number is retained in the PLC ("StationCounters".NextTestNo), shared by the zones
+                int next = Math.Max(1, t.I(Station.NextTestNo));
+                t.W(_samples + "TestNo", next);
+                t.W(Station.NextTestNo, next + 1);
                 WriteDtl(t, _samples + "TestStarted", DateTime.Now);
                 WriteDtl(t, _samples + "TestEnded", new DateTime(1970, 1, 1));
             }
@@ -317,6 +351,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             count = Math.Max(0, Math.Min(SampleCapacity, count));
 
             _sampleTrigger.Run(inputs.PendantTakeSample);
+            _sampleLamp.Run(_sampleTrigger.Q, SampleLampMs, c);
 
             if (_sampleTrigger.Q && testActive && count < SampleCapacity)
             {
@@ -343,7 +378,6 @@ namespace SempaPumpStation.Infrastructure.Plc
                 t.W(s + "SpeedReference", _speedReference.Value);
                 t.W(s + "PumpRunning", inputs.DriveRunning);
                 t.W(s + "Torque", inputs.Torque);
-                t.W(s + "TorqueRpm", inputs.TorqueRpm);
                 t.W(s + "PowerFactor", inputs.PowerFactor);
             }
 
@@ -354,7 +388,15 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(_samples + "Count", count);
 
             // ---------------------------------------------------------------- tower lamp
-            outputs.LampRed = _eStop || deviceFault || inputs.DriveFault;
+            outputs.LampRed = _eStop || deviceFault || inputs.DriveFault || stopAll;
+            outputs.Manipulated = _manipulation != 0;
+
+            // ---------------------------------------------------------------- button lamps
+            outputs.LampStart = inputs.DriveRunning;
+            outputs.LampStop = !inputs.DriveRunning;
+            outputs.LampTakeSample = _sampleLamp.Q;
+            outputs.LampEStop = inputs.EStopOk;
+            outputs.LampPanelEStop = inputs.PanelEStopOk;
             outputs.LampGreen = !outputs.LampRed && (inputs.DriveRunning || ((_runRequest || _rotationRequest) && c.Flash1s));
             outputs.LampYellow = !outputs.LampRed && !_runRequest && !_rotationRequest && !inputs.DriveRunning
                                  && (powerState == Station.StateConnected
@@ -379,6 +421,8 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(_ph + "LampYellow", outputs.LampYellow);
             t.W(_ph + "LampRed", outputs.LampRed);
             t.W(_ph + "RotationState", _rotationState);
+            t.W(_ph + "SafetyStop", stopAll);
+            t.W(_ph + "ManipulatedDevice", _manipulation);
             t.W(_ph + "RotationRemaining", _rotationRequest ? Math.Max(0.0, _rotationTestTime.Value - _rotationElapsedMs / 1000.0) : 0.0);
         }
 

@@ -36,6 +36,7 @@ namespace SempaPumpStation.PlcInterface
             Zone1_PendantStop = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone1_PendantStop", db, k.Struct(), w, r));
             Zone1_PendantTakeSample = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone1_PendantTakeSample", db, k.Struct(), w, r));
             Zone1_EStopOk = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone1_EStopOk", db, k.Struct(), w, r));
+            Zone1_PanelEStopOk = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone1_PanelEStopOk", db, k.Struct(), w, r));
             Zone2_K7k5Ss_Open = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_K7k5Ss_Open", db, k.Struct(), w, r));
             Zone2_K7k5Ss_Closed = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_K7k5Ss_Closed", db, k.Struct(), w, r));
             Zone2_K7k5Vfd_Open = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_K7k5Vfd_Open", db, k.Struct(), w, r));
@@ -58,6 +59,7 @@ namespace SempaPumpStation.PlcInterface
             Zone2_PendantStop = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_PendantStop", db, k.Struct(), w, r));
             Zone2_PendantTakeSample = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_PendantTakeSample", db, k.Struct(), w, r));
             Zone2_EStopOk = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_EStopOk", db, k.Struct(), w, r));
+            Zone2_PanelEStopOk = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone2_PanelEStopOk", db, k.Struct(), w, r));
             Zone3_K7k5Ss_Open = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_K7k5Ss_Open", db, k.Struct(), w, r));
             Zone3_K7k5Ss_Closed = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_K7k5Ss_Closed", db, k.Struct(), w, r));
             Zone3_K7k5Vfd_Open = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_K7k5Vfd_Open", db, k.Struct(), w, r));
@@ -80,6 +82,7 @@ namespace SempaPumpStation.PlcInterface
             Zone3_PendantStop = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_PendantStop", db, k.Struct(), w, r));
             Zone3_PendantTakeSample = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_PendantTakeSample", db, k.Struct(), w, r));
             Zone3_EStopOk = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_EStopOk", db, k.Struct(), w, r));
+            Zone3_PanelEStopOk = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Zone3_PanelEStopOk", db, k.Struct(), w, r));
             Drive_7k5Ss_Running = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Drive_7k5Ss_Running", db, k.Struct(), w, r));
             Drive_7k5Ss_Fault = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Drive_7k5Ss_Fault", db, k.Struct(), w, r));
             Drive_7k5Vfd_Running = k.Next(new st_Io_Hp_DigitalInput(c, name + ".Drive_7k5Vfd_Running", db, k.Struct(), w, r));
@@ -120,6 +123,7 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_DigitalInput Zone1_PendantStop { get; private set; }
         public st_Io_Hp_DigitalInput Zone1_PendantTakeSample { get; private set; }
         public st_Io_Hp_DigitalInput Zone1_EStopOk { get; private set; }
+        public st_Io_Hp_DigitalInput Zone1_PanelEStopOk { get; private set; }
         public st_Io_Hp_DigitalInput Zone2_K7k5Ss_Open { get; private set; }
         public st_Io_Hp_DigitalInput Zone2_K7k5Ss_Closed { get; private set; }
         public st_Io_Hp_DigitalInput Zone2_K7k5Vfd_Open { get; private set; }
@@ -142,6 +146,7 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_DigitalInput Zone2_PendantStop { get; private set; }
         public st_Io_Hp_DigitalInput Zone2_PendantTakeSample { get; private set; }
         public st_Io_Hp_DigitalInput Zone2_EStopOk { get; private set; }
+        public st_Io_Hp_DigitalInput Zone2_PanelEStopOk { get; private set; }
         public st_Io_Hp_DigitalInput Zone3_K7k5Ss_Open { get; private set; }
         public st_Io_Hp_DigitalInput Zone3_K7k5Ss_Closed { get; private set; }
         public st_Io_Hp_DigitalInput Zone3_K7k5Vfd_Open { get; private set; }
@@ -164,6 +169,7 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_DigitalInput Zone3_PendantStop { get; private set; }
         public st_Io_Hp_DigitalInput Zone3_PendantTakeSample { get; private set; }
         public st_Io_Hp_DigitalInput Zone3_EStopOk { get; private set; }
+        public st_Io_Hp_DigitalInput Zone3_PanelEStopOk { get; private set; }
         public st_Io_Hp_DigitalInput Drive_7k5Ss_Running { get; private set; }
         public st_Io_Hp_DigitalInput Drive_7k5Ss_Fault { get; private set; }
         public st_Io_Hp_DigitalInput Drive_7k5Vfd_Running { get; private set; }

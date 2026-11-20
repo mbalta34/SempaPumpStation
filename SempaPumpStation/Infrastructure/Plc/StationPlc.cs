@@ -18,6 +18,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly ZoneInputs[] _zoneInputs = new ZoneInputs[4];
         private readonly ZoneOutputs[] _zoneOutputs = new ZoneOutputs[4];
         private readonly StationInstruments _instruments;
+        private bool _safetyStop;   // a power device was manipulated: every drive is stopped until the zone resets it
         private readonly Dictionary<string, int> _ioLink = new Dictionary<string, int>();
         private readonly Dictionary<string, DigitalOutputChannel> _outputs =
             DigitalOutputs.All.ToDictionary(o => o.Name, o => new DigitalOutputChannel(o));
@@ -49,11 +50,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 SensorRange("Zone" + z + "_Temperature", 0, 150);
                 SensorRange("Zone" + z + "_Sound", 30, 130);
                 SensorRange("Zone" + z + "_Speed", 0, 3600);
-                if (Station.HasTorqueMeter(z))
-                {
-                    SensorRange("Zone" + z + "_TorqueRpm", 0, 3600);
-                    SensorRange("Zone" + z + "_Torque", 0, 1000);
-                }
+                SensorRange("Zone" + z + "_Torque", 0, 1000);
 
                 _zones[z] = new StationZone(z);
                 _zoneInputs[z] = new ZoneInputs();
@@ -95,6 +92,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.PendantStop = _field.PendantStop(z);
                 p.PendantTakeSample = _field.PendantTakeSample(z);
                 p.EStopOk = _field.EStopOk(z);
+                p.PanelEStopOk = _field.PanelEStopOk(z);
 
                 var fm = Station.FlowmeterPositions(z);
                 for (int f = 1; f <= 5; f++) p.Flowmeters[f] = f <= fm.Length ? _ai[fm[f - 1]].Pv : 0.0;
@@ -106,8 +104,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.Temperature = _ai["Zone" + z + "_Temperature"].Pv;
                 p.Sound = _ai["Zone" + z + "_Sound"].Pv;
                 p.Speed = _ai["Zone" + z + "_Speed"].Pv;
-                p.Torque = Station.HasTorqueMeter(z) ? _ai["Zone" + z + "_Torque"].Pv : 0.0;
-                p.TorqueRpm = Station.HasTorqueMeter(z) ? _ai["Zone" + z + "_TorqueRpm"].Pv : 0.0;
+                p.Torque = _ai["Zone" + z + "_Torque"].Pv;
                 int selected = _zoneOutputs[z].SelectedSource;
                 p.DriveRunning = selected > 0 && _field.DriveRunning(selected);
                 p.DriveFault = selected > 0 && _field.DriveFault(selected);
@@ -135,6 +132,9 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.VacuummeterDevice = _instruments.Device(Station.VacuummeterPosition(z));
             }
 
+            // A manipulation in any zone (found last scan) holds every zone stopped
+            for (int z = 1; z <= Station.ZoneCount; z++) _zoneInputs[z].SafetyStop = _safetyStop;
+
             // ================================================================ zones
             // A source is held by another zone when that zone has selected it or its device for it is not open.
             // Each zone is evaluated with the latest selections of the zones before it.
@@ -153,6 +153,10 @@ namespace SempaPumpStation.Infrastructure.Plc
                 _zones[z].Run(_t, _zoneInputs[z], sourceHeld, flowmeterHeld, Station.FlowmeterCount(z), _cycle);
             }
 
+            // A contactor or magnetic switch changed state without a command: stop every motor in this scan
+            _safetyStop = false;
+            for (int z = 1; z <= Station.ZoneCount; z++) _safetyStop |= _zoneOutputs[z].Manipulated;
+
             // ================================================================ write IO
             // Drives: a source feeds at most one zone, so the owning zone's request and speed reference go to it
             var run = new bool[9];
@@ -164,6 +168,8 @@ namespace SempaPumpStation.Infrastructure.Plc
                         run[i] = _zoneOutputs[z].RunRequest;
                         speedReference[i] = _zoneOutputs[z].SpeedReference;
                     }
+            if (_safetyStop)
+                for (int i = 1; i <= Station.SourceCount; i++) run[i] = false;
 
             // "Io".DigitalOutputs: every command goes through its output channel (FB_Io_DigitalOutput), so a forced
             // output is what reaches the field
@@ -186,6 +192,11 @@ namespace SempaPumpStation.Infrastructure.Plc
                 o.LampGreen = Output(zone + "LampGreen", o.LampGreen);
                 o.LampYellow = Output(zone + "LampYellow", o.LampYellow);
                 o.LampRed = Output(zone + "LampRed", o.LampRed);
+                o.LampStart = Output(zone + "LampStart", o.LampStart);
+                o.LampStop = Output(zone + "LampStop", o.LampStop);
+                o.LampTakeSample = Output(zone + "LampTakeSample", o.LampTakeSample);
+                o.LampEStop = Output(zone + "LampEStop", o.LampEStop);
+                o.LampPanelEStop = Output(zone + "LampPanelEStop", o.LampPanelEStop);
             }
             foreach (var s in Station.Sources) run[s.Id] = Output("Drive_" + s.Drive + "_Run", run[s.Id]);
 
@@ -220,6 +231,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 Input(zone + "PendantStop", _field.PendantStop(z));
                 Input(zone + "PendantTakeSample", _field.PendantTakeSample(z));
                 Input(zone + "EStopOk", _field.EStopOk(z));
+                Input(zone + "PanelEStopOk", _field.PanelEStopOk(z));
             }
             foreach (var s in Station.Sources)
             {

@@ -1,4 +1,4 @@
-﻿TYPE "st_Io_Hp_DigitalOutputs"
+TYPE "st_Io_Hp_DigitalOutputs"
 VERSION : 0.1
    STRUCT
       Zone1_K7k5Ss_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
@@ -16,6 +16,11 @@ VERSION : 0.1
       Zone1_LampGreen { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone1_LampYellow { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone1_LampRed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone1_LampStart { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone1_LampStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone1_LampTakeSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone1_LampEStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone1_LampPanelEStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone2_K7k5Ss_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone2_K7k5Vfd_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone2_K37Ss_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
@@ -31,6 +36,11 @@ VERSION : 0.1
       Zone2_LampGreen { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone2_LampYellow { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone2_LampRed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone2_LampStart { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone2_LampStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone2_LampTakeSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone2_LampEStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone2_LampPanelEStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone3_K7k5Ss_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone3_K7k5Vfd_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone3_K37Ss_Close { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
@@ -46,6 +56,11 @@ VERSION : 0.1
       Zone3_LampGreen { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone3_LampYellow { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Zone3_LampRed { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone3_LampStart { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone3_LampStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone3_LampTakeSample { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone3_LampEStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
+      Zone3_LampPanelEStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Drive_7k5Ss_Run { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Drive_7k5Vfd_Run { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";
       Drive_37Ss_Run { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Io_Hp_DigitalOutput";

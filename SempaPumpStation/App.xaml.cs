@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Threading;
 using System.Windows;
@@ -175,6 +177,7 @@ namespace SempaPumpStation
             string Hp(int z) => Station.ZoneHp(z);
             string Ph(int z) => Station.ZonePh(z);
             string Sim(int z) => Station.SimZone(z);
+            bool Lamp(int z, string n) => c.GetBool("MaintenancePh.Io.DigitalOutputs.Zone" + z + "_" + n + ".Pv");
 
             Steps(20);   // instruments accepted and loaded, springs charging
             Check("PLC program version read and as expected (" + c.PlcVersion + ")",
@@ -218,11 +221,13 @@ namespace SempaPumpStation
             Press(Sim(1) + "PendantStart");
             Steps(40);
             Check("pump runs without a test", c.GetBool(Ph(1) + "PumpRunning"));
+            Check("start button lit while the pump runs, stop button dark", Lamp(1, "LampStart") && !Lamp(1, "LampStop"));
             Check("selection locked while running", !c.GetBool(Ph(1) + "PowerSource.Enabled"));
 
             // Rotation test before the test: with the pump stopped, run it for the set time, then confirm the direction
             c.Click(Hp(1) + "Stop");
             Steps(30);
+            Check("stop button lit while the pump is stopped, start button dark", Lamp(1, "LampStop") && !Lamp(1, "LampStart"));
             Check("start test locked until the rotation is confirmed",
                   !c.GetBool(Ph(1) + "StartTest.Enabled") && c.GetInt(Ph(1) + "RotationState") == Station.RotationNone
                   && c.GetBool(Ph(1) + "RotationTest.Enabled"));
@@ -249,6 +254,9 @@ namespace SempaPumpStation
             c.Click(Hp(1) + "StartTest");
             Steps(3);
             Check("start test", c.GetBool(Ph(1) + "TestActive") && !c.GetBool(Ph(1) + "StartTest.Enabled"));
+            int testNo = c.GetInt(Station.Samples(1) + "TestNo");
+            Check("the PLC gives the test its number from the retained counter (" + testNo + ")",
+                  testNo == 1042 && c.GetInt(Station.NextTestNo) == 1043);
             foreach (var valve in new[] { 100.0, 80.0, 60.0, 40.0, 25.0, 10.0 })
             {
                 c.SetValue(Sim(1) + "ValveOpening", (float)valve);
@@ -256,6 +264,11 @@ namespace SempaPumpStation
                 Press(Sim(1) + "PendantTakeSample");
             }
             Check("six samples taken", c.GetInt(Ph(1) + "SampleCount") == 6);
+            bool sampleLampOn = Lamp(1, "LampTakeSample");   // pressed 2 scans ago
+            Steps(2);   // the HMI's own scan timer also runs while the test waits, so time passes at least this fast
+            bool sampleLampStillOn = Lamp(1, "LampTakeSample");
+            Steps(15);
+            Check("take-sample button lit for a second after the press", sampleLampOn && sampleLampStillOn && !Lamp(1, "LampTakeSample"));
             var live = PumpCalc.Live(c, 1);
             Check("Pp from source 4's meter (" + (live.PumpPower?.ToString("0.00") ?? "—") + " kW, eff " + (live.Efficiency?.ToString("0.0") ?? "—") + " %)",
                   c.GetBool(Station.Meter(4) + "CommOk") && live.Source == 4 && live.PumpPower > 0
@@ -271,12 +284,13 @@ namespace SempaPumpStation
             double fm1 = c.GetDouble(Station.AiPh("Zone1_FM1") + "Pv");
             Check(string.Format("zone 1 flow comes from its own FM1 ({0:0.0}), zone 2 FM1 stays idle", fm1),
                   fm1 > 0 && Math.Abs(c.GetDouble(Ph(1) + "Flow") - fm1) < 0.5 && c.GetDouble(Station.AiPh("Zone2_FM1") + "Pv") < 1.0);
-            double torque = c.GetDouble(Station.AiPh("Zone1_Torque") + "Pv"), torqueRpm = c.GetDouble(Station.AiPh("Zone1_TorqueRpm") + "Pv");
-            Check(string.Format("torque meter reads torque and speed ({0:0.0} Nm at {1:0} rpm)", torque, torqueRpm), torque > 0 && torqueRpm > 100);
-            Check("samples hold torque, torque-meter speed and cos phi (" + c.GetDouble(Station.Sample(1, 6) + "PowerFactor").ToString("0.000") + ")",
-                  c.GetDouble(Station.Sample(1, 6) + "Torque") > 0 && c.GetDouble(Station.Sample(1, 6) + "TorqueRpm") > 100
+            double torque = c.GetDouble(Station.AiPh("Zone1_Torque") + "Pv"), speed = c.GetDouble(Station.AiPh("Zone1_Speed") + "Pv");
+            Check(string.Format("torque meter and speed sensor read ({0:0.0} Nm at {1:0} rpm)", torque, speed), torque > 0 && speed > 100);
+            Check("samples hold torque, speed and cos phi (" + c.GetDouble(Station.Sample(1, 6) + "PowerFactor").ToString("0.000") + ")",
+                  c.GetDouble(Station.Sample(1, 6) + "Torque") > 0 && c.GetDouble(Station.Sample(1, 6) + "Speed") > 100
                   && c.GetDouble(Station.Sample(1, 6) + "PowerFactor") > 0.5 && c.GetDouble(Station.Sample(1, 6) + "PowerFactor") <= 1.0);
-            Check("zone 3 has no torque channels", c.Tag(Station.AiPh("Zone3_Torque") + "Pv") == null);
+            Check("every zone has a torque channel, none a torque-meter speed channel (IO list V1.8)",
+                  c.Tag(Station.AiPh("Zone3_Torque") + "Pv") != null && c.Tag(Station.AiPh("Zone1_TorqueRpm") + "Pv") == null);
 
             // The tester in the report is whoever is logged in when the test ends
             Await(c.Security.Auth.LoginAsync("admin", TerakkiFramework.Security.UserStore.DefaultAdminPassword));
@@ -288,6 +302,7 @@ namespace SempaPumpStation
             Check("archive names the logged-in user as tester (" + archived.Header["TESTI_YAPAN"] + ")",
                   tester != null && archived.Header["TESTI_YAPAN"] == (string.IsNullOrWhiteSpace(tester.DisplayName) ? tester.Username : tester.DisplayName)
                   && archived.Samples[5].Torque > 0 && archived.Samples[5].PowerFactor > 0);
+            Check("the archive keeps the PLC's test number (" + archived.TestNo + ")", archived.TestNo == testNo && archived.File.Contains("Deney_" + testNo + "_"));
             c.Security.Auth.Logout("Smoke");
 
             // The Excel report: the template filled with this test (kept for a look after the run)
@@ -336,13 +351,27 @@ namespace SempaPumpStation
             c.SetValue(Sim(3) + "EStopPressed", true);
             Steps(5);
             Check("E-stop latches and opens the switch", c.GetBool(Ph(3) + "EStop") && c.GetInt(Ph(3) + "PowerState") != Station.StateConnected);
+            Check("the E-stop is not taken for a manipulation; its lamp is off while pressed",
+                  c.GetInt(Ph(3) + "ManipulatedDevice") == 0 && !c.GetBool(Ph(1) + "SafetyStop") && !Lamp(3, "LampEStop") && Lamp(3, "LampPanelEStop"));
             c.Click(Hp(3) + "ResetFault");
             Steps(3);
             Check("reset ignored while E-stop pressed", c.GetBool(Ph(3) + "EStop"));
             c.SetValue(Sim(3) + "EStopPressed", false);
             c.Click(Hp(3) + "ResetFault");
             Steps(60);
-            Check("released + reset clears E-stop and reconnects", !c.GetBool(Ph(3) + "EStop") && c.GetInt(Ph(3) + "PowerState") == Station.StateConnected);
+            Check("released + reset clears E-stop and reconnects", !c.GetBool(Ph(3) + "EStop") && c.GetInt(Ph(3) + "PowerState") == Station.StateConnected
+                  && Lamp(3, "LampEStop"));
+
+            // The panel E-stop stops the zone like the pendant one
+            c.SetValue(Sim(3) + "PanelEStopPressed", true);
+            Steps(5);
+            Check("panel E-stop latches the zone's E-stop, its lamp off while pressed",
+                  c.GetBool(Ph(3) + "EStop") && c.GetInt(Ph(3) + "PowerState") != Station.StateConnected && !Lamp(3, "LampPanelEStop")
+                  && Lamp(3, "LampEStop") && c.GetInt(Ph(3) + "ManipulatedDevice") == 0);
+            c.SetValue(Sim(3) + "PanelEStopPressed", false);
+            c.Click(Hp(3) + "ResetFault");
+            Steps(60);
+            Check("released + reset clears it", !c.GetBool(Ph(3) + "EStop") && c.GetInt(Ph(3) + "PowerState") == Station.StateConnected && Lamp(3, "LampPanelEStop"));
 
             // Zone 1 drive fault stops the pump
             c.SetValue(Station.SimDrive(4) + "Fault", true);
@@ -351,6 +380,56 @@ namespace SempaPumpStation
             c.SetValue(Station.SimDrive(4) + "Fault", false);
             Press(Sim(1) + "PendantStart");
             Steps(40);
+
+            // Someone closes a contactor of zone 3 by hand: every motor stops at once, also zone 1's
+            bool zone1Ran = c.GetBool(Ph(1) + "PumpRunning");
+            c.Plc.Field.HoldByHand(3, 1, true);
+            Steps(2);   // the field changes at the end of a scan; the PLC sees it on the next one
+            Check("a contactor closed by hand drops every drive run in the scan that sees it",
+                  zone1Ran && c.GetInt(Ph(3) + "ManipulatedDevice") == 1 && !c.GetBool(Station.SimDrive(4) + "Running"));
+            Steps(5);
+            Check("every zone shows the stop (zone 1 stopped, red lamp)",
+                  c.GetBool(Ph(1) + "SafetyStop") && c.GetBool(Ph(2) + "SafetyStop") && c.GetBool(Ph(3) + "SafetyStop")
+                  && !c.GetBool(Ph(1) + "PumpRunning") && c.GetBool(Ph(1) + "LampRed") && c.GetInt(Ph(1) + "ManipulatedDevice") == 0);
+            Press(Sim(1) + "PendantStart");
+            Steps(20);
+            Check("no motor starts while the stop holds", !c.GetBool(Ph(1) + "PumpRunning"));
+            Check("break-before-make opened zone 3's switch; zone 1's closed contactor stays closed",
+                  !c.Plc.Field.DeviceClosed(3, 7) && c.Plc.Field.DeviceClosed(1, 4));
+            c.Click(Hp(3) + "ResetFault");
+            Steps(3);
+            Check("reset ignored while the contactor is still held", c.GetInt(Ph(3) + "ManipulatedDevice") == 1 && c.GetBool(Ph(1) + "SafetyStop"));
+            c.Plc.Field.HoldByHand(3, 1, null);
+            Steps(50);   // contactor drops; long enough for the switch's spring to charge
+            Check("released: nothing closes again before the reset (zone 3's switch stays open)",
+                  !c.Plc.Field.DeviceClosed(3, 1) && !c.Plc.Field.DeviceClosed(3, 7) && c.GetInt(Ph(3) + "PowerState") != Station.StateConnected
+                  && c.GetBool(Ph(1) + "SafetyStop"));
+            c.Click(Hp(3) + "ResetFault");
+            Steps(3);
+            Check("released + reset in its zone lifts the stop everywhere",
+                  c.GetInt(Ph(3) + "ManipulatedDevice") == 0 && !c.GetBool(Ph(1) + "SafetyStop") && !c.GetBool(Ph(3) + "SafetyStop"));
+            Steps(40);
+            Check("after the reset zone 3's switch closes again", c.GetInt(Ph(3) + "PowerState") == Station.StateConnected);
+            Press(Sim(1) + "PendantStart");
+            Steps(40);
+            Check("zone 1 starts again", c.GetBool(Ph(1) + "PumpRunning"));
+
+            // The closed 560 kW switch of zone 3 is opened by hand (or trips)
+            c.Plc.Field.HoldByHand(3, 7, false);
+            Steps(2);
+            bool notYet = c.GetInt(Ph(3) + "ManipulatedDevice") == 0;
+            Steps(3);
+            Check("a closed switch opened by hand stops every motor once it lasts 200 ms",
+                  notYet && c.GetInt(Ph(3) + "ManipulatedDevice") == 7 && !c.GetBool(Station.SimDrive(4) + "Running"));
+            c.Plc.Field.HoldByHand(3, 7, null);
+            Steps(40);   // the switch stays open: nothing closes before the reset
+            c.Click(Hp(3) + "ResetFault");
+            Steps(60);   // spring charges, the switch closes again
+            Check("after reset the switch reconnects and the stop is lifted (" + Station.DeviceText(7) + ")",
+                  c.GetInt(Ph(3) + "ManipulatedDevice") == 0 && !c.GetBool(Ph(1) + "SafetyStop") && c.GetInt(Ph(3) + "PowerState") == Station.StateConnected);
+            Press(Sim(1) + "PendantStart");
+            Steps(40);
+            Check("zone 1 runs again", c.GetBool(Ph(1) + "PumpRunning"));
 
             // Zone 2 runs too, for the overview captures
             c.WriteParameter(Hp(2) + "PowerSource.Value", Ph(2) + "PowerSource.Value", (short)6);
@@ -365,6 +444,28 @@ namespace SempaPumpStation
             Steps(40);
             Press(Sim(2) + "PendantTakeSample");
             Steps(10);
+
+            // Recipes are XML files; a recipe saved as .txt by an older version still loads and becomes XML when saved
+            string recipeRoot = RecipeStore.Root;
+            RecipeStore.Root = Path.Combine(Path.GetTempPath(), "SempaPumpStationSmoke", "Recipes");
+            if (Directory.Exists(RecipeStore.Root)) Directory.Delete(RecipeStore.Root, true);
+            try
+            {
+                RecipeStore.Save("Motor", "Volt 45 kW / IE3", new Dictionary<string, string> { { "MOTOR_GUCU", "45" }, { "MOTOR_MARKA", "Volt <Motor> & Co" } },
+                                 new Dictionary<string, string> { { "MOTOR_GUCU", "Gücü (kW)" } });
+                string file = Directory.GetFiles(Path.Combine(RecipeStore.Root, "Motor")).Single();
+                var xml = System.Xml.Linq.XDocument.Load(file);
+                var back = RecipeStore.Load("Motor", "Volt 45 kW / IE3");
+                File.WriteAllLines(Path.Combine(RecipeStore.Root, "Motor", "Eski.txt"), new[] { "MOTOR_GUCU=7.5" });
+                bool legacyListed = RecipeStore.List("Motor").SequenceEqual(new[] { "Eski", "Volt 45 kW / IE3" });
+                bool legacyLoads = RecipeStore.Load("Motor", "Eski")["MOTOR_GUCU"] == "7.5";
+                RecipeStore.Save("Motor", "Eski", RecipeStore.Load("Motor", "Eski"));
+                Check("recipes saved as XML and read back; old .txt recipes still load and turn into XML",
+                      file.EndsWith(".xml") && xml.Root.Name == "Recipe" && (string)xml.Root.Attribute("Name") == "Volt 45 kW / IE3"
+                      && back["MOTOR_GUCU"] == "45" && back["MOTOR_MARKA"] == "Volt <Motor> & Co" && legacyListed && legacyLoads
+                      && File.Exists(Path.Combine(RecipeStore.Root, "Motor", "Eski.xml")) && !File.Exists(Path.Combine(RecipeStore.Root, "Motor", "Eski.txt")));
+            }
+            finally { RecipeStore.Root = recipeRoot; }
         }
 
         // ---------------------------------------------------------------- IO-Link
@@ -383,12 +484,31 @@ namespace SempaPumpStation
             Steps(3);
             Check("transmitters read their fixed ports", Raw("Zone3_Pt1") == Hub(0) && Raw("Zone3_Pt2") == Hub(1)
                                                          && Hub(1) == IoLinkLayout.OpenInputRaw && Hub(0) != Hub(1));
-            Check("fixed sensors read their IO list ports", Raw("Zone3_Speed") == c.GetInt(IoLinkLayout.Raw(3, IoLinkModule.RtdHub, 3)));
+            Check("fixed sensors read their IO list ports", Raw("Zone3_Speed") == c.GetInt(IoLinkLayout.Raw(3, IoLinkModule.RtdHub, 1)));
+            int Port(int zone, IoLinkModule hub, int port) => c.GetInt(IoLinkLayout.Raw(zone, hub, port));
+            // V1.8 with the zone 1 and zone 3 layouts swapped: zone 3 (and 2) has the 8 AI hub, zone 1 the BNI0007
+            Check("IO list V1.8 ports: zone 3 FM1-4 on BNI00KM 4-7, torque/speed/vacuum on BNI00AJ 0/1/3, zone 1 FM2 and torque on BNI00AJ 1/2",
+                  Raw("Zone3_FM1") == Port(3, IoLinkModule.AnalogHub, 4) && Raw("Zone3_FM4") == Port(3, IoLinkModule.AnalogHub, 7)
+                  && Raw("Zone3_Torque") == Port(3, IoLinkModule.RtdHub, 0) && Raw("Zone3_Speed") == Port(3, IoLinkModule.RtdHub, 1)
+                  && Raw("Zone3_Vacuummeter") == Port(3, IoLinkModule.RtdHub, 3) && Raw("Zone2_AmbientTemperature") == Port(2, IoLinkModule.RtdHub, 5)
+                  && Raw("Zone1_FM2") == Port(1, IoLinkModule.RtdHub, 1) && Raw("Zone1_Torque") == Port(1, IoLinkModule.RtdHub, 2)
+                  && Raw("Zone1_Vacuummeter") == Port(1, IoLinkModule.RtdHub, 5) && Raw("Zone1_Pt4") == Port(1, IoLinkModule.AnalogHub, 3));
+            var z3Analog = IoLinkLayout.Ports(3, IoLinkModule.AnalogHub);
+            var z3Rtd = IoLinkLayout.Ports(3, IoLinkModule.RtdHub);
+            var z1Analog = IoLinkLayout.Ports(1, IoLinkModule.AnalogHub);
+            var z1Rtd = IoLinkLayout.Ports(1, IoLinkModule.RtdHub);
+            Check("IO-Link page labels follow the V1.8 sheet, zone 1 and 3 swapped (" + Station.Positions.Length + " instrument positions)",
+                  Station.Positions.Length == 25 && Station.FlowmeterCount(1) == 2 && Station.FlowmeterCount(3) == 4
+                  && z3Analog[4].Position == "Zone3_FM1" && z3Analog[7].Position == "Zone3_FM4" && z3Analog[0].Position == "Zone3_Pt1"
+                  && z3Rtd[0].Label == "Tork" && z3Rtd[1].Label == "Devir sayısı" && z3Rtd[3].Position == "Zone3_Vacuummeter"
+                  && z3Rtd[6].Label == "" && z3Rtd[7].Label == "" && IoLinkLayout.TypeName(3, IoLinkModule.AnalogHub) == "BNI00KM"
+                  && z1Rtd[1].Position == "Zone1_FM2" && z1Rtd[7].Channel == "Zone1_AmbientTemperature"
+                  && z1Analog[3].Position == "Zone1_Pt4" && !z1Analog[4].Present && IoLinkLayout.TypeName(1, IoLinkModule.AnalogHub) == "BNI0007");
 
             // The device on a port is chosen on the IO-Link screen
             var screen = (Screens.IoLinkViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "IoLink").Screen;
             screen.Zones[2].Command.Execute(null);
-            screen.Hubs[1].Ports[1].SelectCommand.Execute(null);   // BNI0007 port 1 = Pt2
+            screen.Hubs[1].Ports[1].SelectCommand.Execute(null);   // BNI00KM port 1 = Pt2
             Steps(2);
             var free = System.Linq.Enumerable.First(screen.Devices, d => d.Value > 0 && d.State == "");
             var held = System.Linq.Enumerable.First(screen.Devices, d => d.State == "held");
@@ -407,6 +527,14 @@ namespace SempaPumpStation
             screen.Hubs[1].Ports[0].SelectCommand.Execute(null);   // zone 1 Pt1, zone 1 runs
             Steps(2);
             Check("the device is locked while the zone runs", !screen.CanAssign);
+
+            // BNI007Z row by row as in the sheet: 0 tower green/yellow, 1 start, 2 siren/red, 3 stop, 4 free, 5 sample, 6 panel E-stop, 7 E-stop
+            var dio = screen.Hubs[2].Ports;
+            Check("BNI007Z ports follow the V1.8 sheet row by row (start: " + dio[1].Value + ", stop: " + dio[3].Value + ")",
+                  dio[1].Title == "Pompa Başlat / lamba" && dio[1].Value.EndsWith("lamba yanıyor")
+                  && dio[2].Title == "Siren / Kırmızı ışık" && dio[3].Title == "Pompa Durdur / lamba" && dio[3].Value.EndsWith("lamba sönük")
+                  && dio[4].Title == "Boş" && dio[5].Title == "Örnek al / lamba"
+                  && dio[6].Title == "Pano acil stop / lamba" && dio[6].Value.StartsWith("Normal") && dio[7].Title == "EStop / lamba");
         }
 
         // ---------------------------------------------------------------- digital output forcing
@@ -429,6 +557,8 @@ namespace SempaPumpStation
             Steps(10);
             Check("Force ON drives the output and is shown as forced", row.Forcing && row.Pv && screen.ForcedCount == 1);
             Check("the forced output reaches the field (contactor closes)", c.Plc.Field.DeviceClosed(3, 1));
+            Check("a contactor forced closed counts as a manipulation: every motor stops",
+                  c.GetInt(Station.ZonePh(3) + "ManipulatedDevice") == 1 && c.GetBool(Station.ZonePh(1) + "SafetyStop"));
 
             row.ForceOffCommand.Execute(null);
             Steps(3);
@@ -438,9 +568,11 @@ namespace SempaPumpStation
             Steps(10);
             Check("release returns the output to the program", !row.Forcing && !row.Pv && screen.ForcedCount == 0 && !c.Plc.Field.DeviceClosed(3, 1));
 
-            // The contactor moved without a request: clear the zone's device fault again
+            // The contactor moved without a request: acknowledge the manipulation; zone 3's switch closes again
             c.Click(Station.ZoneHp(3) + "ResetFault");
-            Steps(20);
+            Steps(60);
+            Check("acknowledged: the stop is lifted and zone 3's switch closes again",
+                  !c.GetBool(Station.ZonePh(1) + "SafetyStop") && c.GetInt(Station.ZonePh(3) + "PowerState") == Station.StateConnected);
 
             // Input watch tables
             var io = (Screens.IoViewModel)System.Linq.Enumerable.First(vm.DiagNav, e => e.Key == "Io").Screen;
@@ -448,7 +580,7 @@ namespace SempaPumpStation
             Steps(2);
             var inputs = System.Linq.Enumerable.ToList(System.Linq.Enumerable.SelectMany(io.InputGroups, g => g.Rows));
             Check("DI watch shows the field (zone 3 560 kW switch closed, not open)",
-                  inputs.Count == 82 && inputs.Find(r => r.Name == "Zone3_Q560Ss_Closed").Pv && !inputs.Find(r => r.Name == "Zone3_Q560Ss_Open").Pv);
+                  inputs.Count == 85 && inputs.Find(r => r.Name == "Zone3_Q560Ss_Closed").Pv && !inputs.Find(r => r.Name == "Zone3_Q560Ss_Open").Pv);
             io.ShowTab(Screens.IoViewModel.AnalogInputsTab);
             Steps(2);
             var pt2 = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(io.AnalogGroups, g => g.Rows), r => r.Name == "Zone1_Pt2");

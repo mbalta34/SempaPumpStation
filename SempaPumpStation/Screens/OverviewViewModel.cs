@@ -68,11 +68,12 @@ namespace SempaPumpStation.Screens
                 string ph = Station.ZonePh(z.Zone);
                 z.Source = Station.Source(Ctx.GetInt(ph + "PowerSource.Value"))?.Name ?? "Kaynak seçilmedi";
                 z.State = Ctx.GetBool(ph + "EStop") ? "ACİL STOP"
+                        : Ctx.GetBool(ph + "SafetyStop") ? "MÜDAHALE — motorlar durduruldu"
                         : Ctx.GetBool(ph + "DeviceFault") || Ctx.GetBool(ph + "DriveFault") ? "ARIZA"
                         : Ctx.GetBool(ph + "PumpRunning") ? "Pompa çalışıyor"
                         : Station.PowerStateText(Ctx.GetInt(ph + "PowerState"));
                 z.Test = Ctx.GetBool(ph + "TestActive")
-                    ? "Test aktif · " + Ctx.GetInt(ph + "SampleCount") + " numune"
+                    ? "Deney " + Ctx.GetInt(Station.Samples(z.Zone) + "TestNo") + " · " + Ctx.GetInt(ph + "SampleCount") + " numune"
                     : "Test yok";
             }
 

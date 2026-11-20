@@ -45,11 +45,7 @@ namespace SempaPumpStation.Infrastructure
                 yield return E(z, n + "Speed", ai("Speed"), 1000, When.WhileTest);
                 yield return E(z, n + "Vibration", ai("Vibration"), 1000, When.WhileTest);
                 yield return E(z, n + "Sound", ai("Sound"), 1000, When.WhileTest);
-                if (Station.HasTorqueMeter(z))
-                {
-                    yield return E(z, n + "Torque", ai("Torque"), 1000, When.WhileTest);
-                    yield return E(z, n + "TorqueRpm", ai("TorqueRpm"), 1000, When.WhileTest);
-                }
+                yield return E(z, n + "Torque", ai("Torque"), 1000, When.WhileTest);
 
                 // Slow values: every 10 seconds, always
                 yield return E(z, n + "PowerSource", ph + "PowerSource.Value", 10000, When.Always);

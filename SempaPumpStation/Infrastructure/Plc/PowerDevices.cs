@@ -6,6 +6,27 @@ namespace SempaPumpStation.Infrastructure.Plc
         public bool IsOpen { get; protected set; }
         public bool IsClosed { get; protected set; }
         public bool Fault { get; protected set; }
+        /// <summary>Changed state without a command after it had reached the commanded position (opened or closed by hand).</summary>
+        public bool Manipulated { get; protected set; }
+
+        private bool _settled;
+        private readonly Ton _openedTimer = new Ton();
+        private const double OpenedConfirmMs = 200;   // the hardwired E-stop drops the coils; its input arrives within this time
+
+        /// <summary>
+        /// Once the device is in the commanded position it may only move when the command changes; a change of state
+        /// without one is a manipulation. <paramref name="command"/> is this scan's command before a fault drops it.
+        /// </summary>
+        protected void WatchManipulation(bool command, bool commandChanged, PlcCycle c)
+        {
+            bool inPosition = (command && IsClosed) || (!command && IsOpen);
+            if (commandChanged) _settled = false;
+            // Closing by itself connects a motor: at once. Opening by itself only cuts a supply (and is what the E-stop does),
+            // so it counts once it lasts OpenedConfirmMs
+            _openedTimer.Run(_settled && command && !IsClosed, OpenedConfirmMs, c);
+            Manipulated = (_settled && !command && !IsOpen) || _openedTimer.Q;
+            if (inPosition) _settled = true;
+        }
     }
 
     /// <summary>Port of FB_Station_Contactor.</summary>
@@ -30,6 +51,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             // The timer restarts whenever the command changes, so each switching gets the full timeout
             bool discrepancy = (CmdClose && !IsClosed) || (!CmdClose && !IsOpen);
             _feedbackTimer.Run(discrepancy && CmdClose == _previousCommand, FeedbackTimeoutMs, c);
+            bool commandChanged = CmdClose != _previousCommand;
             _previousCommand = CmdClose;
 
             if (_feedbackTimer.Q)
@@ -38,6 +60,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 CmdClose = false;
             }
             Fault = _faulted;
+            WatchManipulation(_previousCommand, commandChanged, c);
         }
     }
 
@@ -79,6 +102,7 @@ namespace SempaPumpStation.Infrastructure.Plc
 
             bool discrepancy = (command && _closeIssued && !IsClosed) || (!command && !IsOpen);
             _feedbackTimer.Run(discrepancy && command == _previousCommand, FeedbackTimeoutMs, c);
+            bool commandChanged = command != _previousCommand;
             _previousCommand = command;
 
             if (_feedbackTimer.Q || _springTimer.Q)
@@ -88,6 +112,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 CmdChargeSpring = false;
             }
             Fault = _faulted;
+            WatchManipulation(_previousCommand, commandChanged, c);
         }
     }
 }

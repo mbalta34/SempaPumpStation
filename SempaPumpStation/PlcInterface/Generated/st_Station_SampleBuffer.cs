@@ -18,6 +18,7 @@ namespace SempaPumpStation.PlcInterface
             TestStarted = k.Next(new DTL(c, name + ".TestStarted", db, k.Struct(), w, r));
             TestEnded = k.Next(new DTL(c, name + ".TestEnded", db, k.Struct(), w, r));
             Count = k.Leaf(name + ".Count", DataType.INT);
+            TestNo = k.Leaf(name + ".TestNo", DataType.DINT);
             Samples = new List<st_Station_Sample>();
             k.ArrayStart();
             for (int i = 1; i <= 50; i++)
@@ -28,6 +29,7 @@ namespace SempaPumpStation.PlcInterface
         public DTL TestStarted { get; private set; }
         public DTL TestEnded { get; private set; }
         public SiemensS7PlcTag Count { get; private set; }
+        public SiemensS7PlcTag TestNo { get; private set; }
         public List<st_Station_Sample> Samples { get; private set; }
     }
 }

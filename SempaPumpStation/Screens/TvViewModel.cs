@@ -59,7 +59,8 @@ namespace SempaPumpStation.Screens
 
             Heading = "POMPA TESTİ MANUEL  ·  BÖLGE " + _zone;
             RecordNo = Ctx.GetInt(ph + "SampleCount").ToString(Inv);
-            TestNo = Ctx.GetInt("GLOBAL_DENEY_NO").ToString(Inv);
+            // The running test's number, or the one the next test will get
+            TestNo = (Ctx.GetBool(ph + "TestActive") ? Ctx.GetInt(Station.Samples(_zone) + "TestNo") : Ctx.GetInt(Station.NextTestNo)).ToString(Inv);
 
             FlowText = "Q : " + Number(r.Flow) + " m³/h";
             HeadText = "Hm : " + Number(r.Head) + " mss";
@@ -67,6 +68,7 @@ namespace SempaPumpStation.Screens
             EfficiencyText = "Eff : " + Number(r.Efficiency) + " %";
 
             StatusText = Ctx.GetBool(ph + "EStop") ? "ACİL STOP"
+                       : Ctx.GetBool(ph + "SafetyStop") ? "MÜDAHALE · TÜM MOTORLAR DURDURULDU"
                        : Ctx.GetBool(ph + "DeviceFault") || Ctx.GetBool(ph + "DriveFault") ? "ARIZA"
                        : Ctx.GetBool(ph + "TestActive") ? (Ctx.GetBool(ph + "PumpRunning") ? "TEST SÜRÜYOR · POMPA ÇALIŞIYOR" : "TEST SÜRÜYOR · POMPA DURUYOR")
                        : Ctx.GetBool(ph + "PumpRunning") ? "POMPA ÇALIŞIYOR"

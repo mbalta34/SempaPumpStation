@@ -34,6 +34,8 @@ VERSION : 0.1
       ConfirmRotation { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_CommandButton";
       RotationState { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // 0 not checked, 1 rotation test running, 2 waiting for confirmation, 3 confirmed
       RotationRemaining { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Seconds left of the running rotation test
+      SafetyStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Every motor of the station is stopped because a contactor or magnetic switch was manipulated
+      ManipulatedDevice { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // The device (source 1-8) of this zone that was manipulated, 0 none; kept until reset
    END_STRUCT;
 
 END_TYPE
