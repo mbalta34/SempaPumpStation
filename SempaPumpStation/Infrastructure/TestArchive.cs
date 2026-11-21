@@ -39,6 +39,9 @@ namespace SempaPumpStation.Infrastructure
         // Derived
         public double Head { get; set; }            // total head, m
         public double HydraulicPower { get; set; }  // kW
+        public double ElectricalPower { get; set; } // Nş, kW
+        public double? PumpPower { get; set; }      // Np, kW
+        public double? Efficiency { get; set; }     // pump efficiency, %
 
         public string TimeText => Timestamp != null && Timestamp.Length >= 19 ? Timestamp.Substring(11) : Timestamp;
         public string SourceText => Station.Source(PowerSource)?.Name ?? "—";
@@ -194,15 +197,17 @@ namespace SempaPumpStation.Infrastructure
             };
         }
 
-        /// <summary>Total head from the pressure difference plus the gauge height difference; a submersible pump ignores suction.</summary>
+        /// <summary>Head, powers and efficiency of every sample with the report's formulas (<see cref="PumpCalc"/>), from the test's recipes.</summary>
         public static void Derive(TestRecord r)
         {
-            double geo = ParseDouble(r.Get("GEO_YUKSEKLIK"));
-            bool submersible = string.Equals(r.Get("DALGIC_PMP_SEL"), "True", StringComparison.OrdinalIgnoreCase);
+            var line = PumpLine.From(r.Get);
             foreach (var s in r.Samples)
             {
-                s.Head = PumpCalc.Head(s.DischargePressure, s.SuctionPressure, submersible, geo);
+                s.Head = PumpCalc.Head(s.DischargePressure, s.SuctionPressure, s.Flow, line);
                 s.HydraulicPower = PumpCalc.HydraulicPower(s.Flow, s.Head);
+                s.ElectricalPower = PumpCalc.ElectricalPower(s.Voltage, s.Current, s.PowerFactor);
+                s.PumpPower = PumpCalc.PumpPower(s.ElectricalPower, line);
+                s.Efficiency = PumpCalc.Efficiency(s.HydraulicPower, s.PumpPower);
             }
         }
 
@@ -253,7 +258,9 @@ namespace SempaPumpStation.Infrastructure
                 foreach (var f in Directory.GetFiles(Folder, "Deney_*.csv").OrderByDescending(File.GetLastWriteTime).Take(200))
                 {
                     var r = Read(f);
-                    if (r != null) Records.Add(r);
+                    if (r == null) continue;
+                    Derive(r);   // head, powers and efficiency with today's formulas (as the Excel report computes them)
+                    Records.Add(r);
                 }
             }
             catch { /* a broken archive must not stop the HMI */ }

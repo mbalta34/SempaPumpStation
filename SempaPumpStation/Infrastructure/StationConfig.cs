@@ -17,6 +17,8 @@ namespace SempaPumpStation.Infrastructure
     /// &lt;PasswordMaxAgeDays&gt;90&lt;/PasswordMaxAgeDays&gt;    password must be changed after this, 0 = never
     /// &lt;DataLog&gt;Sqlite&lt;/DataLog&gt;                     data log outputs: any of Sqlite, Csv, Xml (comma-separated), None; default Sqlite
     /// &lt;DataLogRetentionDays&gt;90&lt;/DataLogRetentionDays&gt;  data older than this is deleted, 0 = keep everything
+    /// &lt;ReconnectAttempts&gt;3&lt;/ReconnectAttempts&gt;          a lost PLC link is tried again this many times per round
+    /// &lt;ReconnectIntervalSeconds&gt;30&lt;/ReconnectIntervalSeconds&gt;  a new round this often while the PLC is unreachable
     /// </code>
     /// </summary>
     public sealed class StationConfig
@@ -28,6 +30,8 @@ namespace SempaPumpStation.Infrastructure
         public string IpAddress { get; private set; }
         public int Rack { get; private set; }
         public int Slot { get; private set; } = 1;
+        public int ReconnectAttempts { get; private set; } = 3;
+        public int ReconnectIntervalSeconds { get; private set; } = 30;
         public TimeSpan AutoLogout { get; private set; } = TimeSpan.FromMinutes(15);
         /// <summary>Null keeps the framework's <see cref="TerakkiFramework.Security.SecurityOptions"/> default.</summary>
         public TimeSpan? PasswordMaxAge { get; private set; }
@@ -56,6 +60,8 @@ namespace SempaPumpStation.Infrastructure
                     if (int.TryParse((string)root?.Element("AutoLogoutMinutes"), out v)) cfg.AutoLogout = TimeSpan.FromMinutes(Math.Max(0, v));
                     if (int.TryParse((string)root?.Element("PasswordMaxAgeDays"), out v)) cfg.PasswordMaxAge = TimeSpan.FromDays(Math.Max(0, v));
                     if (int.TryParse((string)root?.Element("DataLogRetentionDays"), out v)) cfg.DataLogRetentionDays = Math.Max(0, v);
+                    if (int.TryParse((string)root?.Element("ReconnectAttempts"), out v)) cfg.ReconnectAttempts = Math.Max(1, v);
+                    if (int.TryParse((string)root?.Element("ReconnectIntervalSeconds"), out v)) cfg.ReconnectIntervalSeconds = Math.Max(5, v);
                     var outputs = (string)root?.Element("DataLog");
                     if (outputs != null)
                         cfg.DataLogOutputs = outputs.ToLowerInvariant()

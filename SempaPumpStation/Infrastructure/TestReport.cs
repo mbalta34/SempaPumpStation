@@ -88,8 +88,8 @@ namespace SempaPumpStation.Infrastructure
             w.Text("M6", Instrument(h["DEBIMETRE"]));
             w.Text("M7", Instrument(h["BASINC_TR"]));
             w.Text("M8", Instrument(h["VAKUMMETRE"]));
-            double suctionDn = FirstNumber(h["WRT_PMP_EMME_CAP"]), dischargeDn = FirstNumber(h["WRT_PMP_BAS_CAP"]);
-            double dischargeLine = FirstNumber(h["HAT_BAS_IC_CAPI"]);
+            double suctionDn = PumpCalc.FirstNumber(h["WRT_PMP_EMME_CAP"]), dischargeDn = PumpCalc.FirstNumber(h["WRT_PMP_BAS_CAP"]);
+            double dischargeLine = PumpCalc.FirstNumber(h["HAT_BAS_IC_CAPI"]);
             if (suctionDn > 0) w.Number("M13", suctionDn);
             if (dischargeLine > 0) w.Number("M14", dischargeLine);
             else if (dischargeDn > 0) w.Number("M14", dischargeDn);
@@ -105,16 +105,18 @@ namespace SempaPumpStation.Infrastructure
             w.Text("L19", h["WRT_PMP_MIL_MALZ"]);
             w.Text("L20", h["WRT_PMP_MONTAJ_TIP"]);
             w.Text("L21", h["WRT_CARK_MALZ"]);
-            double impeller = FirstNumber(h["WRT_CARK_CAPI"]);
+            double impeller = PumpCalc.FirstNumber(h["WRT_CARK_CAPI"]);
             if (impeller > 0) w.Number("L22", impeller); else w.Text("L22", h["WRT_CARK_CAPI"]);
 
-            // Measurements: Q, He (suction, positive under vacuum), Hb, cos φ, V, I, torque and speed
+            // Measurements: Q, He (suction, positive under vacuum), Hb, cos φ, V, I, torque and speed.
+            // A submersible pump has no suction gauge: He stays 0, as the live head (PumpCalc) leaves suction out
+            bool submersible = PumpLine.From(k => h[k]).Submersible;
             for (int i = 0; i < Math.Min(MaxSamples, r.Samples.Count); i++)
             {
                 var s = r.Samples[i];
                 int row = FirstRow + i;
                 w.Number("D" + row, s.Flow);
-                w.Number("F" + row, -s.SuctionPressure);
+                w.Number("F" + row, submersible ? 0.0 : -s.SuctionPressure);
                 w.Number("G" + row, s.DischargePressure);
                 if (s.PowerFactor > 0 && s.PowerFactor <= 1) w.Number("J" + row, s.PowerFactor);
                 w.Number("K" + row, s.Voltage);
@@ -140,14 +142,6 @@ namespace SempaPumpStation.Infrastructure
             if (string.IsNullOrWhiteSpace(described) || described.Trim() == "—") return "";
             return Regex.Replace(described, @"^\s*\d+\s*·\s*", "");
         }
-
-        private static double FirstNumber(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return 0;
-            var m = Regex.Match(text.Replace(',', '.'), @"\d+(\.\d+)?");
-            return m.Success && double.TryParse(m.Value, NumberStyles.Float, Inv, out double v) ? v : 0;
-        }
-
         private static DateTime ParseTime(string text) =>
             DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss", Inv, DateTimeStyles.None, out DateTime t) ? t : DateTime.Now;
 

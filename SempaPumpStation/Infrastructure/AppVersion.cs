@@ -14,7 +14,7 @@ namespace SempaPumpStation.Infrastructure
         // ---- bump these ----
         public const int Major = 1;
         public const int Minor = 9;
-        public const int Build = 0;
+        public const int Build = 1;
 
         public const string ProductName = "Sempa HMI";
 
@@ -39,6 +39,17 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.9.1", "2026-11-21", new[]
+            {
+                "The zone and TV screens calculate as the Excel report: Hm includes the velocity head difference between the discharge and suction pipes (10.2 m per bar); Pp is the pump power, √3·U·I·cosφ from the source's PM5550 times the motor efficiency at its load (motor recipe); the efficiency is the pump efficiency Q·Hm/367.2 / Pp. The zone screen also shows the discharge and suction heads Hb and He (m) and the electrical power Nş; the report screen shows Pp and the efficiency per sample, and archives are recalculated when loaded.",
+                "The Excel report leaves suction out for a submersible pump, as the live head does.",
+                "The filter type is chosen from a list (Yok, EMA, EMA + aykırı değer) in the instrument library and on Analog Ayarları; a value edited in a table is written as soon as its cell is left.",
+                "The instrument positions show each channel's raw and filtered raw value next to its scaled value.",
+                "The HMI reconnects to the PLC by itself: a link whose reads keep failing (cable pulled, PLC restarted) is closed and tried again, 3 attempts every 30 seconds (config.xml ReconnectAttempts, ReconnectIntervalSeconds) until the PLC answers. The header shows the link state and when the next attempt comes.",
+                "Digital inputs can be forced like the outputs (IO İzleme, Dijital Girişler tab): Zorla 1 / Zorla 0 / Bırak and Tümünü Bırak, confirmed, engineer login; the program uses the forced value instead of the field, and every forced input is a warning in the alarm list.",
+                "Needs PLC program 1.4.3.",
+            }),
+
             new ChangeLogEntry("1.9.0", "2026-11-21", new[]
             {
                 "IO-Link ports as in IO list V1.9: every instrument is on the zone's analog hub. Zones 2 and 3 (BNI00KM): pressure transmitters Pt1-Pt2 on ports 0-1, vacuummeters Vakum1-Vakum2 on 2-3, flowmeters FM1-FM4 on 4-7. Zone 1 (BNI0007): Pt1 on port 0, Vakum1 on 1, FM1-FM2 on 2-3. The BNI00AJ carries torque, speed, sound, water and ambient temperature (ports 0, 1, 2, 4, 5) in every zone. 20 instrument positions.",

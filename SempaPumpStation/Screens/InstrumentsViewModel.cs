@@ -20,11 +20,14 @@ namespace SempaPumpStation.Screens
         public IPlcTag PhDeviceTag { get; set; }   // StationPh.Instruments.<pos>.Device.Value (shown)
         public ICommand LoadCommand { get; set; }
 
-        private string _device, _range, _pv, _loadHint;
+        private string _device, _range, _pv, _raw, _filtered, _loadHint;
         private bool _enabled, _rejected, _canLoad;
         public string Device { get => _device; set => Set(ref _device, value); }
         public string Range { get => _range; set => Set(ref _range, value); }
         public string Pv { get => _pv; set => Set(ref _pv, value); }
+        /// <summary>The channel's raw value from the hardware and after the filter (FB_Io_AnalogInput FilteredRaw).</summary>
+        public string Raw { get => _raw; set => Set(ref _raw, value); }
+        public string Filtered { get => _filtered; set => Set(ref _filtered, value); }
         /// <summary>The device can be changed (its zones are stopped).</summary>
         public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
         /// <summary>Yükle: whenever a device is mounted; while the zone runs it takes over the filter settings only.</summary>
@@ -152,6 +155,8 @@ namespace SempaPumpStation.Screens
                 r.Device = device > 0 ? (string.IsNullOrEmpty(desc) ? "(tanımsız)" : desc) : "Takılı değil";
                 r.Range = Ctx.GetDouble(ai + "MinPv.Value").ToString("0.##", CultureInfo.InvariantCulture) + " … "
                         + Ctx.GetDouble(ai + "MaxPv.Value").ToString("0.##", CultureInfo.InvariantCulture) + " " + unit;
+                r.Raw = Ctx.GetInt(ai + "RawValue").ToString(CultureInfo.InvariantCulture);
+                r.Filtered = Ctx.GetDouble(ai + "FilteredRaw").ToString("0", CultureInfo.InvariantCulture);
                 r.Pv = Ctx.GetBool(ai + "WireBreak") ? "Tel kopuk"
                      : Ctx.GetDouble(ai + "Pv").ToString(r.Info.Category == Station.Flowmeter ? "0.0" : "0.000", CultureInfo.InvariantCulture) + " " + unit;
                 r.Enabled = Ctx.GetBool(ph + "Device.Enabled");

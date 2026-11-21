@@ -101,6 +101,14 @@ namespace SempaPumpStation.Screens
         public string EfficiencyText { get => _efficiencyText; private set => Set(ref _efficiencyText, value); }
         public string VoltageText { get => _voltageText; private set => Set(ref _voltageText, value); }
         public string CurrentText { get => _currentText; private set => Set(ref _currentText, value); }
+        private string _dischargeHeadText = "—", _suctionHeadText = "—";
+        /// <summary>Hb and He, the discharge and suction heads in m (as the report).</summary>
+        public string DischargeHeadText { get => _dischargeHeadText; private set => Set(ref _dischargeHeadText, value); }
+        public string SuctionHeadText { get => _suctionHeadText; private set => Set(ref _suctionHeadText, value); }
+
+        private string _electricalPowerText = "—";
+        /// <summary>Nş, the electrical input from the meter (√3·U·I·cosφ).</summary>
+        public string ElectricalPowerText { get => _electricalPowerText; private set => Set(ref _electricalPowerText, value); }
 
         private string _flowUnit = "m³/h";
         public string FlowUnit { get => _flowUnit; private set => Set(ref _flowUnit, value); }
@@ -184,6 +192,9 @@ namespace SempaPumpStation.Screens
             var reading = PumpCalc.Live(Ctx, _zone);
             Head = reading.Head;
             PowerText = reading.PumpPower?.ToString("0.00") ?? "—";
+            ElectricalPowerText = reading.ElectricalPower?.ToString("0.00") ?? "—";
+            DischargeHeadText = reading.DischargeHead.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);   // as Hm and the pressures
+            SuctionHeadText = reading.SuctionHead.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
             EfficiencyText = reading.Efficiency?.ToString("0.0") ?? "—";
             string meter = reading.Source > 0 ? Station.Meter(reading.Source) : null;
             VoltageText = meter != null ? Ctx.GetDouble(meter + "General.Voltage").ToString("0") : "—";

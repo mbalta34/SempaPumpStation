@@ -92,6 +92,8 @@ namespace SempaPumpStation
             catch (Exception ex) { sb.AppendLine("FAIL io-link : " + ex); }
             try { RunOutputForceScenario(sb, vm); }
             catch (Exception ex) { sb.AppendLine("FAIL output-force : " + ex); }
+            try { RunReconnectPolicyScenario(sb); }
+            catch (Exception ex) { sb.AppendLine("FAIL reconnect : " + ex); }
             try { RunEditScenario(sb); }
             catch (Exception ex) { sb.AppendLine("FAIL edit : " + ex); }
             try { RunSecurityScenario(sb); }   // ends logged in as admin, so the captures show every screen unlocked
@@ -283,9 +285,29 @@ namespace SempaPumpStation
             Steps(15);
             Check("take-sample button lit for a second after the press", sampleLampOn && sampleLampStillOn && !Lamp(1, "LampTakeSample"));
             var live = PumpCalc.Live(c, 1);
-            Check("Pp from source 4's meter (" + (live.PumpPower?.ToString("0.00") ?? "—") + " kW, eff " + (live.Efficiency?.ToString("0.0") ?? "—") + " %)",
+            Check("Pp from source 4's meter (Nş " + (live.ElectricalPower?.ToString("0.00") ?? "—") + " kW, Pp " + (live.PumpPower?.ToString("0.00") ?? "—")
+                  + " kW, eff " + (live.Efficiency?.ToString("0.0") ?? "—") + " %)",
                   c.GetBool(Station.Meter(4) + "CommOk") && live.Source == 4 && live.PumpPower > 0
-                  && live.Efficiency > 10 && live.Efficiency < 90);
+                  && live.Efficiency > 10 && live.Efficiency < 95);
+            // The live figures follow the Excel report's formulas (row 32: H velocity loss, I Hm, M Nş, N Np, O efficiency)
+            {
+                var line = PumpCalc.LiveLine(c);
+                string m4 = Station.Meter(4) + "General.";
+                double u = c.GetDouble(m4 + "Voltage"), i = c.GetDouble(m4 + "Current"), cos = c.GetDouble(m4 + "PowerFactor");
+                double q = c.GetDouble(Ph(1) + "Flow"), pd = c.GetDouble(Ph(1) + "DischargePressure"), ps = c.GetDouble(Ph(1) + "SuctionPressure");
+                double vel = 16 / (3.6 * 3.6 * 2 * 9.81) * (Math.Pow(q * 1000 / (3.141 * 150 * 150), 2) - Math.Pow(q * 1000 / (3.141 * 200 * 200), 2));
+                double hm = (pd - ps) * 10.2 + vel + 0.6;
+                double ns = 1.732 * cos * u * i / 1000, load = ns / 45.0 * 100;
+                double np = ns * (load <= 25 ? 88.5 : load <= 50 ? 92.1 : load <= 75 ? 93.4 : 93.0) / 100;
+                double eta = q / 3.6 * hm / 102 / np * 100;
+                Check(string.Format("live Hm, Nş, Pp and efficiency as the report computes them (Hm {0:0.00} m incl. {1:0.000} m velocity loss, eff {2:0.0} %)", live.Head, live.VelocityHead, live.Efficiency),
+                      line.SuctionDn == 200 && line.DischargeDn == 150 && vel > 0
+                      && Math.Abs(live.Head - hm) < 0.05 && Math.Abs(live.VelocityHead - vel) < 0.01
+                      && Math.Abs(live.DischargeHead - pd * 10.2) < 0.01 && Math.Abs(live.SuctionHead + ps * 10.2) < 0.01
+                      && Math.Abs(live.DischargeHead + live.SuctionHead + live.VelocityHead + 0.6 - live.Head) < 0.001
+                      && Math.Abs(live.ElectricalPower.Value - ns) < 0.05 && Math.Abs(live.PumpPower.Value - np) < 0.05
+                      && Math.Abs(live.Efficiency.Value - eta) < 0.5);
+            }
             Check("zone voltage and current come from the meter",
                   c.GetDouble(Station.Sample(1, 6) + "Voltage") > 390 && c.GetDouble(Station.Sample(1, 6) + "Current") > 0);
             Check("unused meters read no load", c.GetDouble(Station.Meter(8) + "General.ActivePower") == 0 && c.GetBool(Station.Meter(8) + "CommOk"));
@@ -427,13 +449,16 @@ namespace SempaPumpStation
             Steps(40);
             Check("zone 1 starts again", c.GetBool(Ph(1) + "PumpRunning"));
 
-            // The closed 560 kW switch of zone 3 is opened by hand (or trips)
+            // The closed 560 kW switch of zone 3 is opened by hand (or trips). Counted in exact scans: the HMI's own scan
+            // timer is paused, so no extra scan slips in between the steps
+            c.ScanTimerEnabled = false;
             c.Plc.Field.HoldByHand(3, 7, false);
             Steps(2);
             bool notYet = c.GetInt(Ph(3) + "ManipulatedDevice") == 0;
             Steps(3);
             Check("a closed switch opened by hand stops every motor once it lasts 200 ms",
                   notYet && c.GetInt(Ph(3) + "ManipulatedDevice") == 7 && !c.GetBool(Station.SimDrive(4) + "Running"));
+            c.ScanTimerEnabled = true;
             c.Plc.Field.HoldByHand(3, 7, null);
             Steps(40);   // the switch stays open: nothing closes before the reset
             c.Click(Hp(3) + "ResetFault");
@@ -569,6 +594,10 @@ namespace SempaPumpStation
                 row.LoadCommand.Execute(null);
                 Steps(3);
                 Check("restored the filter type", c.GetInt(ai + "FilterType.Value") == filterType);
+                string aiPh = Station.AiPh("Zone1_Pt1");
+                Check("positions show raw and filtered raw (" + row.Raw + " / " + row.Filtered + ")",
+                      row.Raw == c.GetInt(aiPh + "RawValue").ToString(System.Globalization.CultureInfo.InvariantCulture)
+                      && row.Filtered == c.GetDouble(aiPh + "FilteredRaw").ToString("0", System.Globalization.CultureInfo.InvariantCulture));
             }
 
             // Suction vacuummeter (IO list V1.9): zone 2 measures with the one selected, also while it runs; zone 1 has one
@@ -655,9 +684,31 @@ namespace SempaPumpStation
             var io = (Screens.IoViewModel)System.Linq.Enumerable.First(vm.DiagNav, e => e.Key == "Io").Screen;
             io.ShowTab(Screens.IoViewModel.DigitalInputsTab);
             Steps(2);
-            var inputs = System.Linq.Enumerable.ToList(System.Linq.Enumerable.SelectMany(io.InputGroups, g => g.Rows));
+            var inputs = System.Linq.Enumerable.ToList(System.Linq.Enumerable.SelectMany(io.Inputs.Groups, g => g.Rows));
             Check("DI watch shows the field (zone 3 560 kW switch closed, not open)",
                   inputs.Count == 85 && inputs.Find(r => r.Name == "Zone3_Q560Ss_Closed").Pv && !inputs.Find(r => r.Name == "Zone3_Q560Ss_Open").Pv);
+
+            // Forcing an input: the program takes the forced value instead of the field. Zone 3's E-stop forced to 0
+            // (pressed) opens its closed 560 kW switch; released and reset, the switch closes again
+            var estop = inputs.Find(r => r.Name == "Zone3_EStopOk");
+            string inputAsked = null;
+            io.Inputs.Confirm = q => { inputAsked = q; return true; };
+            estop.ForceOffCommand.Execute(null);
+            Steps(30);
+            var alarmWait = DateTime.Now.AddMilliseconds(1300);   // the alarm monitor scans once a second
+            while (DateTime.Now < alarmWait) { DoEvents(); Thread.Sleep(50); }
+            Check("an input forced to 0 is used by the program and raises a warning (zone 3 E-stop: switch opened)",
+                  inputAsked != null && inputAsked.Contains("girişi") && estop.Forcing && !estop.Pv
+                  && c.GetBool(Station.ZonePh(3) + "EStop") && c.Plc.Field.DeviceOpen(3, 7) && io.Inputs.ForcedCount == 1
+                  && c.Plc.Field.EStopOk(3)
+                  && System.Linq.Enumerable.Any(vm.Alarms.Active, a => a.Message.Contains("Giriş zorlanıyor")));
+            io.Inputs.ReleaseAllCommand.Execute(null);
+            Steps(5);
+            c.Click(Station.ZoneHp(3) + "ResetFault");
+            Steps(60);
+            Check("released and reset: the input follows the field again, zone 3's switch closes",
+                  !estop.Forcing && estop.Pv && io.Inputs.ForcedCount == 0 && !c.GetBool(Station.ZonePh(3) + "EStop")
+                  && c.GetInt(Station.ZonePh(3) + "PowerState") == Station.StateConnected);
             io.ShowTab(Screens.IoViewModel.AnalogInputsTab);
             Steps(2);
             var pt2 = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(io.AnalogGroups, g => g.Rows), r => r.Name == "Zone1_Pt1");
@@ -675,9 +726,32 @@ namespace SempaPumpStation
         }
 
         // ---------------------------------------------------------------- login system
+        // ---------------------------------------------------------------- PLC reconnect timing
+        // A lost link is tried again in rounds: 3 attempts (at 0, 5 and 10 s), a new round every 30 s, until it connects
+        private void RunReconnectPolicyScenario(System.Text.StringBuilder sb)
+        {
+            void Check(string what, bool ok) => sb.AppendLine((ok ? "PASS " : "FAIL ") + what);
+            var p = new ReconnectPolicy(3, 30);
+            var t0 = new DateTime(2026, 1, 1, 12, 0, 0);
+            DateTime At(double s) => t0.AddSeconds(s);
+            var attempts = new List<double>();
+            for (double s = 0; s <= 75; s += 0.5)
+                if (p.Due(At(s)))
+                {
+                    p.Starting(At(s));
+                    attempts.Add(s);
+                    p.Failed(At(s));
+                }
+            Check("reconnect: 3 attempts every 30 s (" + string.Join(", ", attempts) + " s)",
+                  attempts.SequenceEqual(new double[] { 0, 5, 10, 30, 35, 40, 60, 65, 70 }));
+            bool waiting = p.WaitingForNextRound && p.Attempt == 3;
+            p.Reset();
+            Check("reconnect: after a successful connect the next loss is tried at once", waiting && p.Due(At(71)) && p.Attempt == 0);
+        }
+
         // ---------------------------------------------------------------- editing a value
         // A click on a parameter box or an editable table cell selects the whole value, so typing replaces it
-        public sealed class EditProbeRow { public double Value { get; set; } = 27648; public string Name { get; set; } = "x"; }
+        public sealed class EditProbeRow { public double Value { get; set; } = 27648; public string Name { get; set; } = "x"; public int Filter { get; set; } }
 
         private void RunEditScenario(System.Text.StringBuilder sb)
         {
@@ -690,6 +764,11 @@ namespace SempaPumpStation
             var grid = new System.Windows.Controls.DataGrid { Style = (Style)FindResource("Dg"), Height = 120, Width = 300 };
             grid.Columns.Add(new System.Windows.Controls.DataGridTextColumn { Header = "Ad", Binding = new System.Windows.Data.Binding("Name"), IsReadOnly = true });
             grid.Columns.Add(new System.Windows.Controls.DataGridTextColumn { Header = "Değer", Binding = new System.Windows.Data.Binding("Value") });
+            grid.Columns.Add(new System.Windows.Controls.DataGridComboBoxColumn
+            {
+                Header = "Filtre", ItemsSource = AnalogFilter.Items, SelectedValueBinding = new System.Windows.Data.Binding("Filter"),
+                SelectedValuePath = "Value", DisplayMemberPath = "Display",
+            });
             grid.ItemsSource = new System.Collections.ObjectModel.ObservableCollection<EditProbeRow> { new EditProbeRow() };   // an array cannot be edited
             var panel = new System.Windows.Controls.StackPanel();
             panel.Children.Add(new System.Windows.Controls.TextBox());   // takes the focus first
@@ -709,10 +788,24 @@ namespace SempaPumpStation
                 var editor = grid.Columns[1].GetCellContent(row) as System.Windows.Controls.TextBox;
                 Check("one click on a table cell edits it with the value selected (\"" + editor?.SelectedText + "\")",
                       cell.IsEditing && editor != null && editor.SelectedText == "27648");
-                grid.CancelEdit();
+                if (editor != null) editor.Text = "27000";
+                grid.CommitEdit(System.Windows.Controls.DataGridEditingUnit.Cell, true);   // as when the next cell of the row is clicked
+                DoEvents();
+                Check("a value is written when its cell is left (" + ((EditProbeRow)row.Item).Value + ")", ((EditProbeRow)row.Item).Value == 27000);
                 var readOnlyCell = (System.Windows.Controls.DataGridCell)grid.Columns[0].GetCellContent(row).Parent;
                 readOnlyCell.RaiseEvent(Click(readOnlyCell)); DoEvents();
                 Check("a read-only cell does not start editing", !readOnlyCell.IsEditing);
+
+                // The filter type is a choice: one click opens the list, the pick is written when it closes
+                var probe = (EditProbeRow)row.Item;
+                var filterCell = (System.Windows.Controls.DataGridCell)grid.Columns[2].GetCellContent(row).Parent;
+                filterCell.RaiseEvent(Click(filterCell)); DoEvents();
+                var combo = grid.Columns[2].GetCellContent(row) as System.Windows.Controls.ComboBox;
+                bool opened = combo != null && combo.IsDropDownOpen;
+                if (combo != null) { combo.SelectedIndex = 2; combo.IsDropDownOpen = false; }
+                DoEvents();
+                Check("the filter type is a combo box that opens on one click and writes the choice (" + probe.Filter + ")",
+                      opened && probe.Filter == AnalogFilter.EmaOutlier && !filterCell.IsEditing);
             }
             finally { window.Close(); }
         }

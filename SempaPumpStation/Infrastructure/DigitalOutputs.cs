@@ -4,7 +4,7 @@ using System.Linq;
 namespace SempaPumpStation.Infrastructure
 {
     /// <summary>One digital output of the "Io".DigitalOutputs collection.</summary>
-    public sealed class DigitalOutputInfo
+    public sealed class DigitalOutputInfo : IForceableChannel
     {
         /// <summary>Channel name in the PLC, e.g. "Zone1_K37Vfd_Close".</summary>
         public string Name;
@@ -14,6 +14,10 @@ namespace SempaPumpStation.Infrastructure
 
         public string Hp => "MaintenanceHp.Io.DigitalOutputs." + Name + ".";
         public string Ph => "MaintenancePh.Io.DigitalOutputs." + Name + ".";
+
+        string IForceableChannel.Name => Name;
+        int IForceableChannel.Zone => Zone;
+        string IForceableChannel.Label => Label;
     }
 
     /// <summary>

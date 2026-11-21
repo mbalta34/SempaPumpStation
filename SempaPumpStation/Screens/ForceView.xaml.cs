@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace SempaPumpStation.Screens
 {
-    public partial class OutputForceView : UserControl
+    public partial class ForceView : UserControl
     {
-        public OutputForceView()
+        public ForceView()
         {
             InitializeComponent();
         }

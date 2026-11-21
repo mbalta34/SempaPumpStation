@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:SempaPumpStation.Controls"
+             xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
              xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
     <UserControl.Resources>
         <!-- Larger headers for the full-width tables (the Dg style's own headers are 11 px) -->
@@ -67,6 +68,8 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="160"/>
+                            <DataGridTextColumn Header="Ham" Binding="{Binding Raw}" Width="80"/>
+                            <DataGridTextColumn Header="Filtreli ham" Binding="{Binding Filtered}" Width="110"/>
                             <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" Width="130"/>
                             <DataGridTemplateColumn Header="" Width="96">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -102,7 +105,7 @@
                         </ItemsControl>
                         <TextBlock Text="{Binding LibraryTitle}" Style="{StaticResource T.Section}" Margin="0,4,0,4"/>
                         <TextBlock Style="{StaticResource T.Label}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
-                                   Text="Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer. Takılı bir cihazın değişikliği, pozisyondaki Yükle ile analog girişe geçer."/>
+                                   Text="Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Takılı bir cihazın değişikliği, pozisyondaki Yükle ile analog girişe geçer."/>
                     </StackPanel>
                     <!-- Fixed column widths; on a narrow screen the table scrolls sideways (No and Tanım stay) -->
                     <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2" RowHeight="36" FontSize="14.5"
@@ -118,7 +121,8 @@
                             <DataGridTextColumn Header="Max Ham" Binding="{Binding MaxRaw}" Width="96"/>
                             <DataGridTextColumn Header="Min" Binding="{Binding MinPv}" Width="84"/>
                             <DataGridTextColumn Header="Max" Binding="{Binding MaxPv}" Width="84"/>
-                            <DataGridTextColumn Header="Filtre" Binding="{Binding FilterType}" Width="72"/>
+                            <DataGridComboBoxColumn Header="Filtre" Width="190" ItemsSource="{x:Static inf:AnalogFilter.Items}"
+                                                    SelectedValueBinding="{Binding FilterType}" SelectedValuePath="Value" DisplayMemberPath="Display"/>
                             <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha}" Width="84"/>
                             <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="124"/>
                             <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="96"/>

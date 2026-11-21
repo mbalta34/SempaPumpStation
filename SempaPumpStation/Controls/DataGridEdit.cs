@@ -9,7 +9,7 @@ namespace SempaPumpStation.Controls
 {
     /// <summary>
     /// Editable DataGrid cells for touch and mouse: one click on an editable cell starts editing with the whole value
-    /// selected, so typing replaces it (as <see cref="TagTextBox"/> and Terakki's EnterKeyUpdateTextBox do). Read-only
+    /// selected, so typing replaces it; a combo box column opens its list (as <see cref="TagTextBox"/> and Terakki's EnterKeyUpdateTextBox do). Read-only
     /// cells and columns behave as before. Set on the "Dg" style, so every editable table has it.
     /// </summary>
     public static class DataGridEdit
@@ -26,11 +26,22 @@ namespace SempaPumpStation.Controls
             if (!(d is DataGrid grid)) return;
             grid.PreviewMouseLeftButtonDown -= OnMouseDown;
             grid.PreparingCellForEdit -= OnPreparingCellForEdit;
+            grid.CellEditEnding -= OnCellEditEnding;
             if ((bool)e.NewValue)
             {
                 grid.PreviewMouseLeftButtonDown += OnMouseDown;
                 grid.PreparingCellForEdit += OnPreparingCellForEdit;
+                grid.CellEditEnding += OnCellEditEnding;
             }
+        }
+
+        // The table writes a row's values only when the row is committed (Enter, or leaving the row). Commit it as soon as a
+        // cell is, so every value is written the moment its cell is left
+        private static void OnCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            var grid = (DataGrid)sender;
+            grid.Dispatcher.BeginInvoke(DispatcherPriority.Input, (Action)(() => grid.CommitEdit(DataGridEditingUnit.Row, true)));
         }
 
         // A click on an editable cell that is not being edited yet: select it and start editing right away
@@ -49,6 +60,31 @@ namespace SempaPumpStation.Controls
 
         private static void OnPreparingCellForEdit(object sender, DataGridPreparingCellForEditEventArgs e)
         {
+            var grid = (DataGrid)sender;
+            // A choice (combo box column): its list opens right away, and the choice is taken when it closes
+            if (e.EditingElement is ComboBox combo)
+            {
+                // Taken as soon as a new item is picked; closing the list without a pick just ends the edit
+                EventHandler closed = null;
+                SelectionChangedEventHandler picked = null;
+                void Done()
+                {
+                    combo.DropDownClosed -= closed;
+                    combo.SelectionChanged -= picked;
+                    // After the combo box has finished its own selection handling
+                    grid.CommitEdit(DataGridEditingUnit.Cell, true);   // OnCellEditEnding then commits the row, which writes the value
+                }
+                closed = (s, a) => Done();
+                picked = (s, a) => Done();
+                combo.DropDownClosed += closed;
+                combo.SelectionChanged += picked;
+                combo.Dispatcher.BeginInvoke(DispatcherPriority.Input, (Action)(() =>
+                {
+                    combo.Focus();
+                    combo.IsDropDownOpen = true;
+                }));
+                return;
+            }
             if (!(e.EditingElement is TextBox box)) return;
             // After the grid has finished moving focus into the box
             box.Dispatcher.BeginInvoke(DispatcherPriority.Input, (Action)(() =>

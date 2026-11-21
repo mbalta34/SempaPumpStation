@@ -121,7 +121,7 @@ namespace SempaPumpStation.Infrastructure
             {
                 // Before the link builds its tags: Click is pulsed, the PLC never clears it
                 st_Hmi_Hp_CommandButton.ClickPulseMs = ClickPulseMs;
-                Link = new StationPlcLink(config.IpAddress, config.Rack, config.Slot, config.Log);
+                Link = new StationPlcLink(config.IpAddress, config.Rack, config.Slot, config.Log, config.ReconnectAttempts, config.ReconnectIntervalSeconds);
                 foreach (var leaf in Link.Leaves()) Tags[leaf.Name] = leaf;
                 SetFromDevice("PLC_COMM_OK", false);
                 Link.Start();
@@ -136,6 +136,13 @@ namespace SempaPumpStation.Infrastructure
             _timer.Start();
         }
 
+        /// <summary>The HMI's own scan timer; the smoke test pauses it where a check counts scans exactly.</summary>
+        public bool ScanTimerEnabled
+        {
+            get => _timer != null && _timer.IsEnabled;
+            set { if (_timer != null) _timer.IsEnabled = value; }
+        }
+
         /// <summary>One PLC scan plus the HMI's own cyclic work. Public so the smoke test can fast-forward.</summary>
         public void Step()
         {
@@ -147,6 +154,7 @@ namespace SempaPumpStation.Infrastructure
                 Link.CheckInterface();
                 SetFromDevice("PLC_COMM_OK", Link.DataOk);
                 SetFromDevice("PLC_INTERFACE_OK", Link.Problem == null);
+                SetFromDevice("PLC_LINK_TEXT", Link.StatusText);
             }
             UpdatePlcVersion();
             SetFromDevice("TARIH_SAAT", DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"));

@@ -22,6 +22,11 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly Dictionary<string, int> _ioLink = new Dictionary<string, int>();
         private readonly Dictionary<string, DigitalOutputChannel> _outputs =
             DigitalOutputs.All.ToDictionary(o => o.Name, o => new DigitalOutputChannel(o));
+        // "Io".DigitalInputs: every input, and the value the program sees this scan (forced or from the field)
+        private readonly Dictionary<string, DigitalInputChannel> _inputs =
+            DigitalInputs.All.ToDictionary(i => i.Name, i => new DigitalInputChannel(i));
+        private readonly Dictionary<string, bool> _di = new Dictionary<string, bool>();
+        private bool Di(string channel) => _di[channel];
 
         public FieldSimulation Field => _field;
 
@@ -78,21 +83,24 @@ namespace SempaPumpStation.Infrastructure.Plc
             _t.W("StationPh.PlcVersion", AppVersion.ExpectedPlcVersion);
 
             // ================================================================ read IO
+            // FB_Io_DigitalInputs first: the program works with each input's pv, which may be forced
+            ReadDigitalInputs();
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
                 var p = _zoneInputs[z];
+                string zone = "Zone" + z + "_";
                 for (int s = 1; s <= Station.SourceCount; s++)
                 {
-                    p.DeviceOpen[s] = _field.DeviceOpen(z, s);
-                    p.DeviceClosed[s] = _field.DeviceClosed(z, s);
+                    p.DeviceOpen[s] = Di(zone + Station.Source(s).Device + "_Open");
+                    p.DeviceClosed[s] = Di(zone + Station.Source(s).Device + "_Closed");
                 }
-                p.SpringCharged[7] = _field.SpringCharged(z, 7);
-                p.SpringCharged[8] = _field.SpringCharged(z, 8);
-                p.PendantStart = _field.PendantStart(z);
-                p.PendantStop = _field.PendantStop(z);
-                p.PendantTakeSample = _field.PendantTakeSample(z);
-                p.EStopOk = _field.EStopOk(z);
-                p.PanelEStopOk = _field.PanelEStopOk(z);
+                p.SpringCharged[7] = Di(zone + Station.Source(7).Device + "_SpringCharged");
+                p.SpringCharged[8] = Di(zone + Station.Source(8).Device + "_SpringCharged");
+                p.PendantStart = Di(zone + "PendantStart");
+                p.PendantStop = Di(zone + "PendantStop");
+                p.PendantTakeSample = Di(zone + "PendantTakeSample");
+                p.EStopOk = Di(zone + "EStopOk");
+                p.PanelEStopOk = Di(zone + "PanelEStopOk");
 
                 var fm = Station.FlowmeterPositions(z);
                 for (int f = 1; f <= 5; f++) p.Flowmeters[f] = f <= fm.Length ? _ai[fm[f - 1]].Pv : 0.0;
@@ -108,15 +116,13 @@ namespace SempaPumpStation.Infrastructure.Plc
                 p.Speed = _ai["Zone" + z + "_Speed"].Pv;
                 p.Torque = _ai["Zone" + z + "_Torque"].Pv;
                 int selected = _zoneOutputs[z].SelectedSource;
-                p.DriveRunning = selected > 0 && _field.DriveRunning(selected);
-                p.DriveFault = selected > 0 && _field.DriveFault(selected);
+                p.DriveRunning = selected > 0 && Di("Drive_" + Station.Source(selected).Drive + "_Running");
+                p.DriveFault = selected > 0 && Di("Drive_" + Station.Source(selected).Drive + "_Fault");
                 // As FB_Station_Main: the meter of the selected source, 0 while none is selected
                 p.Voltage = selected > 0 ? _t.R(Station.Meter(selected) + "General.Voltage") : 0.0;
                 p.Current = selected > 0 ? _t.R(Station.Meter(selected) + "General.Current") : 0.0;
                 p.PowerFactor = selected > 0 ? _t.R(Station.Meter(selected) + "General.PowerFactor") : 0.0;
             }
-
-            WriteDigitalInputs();
 
             // ================================================================ instruments
             // A zone counts as running from its run request until its drive has stopped
@@ -221,7 +227,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private bool Output(string channel, bool cmd) => _outputs[channel].Run(_t, cmd);
 
         // "Io".DigitalInputs as the field drives them (not forced in the simulation), for the IO watch table
-        private void WriteDigitalInputs()
+        private void ReadDigitalInputs()
         {
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
@@ -245,12 +251,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             }
         }
 
-        private void Input(string channel, bool value)
-        {
-            string ph = "MaintenancePh.Io.DigitalInputs." + channel + ".";
-            _t.W(ph + "RawValue", value);
-            _t.W(ph + "Pv", value);
-        }
+        private void Input(string channel, bool value) => _di[channel] = _inputs[channel].Run(_t, value);
 
         // FB_Communication_Pm5550Decoder's result: every meter answers; phases share the load evenly.
         // Energies count up in Wh, as the PM5550 reports them.

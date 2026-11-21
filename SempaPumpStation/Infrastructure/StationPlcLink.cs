@@ -23,7 +23,10 @@ namespace SempaPumpStation.Infrastructure
     /// </summary>
     public sealed class StationPlcLink
     {
-        private const int ReconnectDelayMs = 5000;
+        /// <summary>How often the link supervisor looks at the connection.</summary>
+        private const int SuperviseMs = 1000;
+        /// <summary>A block read failing this many times in a row (since the last connect) means the link is lost.</summary>
+        private const int LostAfterFailures = 3;
 
         private readonly Serilog.ILogger _log;
         private readonly SiemensS7IsoTcpConnection _connection;
@@ -32,6 +35,12 @@ namespace SempaPumpStation.Infrastructure
         // Sharp7 results meaning the PLC's data blocks do not have the layout of this HMI's interface
         private const int ErrAddressOutOfRange = 0x00900000, ErrItemNotAvailable = 0x00C00000;
         private CancellationTokenSource _cts;
+        private readonly ReconnectPolicy _reconnect;
+        // Each plan's failure count when the link last connected: failures from before do not count against the new link
+        private readonly Dictionary<S7DbReadPlan, int> _failuresAtConnect = new Dictionary<S7DbReadPlan, int>();
+
+        /// <summary>The link's state for the header: connected, connecting (attempt n/3), or when it tries again.</summary>
+        public string StatusText { get; private set; } = "Bağlanıyor";
 
         public StationHpDb Hp { get; }
         public StationPhDb Ph { get; }
@@ -57,10 +66,13 @@ namespace SempaPumpStation.Infrastructure
         /// <summary>Connected, and every block is being read.</summary>
         public bool DataOk => IsConnected && Problem == null && _plans.All(p => p.ConsecutiveFailures == 0);
 
-        public StationPlcLink(string ipAddress, int rack, int slot, Serilog.ILogger log)
+        /// <param name="reconnectAttempts">Attempts per reconnect round (config.xml ReconnectAttempts).</param>
+        /// <param name="reconnectIntervalSeconds">A new round this often while the PLC is unreachable (ReconnectIntervalSeconds).</param>
+        public StationPlcLink(string ipAddress, int rack, int slot, Serilog.ILogger log, int reconnectAttempts = 3, int reconnectIntervalSeconds = 30)
         {
             _log = log;
             IpAddress = ipAddress;
+            _reconnect = new ReconnectPolicy(reconnectAttempts, reconnectIntervalSeconds);
             _connection = new SiemensS7IsoTcpConnection(new SiemensS7IsoTcpConfig { IpAddress = ipAddress, Rack = rack, Slot = slot }, log);
 
             const WriteDispatchMode w = WriteDispatchMode.Immediate;
@@ -112,9 +124,9 @@ namespace SempaPumpStation.Infrastructure
             _connection.RegisterTagToPlan(id, tag);
         }
 
-        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog and digital inputs, the digital outputs (state and forcing), the analog outputs, the IO-Link hubs, the test counter and the power meters.</summary>
+        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog and digital inputs, the digital inputs and outputs (state and forcing), the analog outputs, the IO-Link hubs, the test counter and the power meters.</summary>
         public IEnumerable<SiemensS7PlcTag> Leaves() =>
-            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, Maintenance.Io.AnalogOutputs, MaintenanceHp.Io.DigitalOutputs, IoLink, Counters, Powermeters }.SelectMany(Flatten);
+            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, Maintenance.Io.AnalogOutputs, MaintenanceHp.Io.DigitalInputs, MaintenanceHp.Io.DigitalOutputs, IoLink, Counters, Powermeters }.SelectMany(Flatten);
 
         private static IEnumerable<SiemensS7PlcTag> Flatten(SiemensS7PlcTag tag)
         {
@@ -153,7 +165,11 @@ namespace SempaPumpStation.Infrastructure
             Stop();
         }
 
-        /// <summary>Connects, and reconnects every few seconds while the PLC is unreachable.</summary>
+        /// <summary>
+        /// Connects, and supervises the link: a connection whose block reads keep failing (cable
+        /// pulled, PLC restarted, network down), is closed and connected again, in rounds of attempts (default 3 every
+        /// 30 s) for as long as the PLC stays unreachable. A program mismatch (<see cref="CheckInterface"/>) stops it for good.
+        /// </summary>
         public void Start()
         {
             _cts = new CancellationTokenSource();
@@ -162,19 +178,76 @@ namespace SempaPumpStation.Infrastructure
             {
                 while (!token.IsCancellationRequested)
                 {
-                    if (_connection.State == ConnectionState.Disconnected)
-                    {
-                        try { await _connection.Connect(); }
-                        catch (Exception ex) { _log.Warning("PLC {Ip} not reachable: {Msg}", IpAddress, ex.Message); }
-                    }
-                    try { await Task.Delay(ReconnectDelayMs, token); } catch (OperationCanceledException) { }
+                    try { await Supervise(token); }
+                    catch (Exception ex) { _log.Error(ex, "PLC link supervisor"); }
+                    try { await Task.Delay(SuperviseMs, token); } catch (OperationCanceledException) { }
                 }
             });
+        }
+
+        private async Task Supervise(CancellationToken token)
+        {
+            if (_connection.State == ConnectionState.Connected)
+            {
+                string reason = LostReason();
+                if (reason == null)
+                {
+                    StatusText = "Bağlı";
+                    return;
+                }
+                _log.Warning("PLC {Ip} connection lost ({Reason}); reconnecting: {Attempts} attempts every {Interval} s",
+                             IpAddress, reason, _reconnect.AttemptsPerRound, _reconnect.RoundInterval.TotalSeconds);
+                await _connection.Disconnect();
+                _reconnect.Reset();   // the first round starts at once
+            }
+            if (_connection.State != ConnectionState.Disconnected || token.IsCancellationRequested) return;
+
+            if (_reconnect.Due(DateTime.Now))
+            {
+                _reconnect.Starting(DateTime.Now);
+                StatusText = "Bağlanıyor (deneme " + _reconnect.Attempt + "/" + _reconnect.AttemptsPerRound + ")";
+                try
+                {
+                    await _connection.Connect();
+                    _log.Information("PLC {Ip} connected (attempt {N}/{M})", IpAddress, _reconnect.Attempt, _reconnect.AttemptsPerRound);
+                    foreach (var p in _plans) _failuresAtConnect[p] = p.ConsecutiveFailures;
+                    _reconnect.Reset();
+                    StatusText = "Bağlı";
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _reconnect.Failed(DateTime.Now);
+                    _log.Warning("PLC {Ip} not reachable (attempt {N}/{M}): {Msg}", IpAddress, _reconnect.Attempt, _reconnect.AttemptsPerRound, ex.Message);
+                }
+            }
+            int seconds = Math.Max(0, (int)Math.Ceiling((_reconnect.NextAttempt - DateTime.Now).TotalSeconds));
+            StatusText = (_reconnect.WaitingForNextRound
+                             ? "Bağlantı yok: " + _reconnect.AttemptsPerRound + " deneme başarısız"
+                             : "Bağlantı yok: deneme " + _reconnect.Attempt + "/" + _reconnect.AttemptsPerRound + " başarısız")
+                         + ", yeniden deneme " + seconds + " sn sonra";
+        }
+
+        /// <summary>Why a connected link counts as lost, or null while it works.</summary>
+        private string LostReason()
+        {
+            foreach (var p in _plans)
+            {
+                // A missing or short block is a program mismatch (CheckInterface), not a lost link
+                if (p.LastErrorCode == ErrAddressOutOfRange || p.LastErrorCode == ErrItemNotAvailable) continue;
+                int before;
+                _failuresAtConnect.TryGetValue(p, out before);
+                int sinceConnect = p.ConsecutiveFailures >= before ? p.ConsecutiveFailures - before : p.ConsecutiveFailures;
+                if (p.ConsecutiveFailures >= LostAfterFailures && sinceConnect >= LostAfterFailures)
+                    return "block " + p.Id + " failed " + p.ConsecutiveFailures + " reads in a row, last error " + p.LastErrorCode;
+            }
+            return null;
         }
 
         public void Stop()
         {
             _cts?.Cancel();
+            if (Problem != null) StatusText = "Bağlantı durduruldu: PLC programı uyumsuz";
             try { _connection.Disconnect().Wait(2000); } catch { }
         }
     }

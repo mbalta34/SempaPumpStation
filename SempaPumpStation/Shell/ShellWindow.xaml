@@ -40,7 +40,7 @@
         <DataTemplate DataType="{x:Type s:EventsViewModel}"><s:EventsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:TrendViewModel}"><s:TrendView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:IoViewModel}"><s:IoView/></DataTemplate>
-        <DataTemplate DataType="{x:Type s:OutputForceViewModel}"><s:OutputForceView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:ForceViewModel}"><s:ForceView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:UserLogViewModel}"><s:UserLogView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:UsersViewModel}"><s:UsersView/></DataTemplate>
 
@@ -104,6 +104,9 @@
                             <Ellipse Width="9" Height="9" Margin="0,0,7,0" VerticalAlignment="Center"
                                      Fill="{Binding Context.Tags[PLC_COMM_OK].TagValue, Converter={StaticResource CommBrush}}"/>
                             <TextBlock Text="{Binding Context.BackendText}" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            <!-- PLC link state: connected, reconnecting (attempt n/3), or when it tries again; empty in the simulation -->
+                            <TextBlock Text="{Binding Context.Tags[PLC_LINK_TEXT].TagValue}" FontSize="12" Margin="8,0,0,0"
+                                       Foreground="{StaticResource B.TextFaint}"/>
                         </StackPanel>
                     </Border>
                     <TextBlock Text="{Binding Context.Tags[TARIH_SAAT].TagValue}" Style="{StaticResource T.Value}"

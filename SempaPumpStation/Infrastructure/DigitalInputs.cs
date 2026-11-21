@@ -3,8 +3,19 @@ using System.Linq;
 
 namespace SempaPumpStation.Infrastructure
 {
+    /// <summary>A digital channel the maintenance HMI can force (FB_Io_DigitalInput / FB_Io_DigitalOutput: ForceOn,
+    /// ForceOff, StopForcing, ForcingActive, Pv).</summary>
+    public interface IForceableChannel
+    {
+        string Name { get; }
+        int Zone { get; }
+        string Label { get; }
+        string Hp { get; }
+        string Ph { get; }
+    }
+
     /// <summary>One digital input of the "Io".DigitalInputs collection.</summary>
-    public sealed class DigitalInputInfo
+    public sealed class DigitalInputInfo : IForceableChannel
     {
         /// <summary>Channel name in the PLC, e.g. "Zone1_K37Vfd_Closed".</summary>
         public string Name;
@@ -12,7 +23,12 @@ namespace SempaPumpStation.Infrastructure
         public int Zone;
         public string Label;
 
+        public string Hp => "MaintenanceHp.Io.DigitalInputs." + Name + ".";
         public string Ph => "MaintenancePh.Io.DigitalInputs." + Name + ".";
+
+        string IForceableChannel.Name => Name;
+        int IForceableChannel.Zone => Zone;
+        string IForceableChannel.Label => Label;
     }
 
     /// <summary>

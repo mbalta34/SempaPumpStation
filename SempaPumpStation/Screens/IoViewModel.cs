@@ -7,25 +7,6 @@ using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
-    /// <summary>One digital input in the watch table.</summary>
-    public sealed class InputRow : ViewModelBase
-    {
-        public DigitalInputInfo Info { get; set; }
-        public string Label => Info.Label;
-        public string Name => Info.Name;
-
-        private bool _pv, _forcing, _wireBreak;
-        public bool Pv { get => _pv; set => Set(ref _pv, value); }
-        public bool Forcing { get => _forcing; set => Set(ref _forcing, value); }
-        public bool WireBreak { get => _wireBreak; set => Set(ref _wireBreak, value); }
-    }
-
-    public sealed class InputGroup
-    {
-        public string Title { get; set; }
-        public ObservableCollection<InputRow> Rows { get; } = new ObservableCollection<InputRow>();
-    }
-
     /// <summary>One analog input in the watch table.</summary>
     public sealed class AnalogRow : ViewModelBase
     {
@@ -63,8 +44,8 @@ namespace SempaPumpStation.Screens
     }
 
     /// <summary>
-    /// IO watch and force (as in BluePrism's maintenance HMI): the digital and analog inputs and the analog outputs of
-    /// "Io" live, and the digital output force table.
+    /// IO watch and force (as in BluePrism's maintenance HMI): the digital input and output force tables, and the analog
+    /// inputs and outputs of "Io" live.
     /// </summary>
     public sealed class IoViewModel : ScreenBase
     {
@@ -74,10 +55,10 @@ namespace SempaPumpStation.Screens
         public override string Title => "IO İzleme ve Zorlama";
 
         public ObservableCollection<ChoiceItem> Tabs { get; } = new ObservableCollection<ChoiceItem>();
-        public ObservableCollection<InputGroup> InputGroups { get; } = new ObservableCollection<InputGroup>();
         public ObservableCollection<AnalogGroup> AnalogGroups { get; } = new ObservableCollection<AnalogGroup>();
         public ObservableCollection<AnalogOutputRow> AnalogOutputs { get; } = new ObservableCollection<AnalogOutputRow>();
-        public OutputForceViewModel Outputs { get; }
+        public ForceViewModel Inputs { get; }
+        public ForceViewModel Outputs { get; }
 
         private int _tab = -1;
         public int Tab => _tab;
@@ -88,18 +69,16 @@ namespace SempaPumpStation.Screens
 
         public IoViewModel(HmiContext ctx) : base(ctx)
         {
-            Outputs = new OutputForceViewModel(ctx);
+            Inputs = new ForceViewModel(ctx, inputs: true);
+            Outputs = new ForceViewModel(ctx, inputs: false);
 
-            string[] titles = { "Dijital Girişler (" + DigitalInputs.All.Length + ")", "Analog Girişler (" + AnalogInputList.All.Length + ")",
+            string[] titles = { "Dijital Girişler — Zorlama (" + DigitalInputs.All.Length + ")", "Analog Girişler (" + AnalogInputList.All.Length + ")",
                                 "Dijital Çıkışlar — Zorlama (" + DigitalOutputs.All.Length + ")", "Analog Çıkışlar (" + AnalogOutputList.All.Length + ")" };
             for (int i = 0; i < titles.Length; i++)
             {
                 int tab = i;
                 Tabs.Add(new ChoiceItem { Value = i, Title = titles[i], Command = new SyncCommand(() => ShowTab(tab)) });
             }
-
-            for (int z = 1; z <= Station.ZoneCount; z++) InputGroups.Add(Inputs("BÖLGE " + z, z));
-            InputGroups.Add(Inputs("SÜRÜCÜLER (MERKEZİ PANO)", 0));
 
             foreach (var title in AnalogInputList.Groups)
             {
@@ -111,13 +90,6 @@ namespace SempaPumpStation.Screens
 
             ShowTab(DigitalInputsTab);
             ctx.Scanned += (o, e) => Refresh();
-        }
-
-        private static InputGroup Inputs(string title, int zone)
-        {
-            var group = new InputGroup { Title = title };
-            foreach (var i in DigitalInputs.OfZone(zone)) group.Rows.Add(new InputRow { Info = i });
-            return group;
         }
 
         public void ShowTab(int tab)
@@ -132,17 +104,10 @@ namespace SempaPumpStation.Screens
             Refresh();
         }
 
-        // Only the tab on screen is refreshed (the output table keeps itself current)
+        // Only the tab on screen is refreshed (the force tables keep themselves current)
         private void Refresh()
         {
-            if (ShowDigitalInputs)
-                foreach (var row in InputGroups.SelectMany(g => g.Rows))
-                {
-                    row.Pv = Ctx.GetBool(row.Info.Ph + "Pv");
-                    row.Forcing = Ctx.GetBool(row.Info.Ph + "ForcingActive");
-                    row.WireBreak = Ctx.GetBool(row.Info.Ph + "WireBreak");
-                }
-            else if (ShowAnalogInputs)
+            if (ShowAnalogInputs)
                 foreach (var row in AnalogGroups.SelectMany(g => g.Rows)) RefreshAnalog(row);
             else if (ShowAnalogOutputs)
                 foreach (var row in AnalogOutputs)

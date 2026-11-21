@@ -1,14 +1,15 @@
 <UserControl x:Class="SempaPumpStation.Screens.AnalogSettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
+             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
+             xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure">
     <Grid Margin="20">
         <Border Style="{StaticResource Card}">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top">
                     <TextBlock Text="SABİT SENSÖRLERİN ÖLÇEK VE FİLTRE AYARLARI" Style="{StaticResource T.Section}"/>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
-                               Text="Tork, devir, ses, sıcaklık ve titreşim girişleri. Hücreye çift tıklayıp düzenleyin (mühendis girişi gerekir); değer PLC'ye gider ve hemen geçerli olur, pompa çalışırken de. Ham aralık S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer; maks. sıçrama ham değer cinsinden. Debimetre, basınç transmitteri ve vakummetrelerin ayarları Enstrümanlar ekranındaki kütüphaneden gelir."/>
+                               Text="Tork, devir, ses, sıcaklık ve titreşim girişleri. Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir); değer PLC'ye gider ve hemen geçerli olur, pompa çalışırken de. Ham aralık S7 analog kartı için tipik olarak 0…27648. Maks. sıçrama ham değer cinsinden. Debimetre, basınç transmitteri ve vakummetrelerin ayarları Enstrümanlar ekranındaki kütüphaneden gelir."/>
                 </StackPanel>
                 <!-- Fixed column widths: on a narrow screen the table scrolls sideways (Bölge and Sensör stay) -->
                 <DataGrid x:Name="Grid" Style="{StaticResource Dg}" ItemsSource="{Binding Rows}" FrozenColumnCount="2"
@@ -25,7 +26,8 @@
                         <DataGridTextColumn Header="Max Ham" Binding="{Binding MaxRaw}" Width="70"/>
                         <DataGridTextColumn Header="Min" Binding="{Binding MinPv}" Width="64"/>
                         <DataGridTextColumn Header="Max" Binding="{Binding MaxPv}" Width="64"/>
-                        <DataGridTextColumn Header="Filtre" Binding="{Binding FilterType}" Width="52"/>
+                        <DataGridComboBoxColumn Header="Filtre" Width="180" ItemsSource="{x:Static inf:AnalogFilter.Items}"
+                                                    SelectedValueBinding="{Binding FilterType}" SelectedValuePath="Value" DisplayMemberPath="Display"/>
                         <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha}" Width="60"/>
                         <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="90"/>
                         <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="70"/>

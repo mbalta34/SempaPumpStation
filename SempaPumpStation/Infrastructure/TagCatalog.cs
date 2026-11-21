@@ -35,7 +35,7 @@ namespace SempaPumpStation.Infrastructure
                 S(t, "StationPh.PlcVersion");
                 D(t, Station.NextTestNo);
                 foreach (var o in DigitalOutputs.All) AddDigitalOutput(t, o);
-                foreach (var i in DigitalInputs.All) { B(t, i.Ph + "Pv"); B(t, i.Ph + "RawValue"); B(t, i.Ph + "WireBreak"); B(t, i.Ph + "ForcingActive"); }
+                foreach (var i in DigitalInputs.All) { B(t, i.Ph + "Pv"); B(t, i.Ph + "RawValue"); B(t, i.Ph + "WireBreak"); AddForcing(t, i); }
                 foreach (var o in AnalogOutputList.All)
                 {
                     R(t, o.Ph + "Pv"); I(t, o.Ph + "RawValue"); B(t, o.Ph + "ForcingActive");
@@ -75,12 +75,19 @@ namespace SempaPumpStation.Infrastructure
 
         private static void AddDigitalOutput(List<TagDefinition> t, DigitalOutputInfo o)
         {
+            AddForcing(t, o);
+            B(t, o.Ph + "Pv");
+        }
+
+        // The force buttons of a digital input or output and its ForcingActive
+        private static void AddForcing(List<TagDefinition> t, IForceableChannel c)
+        {
             foreach (var n in new[] { "ForceOn", "ForceOff", "StopForcing" })
             {
-                B(t, o.Hp + n + ".Click");
-                B(t, o.Ph + n + ".Value"); B(t, o.Ph + n + ".Enabled");
+                B(t, c.Hp + n + ".Click");
+                B(t, c.Ph + n + ".Value"); B(t, c.Ph + n + ".Enabled");
             }
-            B(t, o.Ph + "ForcingActive"); B(t, o.Ph + "Pv");
+            B(t, c.Ph + "ForcingActive");
         }
 
         private static void AddPowermeter(List<TagDefinition> t, int source)
@@ -133,7 +140,7 @@ namespace SempaPumpStation.Infrastructure
 
         private static void AddHmiLocal(List<TagDefinition> t)
         {
-            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); B(t, "PLC_INTERFACE_OK"); B(t, "PLC_VERSION_OK"); S(t, "PLC_VERSION_TEXT");
+            S(t, "TARIH_SAAT"); B(t, "PLC_COMM_OK"); S(t, "PLC_LINK_TEXT"); B(t, "PLC_INTERFACE_OK"); B(t, "PLC_VERSION_OK"); S(t, "PLC_VERSION_TEXT");
             B(t, "DALGIC_PMP_SEL");
 
             // ---- Report values (WRT_* = master data selected from the recipes) ----

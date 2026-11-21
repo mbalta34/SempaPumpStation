@@ -127,7 +127,14 @@ namespace SempaPumpStation.Infrastructure
                     });
                 list.Add(new AlarmDef { Tag = ph + "SampleBufferFull", Message = name + "Numune hafızası dolu (50)", Severity = "WARN" });
             }
-            // A forced output bypasses the station program's interlocks: a warning for as long as it is forced
+            // A forced input or output bypasses the station program's interlocks: a warning for as long as it is forced
+            foreach (var i in DigitalInputs.All)
+                list.Add(new AlarmDef
+                {
+                    Tag = i.Ph + "ForcingActive",
+                    Message = (i.Zone > 0 ? "Bölge " + i.Zone : "Sürücü") + " — Giriş zorlanıyor: " + i.Label,
+                    Severity = "WARN",
+                });
             foreach (var o in DigitalOutputs.All)
                 list.Add(new AlarmDef
                 {
