@@ -260,9 +260,10 @@ namespace SempaPumpStation.Infrastructure.Plc
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
                 double pd = _suction[z] + _head[z] / 10.197;
-                for (int p = 1; p <= Station.TransmitterCount; p++)
+                for (int p = 1; p <= Station.TransmitterCount(z); p++)
                     Instrument(Station.TransmitterPosition(z, p), Station.PressureTransmitter, pd + Noise(0.004), mountedDevice);
-                Instrument(Station.VacuummeterPosition(z), Station.Vacuummeter, _suction[z] + Noise(0.002), mountedDevice);
+                for (int v = 1; v <= Station.VacuummeterCount(z); v++)
+                    Instrument(Station.VacuummeterPosition(z, v), Station.Vacuummeter, _suction[z] + Noise(0.002), mountedDevice);
 
                 double sp = ZoneSpeedFraction(z);
                 Sensor("Zone" + z + "_WaterTemperature", _waterTemp[z] + Noise(0.03), 0, 100);

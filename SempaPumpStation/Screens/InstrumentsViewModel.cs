@@ -20,12 +20,16 @@ namespace SempaPumpStation.Screens
         public IPlcTag PhDeviceTag { get; set; }   // StationPh.Instruments.<pos>.Device.Value (shown)
         public ICommand LoadCommand { get; set; }
 
-        private string _device, _range, _pv;
-        private bool _enabled, _rejected;
+        private string _device, _range, _pv, _loadHint;
+        private bool _enabled, _rejected, _canLoad;
         public string Device { get => _device; set => Set(ref _device, value); }
         public string Range { get => _range; set => Set(ref _range, value); }
         public string Pv { get => _pv; set => Set(ref _pv, value); }
+        /// <summary>The device can be changed (its zones are stopped).</summary>
         public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
+        /// <summary>Yükle: whenever a device is mounted; while the zone runs it takes over the filter settings only.</summary>
+        public bool CanLoad { get => _canLoad; set => Set(ref _canLoad, value); }
+        public string LoadHint { get => _loadHint; set => Set(ref _loadHint, value); }
         public bool Rejected { get => _rejected; set => Set(ref _rejected, value); }
     }
 
@@ -77,6 +81,21 @@ namespace SempaPumpStation.Screens
         public ObservableCollection<LibraryRow> Library { get; } = new ObservableCollection<LibraryRow>();
         public ObservableCollection<ChoiceItem> Categories { get; } = new ObservableCollection<ChoiceItem>();
 
+        // Two tabs: the positions (which device is mounted where) and the library (the devices' calibration data)
+        public const int PositionsTab = 0, LibraryTab = 1;
+        public ObservableCollection<ChoiceItem> Tabs { get; } = new ObservableCollection<ChoiceItem>();
+        private int _tab;
+        public bool ShowPositions => _tab == PositionsTab;
+        public bool ShowLibrary => _tab == LibraryTab;
+
+        public void ShowTab(int tab)
+        {
+            _tab = tab;
+            foreach (var t in Tabs) t.State = t.Value == tab ? "active" : "";
+            OnPropertyChanged(nameof(ShowPositions));
+            OnPropertyChanged(nameof(ShowLibrary));
+        }
+
         private int _category = Station.Flowmeter;
         public string LibraryTitle => Station.CategoryName(_category).ToUpper(new CultureInfo("tr-TR")) + " KÜTÜPHANESİ (1–" + Station.LibrarySize + ")";
 
@@ -100,6 +119,10 @@ namespace SempaPumpStation.Screens
                 Categories.Add(new ChoiceItem { Value = c, Title = Station.CategoryName(c), Command = new SyncCommand(() => ShowCategory(category)) });
             }
             ShowCategory(Station.Flowmeter);
+
+            Tabs.Add(new ChoiceItem { Value = PositionsTab, Title = "Enstrüman Pozisyonları", Command = new SyncCommand(() => ShowTab(PositionsTab)) });
+            Tabs.Add(new ChoiceItem { Value = LibraryTab, Title = "Enstrüman Kütüphanesi", Command = new SyncCommand(() => ShowTab(LibraryTab)) });
+            ShowTab(PositionsTab);
 
             ctx.Scanned += (o, e) => Refresh();
             Refresh();
@@ -132,6 +155,10 @@ namespace SempaPumpStation.Screens
                 r.Pv = Ctx.GetBool(ai + "WireBreak") ? "Tel kopuk"
                      : Ctx.GetDouble(ai + "Pv").ToString(r.Info.Category == Station.Flowmeter ? "0.0" : "0.000", CultureInfo.InvariantCulture) + " " + unit;
                 r.Enabled = Ctx.GetBool(ph + "Device.Enabled");
+                r.CanLoad = device > 0 && (Ctx.IsSimulation || Ctx.GetBool("PLC_COMM_OK"));
+                r.LoadHint = device <= 0 ? "Pozisyonda cihaz yok."
+                           : r.Enabled ? "Kütüphane kaydını (ölçek ve filtre) analog girişe yükler."
+                           : "Bölge çalışıyor: yalnızca filtre ayarları yüklenir, ölçek test sonuna kadar aynı kalır.";
                 r.Rejected = Ctx.GetBool(ph + "SelectionRejected");
             }
 

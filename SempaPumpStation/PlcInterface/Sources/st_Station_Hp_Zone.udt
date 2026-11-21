@@ -4,6 +4,7 @@ VERSION : 0.1
       PowerSource { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
       Flowmeter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
       DischargeTransmitter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+      Vacuummeter { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
       SpeedReference { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
       Stop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";
       ResetFault { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_CommandButton";

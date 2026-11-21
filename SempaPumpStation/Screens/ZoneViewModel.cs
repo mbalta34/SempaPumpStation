@@ -31,6 +31,7 @@ namespace SempaPumpStation.Screens
         public ObservableCollection<ChoiceItem> Sources { get; } = new ObservableCollection<ChoiceItem>();
         public ObservableCollection<ChoiceItem> Flowmeters { get; } = new ObservableCollection<ChoiceItem>();
         public ObservableCollection<ChoiceItem> Transmitters { get; } = new ObservableCollection<ChoiceItem>();
+        public ObservableCollection<ChoiceItem> Vacuummeters { get; } = new ObservableCollection<ChoiceItem>();
         public ObservableCollection<TestSample> SampleRows { get; } = new ObservableCollection<TestSample>();
 
         public ICommand ClickCommand { get; }
@@ -52,7 +53,8 @@ namespace SempaPumpStation.Screens
             Sources.Add(Choice(0, "Kaynak yok", "PowerSource"));
             foreach (var s in Station.Sources) Sources.Add(Choice(s.Id, s.Name, "PowerSource"));
             for (int f = 1; f <= Station.FlowmeterCount(zone); f++) Flowmeters.Add(Choice(f, "FM" + f, "Flowmeter"));
-            for (int t = 1; t <= Station.TransmitterCount; t++) Transmitters.Add(Choice(t, "Pt" + t, "DischargeTransmitter"));
+            for (int t = 1; t <= Station.TransmitterCount(zone); t++) Transmitters.Add(Choice(t, "Pt" + t, "DischargeTransmitter"));
+            for (int v = 1; v <= Station.VacuummeterCount(zone); v++) Vacuummeters.Add(Choice(v, "Vakum" + v, "Vacuummeter"));
 
             ClickCommand = new SyncCommand(p => Ctx.Click(Hp.Prefix + p));
             PendantCommand = new SyncCommand(p => Ctx.Pulse(Sim.Prefix + p));
@@ -166,10 +168,18 @@ namespace SempaPumpStation.Screens
                 c.Subtitle = DeviceText(Station.PressureTransmitter, device);
             }
 
+            int vacuummeter = Ctx.GetInt(Ph.Prefix + "Vacuummeter.Value");
+            foreach (var c in Vacuummeters)
+            {
+                int device = Ctx.GetInt(Station.PositionPh(Station.VacuummeterPosition(_zone, c.Value)) + "Device.Value");
+                c.State = c.Value == vacuummeter ? "active" : "";
+                c.Subtitle = DeviceText(Station.Vacuummeter, device);
+            }
+
             int fmDevice = Ctx.GetInt(Ph.Prefix + "FlowmeterDevice");
             string unit = fmDevice > 0 ? Ctx.GetString(Station.LibraryEntry(Station.Flowmeter, fmDevice) + "Unit") : "";
             FlowUnit = string.IsNullOrEmpty(unit) ? "m³/h" : unit;
-            InstrumentsText = "Vakummetre: " + DeviceText(Station.Vacuummeter, Ctx.GetInt(Ph.Prefix + "VacuummeterDevice"));
+            InstrumentsText = "Emme: " + (vacuummeter > 0 ? DeviceText(Station.Vacuummeter, Ctx.GetInt(Ph.Prefix + "VacuummeterDevice")) : "vakummetre seçilmedi");
 
             var reading = PumpCalc.Live(Ctx, _zone);
             Head = reading.Head;
@@ -250,6 +260,7 @@ namespace SempaPumpStation.Screens
                 PowerSource = Ctx.GetInt(p + "PowerSource"),
                 Flowmeter = Ctx.GetInt(p + "Flowmeter"),
                 DischargeTransmitter = Ctx.GetInt(p + "DischargeTransmitter"),
+                Vacuummeter = Ctx.GetInt(p + "Vacuummeter"),
                 Flow = Ctx.GetDouble(p + "Flow"),
                 DischargePressure = Ctx.GetDouble(p + "DischargePressure"),
                 SuctionPressure = Ctx.GetDouble(p + "SuctionPressure"),

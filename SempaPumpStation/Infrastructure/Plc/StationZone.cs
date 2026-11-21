@@ -13,11 +13,12 @@ namespace SempaPumpStation.Infrastructure.Plc
         /// <summary>A power device of some zone was manipulated: every motor stays stopped until it is reset.</summary>
         public bool SafetyStop;
         public readonly double[] Flowmeters = new double[6];
-        public readonly double[] DischargeTransmitters = new double[5];
+        public readonly double[] DischargeTransmitters = new double[Station.MaxTransmitterCount + 1];
         public readonly int[] FlowmeterDevices = new int[6];
-        public readonly int[] DischargeTransmitterDevices = new int[5];
-        public int VacuummeterDevice;
-        public double Vacuummeter, WaterTemperature, AmbientTemperature, Vibration, Temperature, Sound, Speed, Voltage, Current, Torque, PowerFactor;
+        public readonly int[] DischargeTransmitterDevices = new int[Station.MaxTransmitterCount + 1];
+        public readonly double[] Vacuummeters = new double[Station.MaxVacuummeterCount + 1];
+        public readonly int[] VacuummeterDevices = new int[Station.MaxVacuummeterCount + 1];
+        public double WaterTemperature, AmbientTemperature, Vibration, Temperature, Sound, Speed, Voltage, Current, Torque, PowerFactor;
     }
 
     /// <summary>st_Station_ZoneOutputs.</summary>
@@ -61,7 +62,7 @@ namespace SempaPumpStation.Infrastructure.Plc
     /// </summary>
     public sealed class StationZone
     {
-        private const int SourceCount = 8, TransmitterCount = 4, SampleCapacity = 50;
+        private const int SourceCount = 8, SampleCapacity = 50;
 
         private readonly int _zone;
         private readonly string _hp, _ph, _samples;
@@ -70,6 +71,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly HmiParameterInt _powerSource = new HmiParameterInt();
         private readonly HmiParameterInt _flowmeter = new HmiParameterInt();
         private readonly HmiParameterInt _dischargeTransmitter = new HmiParameterInt();
+        private readonly HmiParameterInt _vacuummeter = new HmiParameterInt();
         private readonly HmiParameterReal _speedReference = new HmiParameterReal();
         private readonly HmiCommandButton _stop = new HmiCommandButton(), _resetFault = new HmiCommandButton(),
             _startTest = new HmiCommandButton(), _endTest = new HmiCommandButton(),
@@ -83,7 +85,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly Tp _sampleLamp = new Tp();
         private const double SampleLampMs = 1000;
 
-        private int _selectedSource, _selectedFlowmeter, _selectedTransmitter;
+        private int _selectedSource, _selectedFlowmeter, _selectedTransmitter, _selectedVacuummeter;
         private bool _runRequest, _eStop, _selectionRejected;
 
         // Rotation test (Station.Rotation* states)
@@ -109,13 +111,14 @@ namespace SempaPumpStation.Infrastructure.Plc
 
             // Retained selections, as the PLC would have them after a restart
             _flowmeter.RetainValue = zone == 2 ? 2 : 1;
-            _dischargeTransmitter.RetainValue = 2;
+            _dischargeTransmitter.RetainValue = 1;
+            _vacuummeter.RetainValue = 1;
             _speedReference.RetainValue = 80.0;
             _rotationTestTime.RetainValue = 3.0;
         }
 
         public void Run(PlcTags t, ZoneInputs inputs, bool[] sourceHeldByOtherZone, bool[] flowmeterHeldByOtherZone,
-                        int flowmeterCount, PlcCycle c)
+                        int flowmeterCount, int transmitterCount, int vacuummeterCount, PlcCycle c)
         {
             var outputs = Outputs;
             bool testActive = t.B(_samples + "TestActive");
@@ -125,6 +128,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             _powerSource.Run(t, _hp + "PowerSource", _ph + "PowerSource", 0, false, selectionEnabled);
             _flowmeter.Run(t, _hp + "Flowmeter", _ph + "Flowmeter", 0, true, selectionEnabled);
             _dischargeTransmitter.Run(t, _hp + "DischargeTransmitter", _ph + "DischargeTransmitter", 0, true, true);
+            _vacuummeter.Run(t, _hp + "Vacuummeter", _ph + "Vacuummeter", 0, true, true);
             _speedReference.Run(t, _hp + "SpeedReference", _ph + "SpeedReference", 0, true, true);
             _stop.Run(t, _hp + "Stop", _ph + "Stop");
             _resetFault.Run(t, _hp + "ResetFault", _ph + "ResetFault");
@@ -169,7 +173,7 @@ namespace SempaPumpStation.Infrastructure.Plc
 
             if (_dischargeTransmitter.Value != _selectedTransmitter)
             {
-                if (_dischargeTransmitter.Value >= 0 && _dischargeTransmitter.Value <= TransmitterCount)
+                if (_dischargeTransmitter.Value >= 0 && _dischargeTransmitter.Value <= transmitterCount)
                 {
                     _selectedTransmitter = _dischargeTransmitter.Value;
                     _selectionRejected = false;
@@ -177,6 +181,21 @@ namespace SempaPumpStation.Infrastructure.Plc
                 else
                 {
                     _dischargeTransmitter.Value = _selectedTransmitter;
+                    _selectionRejected = true;
+                }
+            }
+
+            // The suction vacuummeter, selected like the discharge transmitter
+            if (_vacuummeter.Value != _selectedVacuummeter)
+            {
+                if (_vacuummeter.Value >= 0 && _vacuummeter.Value <= vacuummeterCount)
+                {
+                    _selectedVacuummeter = _vacuummeter.Value;
+                    _selectionRejected = false;
+                }
+                else
+                {
+                    _vacuummeter.Value = _selectedVacuummeter;
                     _selectionRejected = true;
                 }
             }
@@ -317,10 +336,17 @@ namespace SempaPumpStation.Infrastructure.Plc
                 flow = inputs.Flowmeters[_selectedFlowmeter];
                 flowmeterDevice = inputs.FlowmeterDevices[_selectedFlowmeter];
             }
-            if (_selectedTransmitter > 0)
+            if (_selectedTransmitter > 0 && _selectedTransmitter <= transmitterCount)
             {
                 dischargePressure = inputs.DischargeTransmitters[_selectedTransmitter];
                 dischargeTransmitterDevice = inputs.DischargeTransmitterDevices[_selectedTransmitter];
+            }
+            double suctionPressure = 0;
+            int vacuummeterDevice = 0;
+            if (_selectedVacuummeter > 0 && _selectedVacuummeter <= vacuummeterCount)
+            {
+                suctionPressure = inputs.Vacuummeters[_selectedVacuummeter];
+                vacuummeterDevice = inputs.VacuummeterDevices[_selectedVacuummeter];
             }
 
             // ---------------------------------------------------------------- test
@@ -361,12 +387,13 @@ namespace SempaPumpStation.Infrastructure.Plc
                 t.W(s + "PowerSource", _selectedSource);
                 t.W(s + "Flowmeter", _selectedFlowmeter);
                 t.W(s + "DischargeTransmitter", _selectedTransmitter);
+                t.W(s + "Vacuummeter", _selectedVacuummeter);
                 t.W(s + "FlowmeterDevice", flowmeterDevice);
                 t.W(s + "DischargeTransmitterDevice", dischargeTransmitterDevice);
-                t.W(s + "VacuummeterDevice", inputs.VacuummeterDevice);
+                t.W(s + "VacuummeterDevice", vacuummeterDevice);
                 t.W(s + "Flow", flow);
                 t.W(s + "DischargePressure", dischargePressure);
-                t.W(s + "SuctionPressure", inputs.Vacuummeter);
+                t.W(s + "SuctionPressure", suctionPressure);
                 t.W(s + "WaterTemperature", inputs.WaterTemperature);
                 t.W(s + "AmbientTemperature", inputs.AmbientTemperature);
                 t.W(s + "Vibration", inputs.Vibration);
@@ -413,10 +440,10 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(_ph + "SampleBufferFull", count >= SampleCapacity);
             t.W(_ph + "Flow", flow);
             t.W(_ph + "DischargePressure", dischargePressure);
-            t.W(_ph + "SuctionPressure", inputs.Vacuummeter);
+            t.W(_ph + "SuctionPressure", suctionPressure);
             t.W(_ph + "FlowmeterDevice", flowmeterDevice);
             t.W(_ph + "DischargeTransmitterDevice", dischargeTransmitterDevice);
-            t.W(_ph + "VacuummeterDevice", inputs.VacuummeterDevice);
+            t.W(_ph + "VacuummeterDevice", vacuummeterDevice);
             t.W(_ph + "LampGreen", outputs.LampGreen);
             t.W(_ph + "LampYellow", outputs.LampYellow);
             t.W(_ph + "LampRed", outputs.LampRed);

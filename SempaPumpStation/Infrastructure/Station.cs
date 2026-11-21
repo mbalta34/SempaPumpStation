@@ -18,11 +18,11 @@ namespace SempaPumpStation.Infrastructure
     /// <summary>An instrument position (an analog input place) that a library device can be mounted on.</summary>
     public sealed class InstrumentPositionInfo
     {
-        public int Index;          // 1..28, the PLC's position number
-        public string Name;        // "Zone2_FM1", "Zone2_Pt3", "Zone1_Vacuummeter"
+        public int Index;          // 1..20, the PLC's position number
+        public string Name;        // "Zone2_FM1", "Zone2_Pt2", "Zone1_Vacuummeter1"
         public int Category;       // 1 flowmeter, 2 pressure transmitter, 3 vacuummeter
         public int[] Zones;        // the zones that measure with this position
-        public string Label;       // operator label: "FM1", "Pt3", "Vakum"
+        public string Label;       // operator label: "FM1", "Pt2", "Vakum1"
         public string Channel => Name;   // the analog input channel has the same name
     }
 
@@ -37,10 +37,18 @@ namespace SempaPumpStation.Infrastructure
         public const int SourceCount = 8;
         public const int SampleCapacity = 50;
         public const int LibrarySize = 100;
-        /// <summary>Every zone has flowmeters of its own: zones 2 and 3 four (BNI00KM ports 4-7), zone 1 two (BNI00AJ ports 0-1).</summary>
+        /// <summary>
+        /// Instruments of each zone (IO list V1.9): zones 2 and 3 have two discharge transmitters, two vacuummeters and four
+        /// flowmeters on their BNI00KM; zone 1 one transmitter, one vacuummeter and two flowmeters on its BNI0007.
+        /// </summary>
         public const int ZoneFlowmeterCount = 4;
         public const int Zone1FlowmeterCount = 2;
-        public const int TransmitterCount = 4;
+        public const int ZoneTransmitterCount = 2;
+        public const int Zone1TransmitterCount = 1;
+        public const int ZoneVacuummeterCount = 2;
+        public const int Zone1VacuummeterCount = 1;
+        /// <summary>The size of the PLC's per-zone transmitter / vacuummeter arrays (st_Station_ZoneInputs).</summary>
+        public const int MaxTransmitterCount = 2, MaxVacuummeterCount = 2;
 
         public const int Flowmeter = 1;
         public const int PressureTransmitter = 2;
@@ -70,9 +78,7 @@ namespace SempaPumpStation.Infrastructure
             return s == null ? "" : s.Name + (s.IsMagneticSwitch ? " şalteri" : " kontaktörü");
         }
 
-        public static readonly string[] TransmitterNames = { "Pt1", "Pt2", "Pt3", "Pt4" };
-
-        /// <summary>The 25 instrument positions in the PLC's order (the Assigned array index).</summary>
+        /// <summary>The 20 instrument positions in the PLC's order (the Assigned array index, FB_Station_Instruments).</summary>
         public static readonly InstrumentPositionInfo[] Positions = BuildPositions();
 
         private static InstrumentPositionInfo[] BuildPositions()
@@ -81,13 +87,13 @@ namespace SempaPumpStation.Infrastructure
             void Add(string name, int category, string label, params int[] zones) =>
                 list.Add(new InstrumentPositionInfo { Index = list.Count + 1, Name = name, Category = category, Label = label, Zones = zones });
 
-            for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone2_FM" + f, Flowmeter, "FM" + f, 2);
-            for (int f = 1; f <= ZoneFlowmeterCount; f++) Add("Zone3_FM" + f, Flowmeter, "FM" + f, 3);
+            for (int f = 1; f <= FlowmeterCount(2); f++) Add("Zone2_FM" + f, Flowmeter, "FM" + f, 2);
+            for (int f = 1; f <= FlowmeterCount(3); f++) Add("Zone3_FM" + f, Flowmeter, "FM" + f, 3);
             for (int z = 1; z <= ZoneCount; z++)
-                for (int t = 1; t <= TransmitterCount; t++) Add("Zone" + z + "_Pt" + t, PressureTransmitter, "Pt" + t, z);
-            for (int z = 1; z <= ZoneCount; z++) Add("Zone" + z + "_Vacuummeter", Vacuummeter, "Vakum", z);
-            // Added after the original 23, so the PLC numbering of those stays
-            for (int f = 1; f <= Zone1FlowmeterCount; f++) Add("Zone1_FM" + f, Flowmeter, "FM" + f, 1);
+                for (int t = 1; t <= TransmitterCount(z); t++) Add(TransmitterPosition(z, t), PressureTransmitter, "Pt" + t, z);
+            for (int z = 1; z <= ZoneCount; z++)
+                for (int v = 1; v <= VacuummeterCount(z); v++) Add(VacuummeterPosition(z, v), Vacuummeter, "Vakum" + v, z);
+            for (int f = 1; f <= FlowmeterCount(1); f++) Add("Zone1_FM" + f, Flowmeter, "FM" + f, 1);
             return list.ToArray();
         }
 
@@ -99,8 +105,11 @@ namespace SempaPumpStation.Infrastructure
 
         public static int FlowmeterCount(int zone) => zone == 1 ? Zone1FlowmeterCount : ZoneFlowmeterCount;
 
+        public static int TransmitterCount(int zone) => zone == 1 ? Zone1TransmitterCount : ZoneTransmitterCount;
+        public static int VacuummeterCount(int zone) => zone == 1 ? Zone1VacuummeterCount : ZoneVacuummeterCount;
+
         public static string TransmitterPosition(int zone, int t) => "Zone" + zone + "_Pt" + t;
-        public static string VacuummeterPosition(int zone) => "Zone" + zone + "_Vacuummeter";
+        public static string VacuummeterPosition(int zone, int v) => "Zone" + zone + "_Vacuummeter" + v;
 
         /// <summary>Per-zone analog sensors besides the instrument positions.</summary>
         public static readonly string[] ZoneSensors = { "WaterTemperature", "AmbientTemperature", "Vibration", "Temperature", "Sound", "Speed", "Torque" };
@@ -110,8 +119,8 @@ namespace SempaPumpStation.Infrastructure
         {
             for (int z = 1; z <= ZoneCount; z++)
             {
-                for (int t = 1; t <= TransmitterCount; t++) yield return TransmitterPosition(z, t);
-                yield return VacuummeterPosition(z);
+                for (int t = 1; t <= TransmitterCount(z); t++) yield return TransmitterPosition(z, t);
+                for (int v = 1; v <= VacuummeterCount(z); v++) yield return VacuummeterPosition(z, v);
                 foreach (var s in ZoneSensors) yield return "Zone" + z + "_" + s;
             }
             for (int z = 1; z <= ZoneCount; z++)
@@ -167,7 +176,7 @@ namespace SempaPumpStation.Infrastructure
         public const double MeterEnergyPerKwh = 1000.0;
 
         /// <summary>Selection parameters of a zone (FB_Station_ZoneHmi): name and whether it is Real.</summary>
-        public static readonly string[] ZoneIntParameters = { "PowerSource", "Flowmeter", "DischargeTransmitter" };
+        public static readonly string[] ZoneIntParameters = { "PowerSource", "Flowmeter", "DischargeTransmitter", "Vacuummeter" };
         public static readonly string[] ZoneButtons = { "Stop", "ResetFault", "StartTest", "EndTest", "DeleteLastSample", "ClearSamples", "RotationTest", "ConfirmRotation" };
 
         // Rotation test (FB_Station_Zone ROTATION_*, "StationPh".ZoneN.RotationState)
@@ -188,10 +197,13 @@ namespace SempaPumpStation.Infrastructure
         public static readonly string[] AiRealParameters = { "MinPv", "MaxPv", "FilterEmaAlpha", "FilterOutlierMaxJump" };
         public static readonly string[] AiIntParameters = { "MinRaw", "MaxRaw", "FilterType", "FilterOutlierMaxRejectCount" };
 
+        /// <summary>The filter settings among them: the only ones Yükle takes over while the zone runs.</summary>
+        public static bool IsAiFilterParameter(string name) => name.StartsWith("Filter", System.StringComparison.Ordinal);
+
         /// <summary>st_Station_Sample members, in declaration order, with the tag data kind (R real, I int, B bool, S string).</summary>
         public static readonly (string Name, char Kind)[] SampleFields =
         {
-            ("Timestamp", 'D'), ("PowerSource", 'I'), ("Flowmeter", 'I'), ("DischargeTransmitter", 'I'),
+            ("Timestamp", 'D'), ("PowerSource", 'I'), ("Flowmeter", 'I'), ("DischargeTransmitter", 'I'), ("Vacuummeter", 'I'),
             ("FlowmeterDevice", 'I'), ("DischargeTransmitterDevice", 'I'), ("VacuummeterDevice", 'I'),
             ("Flow", 'R'), ("DischargePressure", 'R'), ("SuctionPressure", 'R'),
             ("WaterTemperature", 'R'), ("AmbientTemperature", 'R'), ("Vibration", 'R'), ("Temperature", 'R'),

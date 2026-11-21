@@ -47,7 +47,7 @@ namespace SempaPumpStation.Infrastructure
                 if (position != null)
                 {
                     info.Group = "BÖLGE " + position.Zones[0];
-                    info.Label = position.Category == Station.Vacuummeter ? "Vakummetre (emme)"
+                    info.Label = position.Category == Station.Vacuummeter ? "Vakummetre " + position.Label.Substring(5) + " (emme)"
                                : position.Category == Station.PressureTransmitter ? position.Label + " basma transmitteri"
                                : position.Label + " debimetre";
                 }

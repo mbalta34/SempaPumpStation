@@ -15,10 +15,7 @@ namespace SempaPumpStation.PlcInterface
         {
             var k = new S7Cursor(c, db, byteOffset, w, r);
             Zone1_Pt1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Pt1", db, k.Struct(), w, r));
-            Zone1_Pt2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Pt2", db, k.Struct(), w, r));
-            Zone1_Pt3 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Pt3", db, k.Struct(), w, r));
-            Zone1_Pt4 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Pt4", db, k.Struct(), w, r));
-            Zone1_Vacuummeter = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Vacuummeter", db, k.Struct(), w, r));
+            Zone1_Vacuummeter1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Vacuummeter1", db, k.Struct(), w, r));
             Zone1_WaterTemperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_WaterTemperature", db, k.Struct(), w, r));
             Zone1_AmbientTemperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_AmbientTemperature", db, k.Struct(), w, r));
             Zone1_Vibration = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Vibration", db, k.Struct(), w, r));
@@ -28,9 +25,8 @@ namespace SempaPumpStation.PlcInterface
             Zone1_Torque = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone1_Torque", db, k.Struct(), w, r));
             Zone2_Pt1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Pt1", db, k.Struct(), w, r));
             Zone2_Pt2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Pt2", db, k.Struct(), w, r));
-            Zone2_Pt3 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Pt3", db, k.Struct(), w, r));
-            Zone2_Pt4 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Pt4", db, k.Struct(), w, r));
-            Zone2_Vacuummeter = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Vacuummeter", db, k.Struct(), w, r));
+            Zone2_Vacuummeter1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Vacuummeter1", db, k.Struct(), w, r));
+            Zone2_Vacuummeter2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Vacuummeter2", db, k.Struct(), w, r));
             Zone2_WaterTemperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_WaterTemperature", db, k.Struct(), w, r));
             Zone2_AmbientTemperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_AmbientTemperature", db, k.Struct(), w, r));
             Zone2_Vibration = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Vibration", db, k.Struct(), w, r));
@@ -40,9 +36,8 @@ namespace SempaPumpStation.PlcInterface
             Zone2_Torque = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone2_Torque", db, k.Struct(), w, r));
             Zone3_Pt1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Pt1", db, k.Struct(), w, r));
             Zone3_Pt2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Pt2", db, k.Struct(), w, r));
-            Zone3_Pt3 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Pt3", db, k.Struct(), w, r));
-            Zone3_Pt4 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Pt4", db, k.Struct(), w, r));
-            Zone3_Vacuummeter = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Vacuummeter", db, k.Struct(), w, r));
+            Zone3_Vacuummeter1 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Vacuummeter1", db, k.Struct(), w, r));
+            Zone3_Vacuummeter2 = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Vacuummeter2", db, k.Struct(), w, r));
             Zone3_WaterTemperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_WaterTemperature", db, k.Struct(), w, r));
             Zone3_AmbientTemperature = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_AmbientTemperature", db, k.Struct(), w, r));
             Zone3_Vibration = k.Next(new st_Io_Hp_AnalogInput(c, name + ".Zone3_Vibration", db, k.Struct(), w, r));
@@ -63,10 +58,7 @@ namespace SempaPumpStation.PlcInterface
         }
 
         public st_Io_Hp_AnalogInput Zone1_Pt1 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_Pt2 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_Pt3 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_Pt4 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone1_Vacuummeter { get; private set; }
+        public st_Io_Hp_AnalogInput Zone1_Vacuummeter1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_WaterTemperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_AmbientTemperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone1_Vibration { get; private set; }
@@ -76,9 +68,8 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_AnalogInput Zone1_Torque { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Pt1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Pt2 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone2_Pt3 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone2_Pt4 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone2_Vacuummeter { get; private set; }
+        public st_Io_Hp_AnalogInput Zone2_Vacuummeter1 { get; private set; }
+        public st_Io_Hp_AnalogInput Zone2_Vacuummeter2 { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_WaterTemperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_AmbientTemperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone2_Vibration { get; private set; }
@@ -88,9 +79,8 @@ namespace SempaPumpStation.PlcInterface
         public st_Io_Hp_AnalogInput Zone2_Torque { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Pt1 { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Pt2 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone3_Pt3 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone3_Pt4 { get; private set; }
-        public st_Io_Hp_AnalogInput Zone3_Vacuummeter { get; private set; }
+        public st_Io_Hp_AnalogInput Zone3_Vacuummeter1 { get; private set; }
+        public st_Io_Hp_AnalogInput Zone3_Vacuummeter2 { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_WaterTemperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_AmbientTemperature { get; private set; }
         public st_Io_Hp_AnalogInput Zone3_Vibration { get; private set; }

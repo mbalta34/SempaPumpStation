@@ -27,6 +27,7 @@
         <DataTemplate DataType="{x:Type s:OverviewViewModel}"><s:OverviewView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:ZoneViewModel}"><s:ZoneView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:InstrumentsViewModel}"><s:InstrumentsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type s:AnalogSettingsViewModel}"><s:AnalogSettingsView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:PowermetersViewModel}"><s:PowermetersView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:IoLinkViewModel}"><s:IoLinkView/></DataTemplate>
         <DataTemplate DataType="{x:Type s:ReportViewModel}"><s:ReportView/></DataTemplate>

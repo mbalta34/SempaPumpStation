@@ -25,6 +25,18 @@ namespace SempaPumpStation.Controls
             VerticalContentAlignment = VerticalAlignment.Center;
             LostFocus += (s, e) => Commit();
             KeyDown += OnKeyDown;
+            PreviewMouseLeftButtonDown += OnPreviewMouseDown;
+            GotKeyboardFocus += (s, e) => SelectAll();   // also when tabbing in
+        }
+
+        // The first click into the box, or a double click while editing, selects the whole value, so typing replaces it
+        // (as Terakki's EnterKeyUpdateTextBox)
+        private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (IsKeyboardFocusWithin && e.ClickCount < 2) return;
+            e.Handled = true;
+            Focus();
+            SelectAll();
         }
 
         public static readonly DependencyProperty PlcTagProperty =

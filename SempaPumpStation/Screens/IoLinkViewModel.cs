@@ -65,8 +65,8 @@ namespace SempaPumpStation.Screens
         }
 
         public string ZoneNote => _zone == 1
-            ? "Debimetreler (FM1–FM2) BNI00AJ port 0–1; tork ölçer port 2, devir port 3. Basınç transmitterleri BNI0007 port 0–3."
-            : "Debimetreler (FM1–FM4) BNI00KM port 4–7, basınç transmitterleri port 0–3; tork ölçer BNI00AJ port 0, devir port 1.";
+            ? "BNI0007: basınç transmitteri port 0, vakummetre port 1, debimetreler (FM1–FM2) port 2–3. Tork ölçer BNI00AJ port 0, devir port 1."
+            : "BNI00KM: basınç transmitterleri port 0–1, vakummetreler port 2–3, debimetreler (FM1–FM4) port 4–7. Tork ölçer BNI00AJ port 0, devir port 1.";
 
         private bool DataOk => Ctx.IsSimulation || Ctx.GetBool("PLC_COMM_OK");
 
@@ -216,7 +216,9 @@ namespace SempaPumpStation.Screens
                 return;
             }
 
-            int raw = Ctx.GetInt(info.RawTag);
+            // The raw value the channel works with: a channel bound straight to its hardware word in FB_Io_AnalogInputs
+            // does not go through the IoLink DB, so the port's own word is shown only for a port without a channel
+            int raw = Ctx.GetInt(info.Channel != null ? Station.AiPh(info.Channel) + "RawValue" : info.RawTag);
             cell.Raw = raw == IoLinkLayout.OpenInputRaw ? "açık devre" : "ham " + raw;
 
             if (info.IsInstrument)
@@ -231,7 +233,7 @@ namespace SempaPumpStation.Screens
         }
 
         private static string PositionText(InstrumentPositionInfo p) =>
-            "Bölge " + string.Join("-", p.Zones) + " · " + (p.Category == Station.Vacuummeter ? "Vakummetre" : p.Label);
+            "Bölge " + string.Join("-", p.Zones) + " · " + (p.Category == Station.Vacuummeter ? "Vakummetre " + p.Label.Substring(5) : p.Label);
 
         private string DeviceText(int category, int device)
         {

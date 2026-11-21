@@ -13,16 +13,16 @@ namespace SempaPumpStation.Infrastructure
     {
         // ---- bump these ----
         public const int Major = 1;
-        public const int Minor = 8;
+        public const int Minor = 9;
         public const int Build = 0;
 
         public const string ProductName = "Sempa HMI";
 
         /// <summary>
         /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
-        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.4.2). Another version in the PLC raises an alarm.
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.4.2, PLC_VERSION 1.4.3). Another version in the PLC raises an alarm.
         /// </summary>
-        public const string ExpectedPlcVersion = "1.4.2";
+        public const string ExpectedPlcVersion = "1.4.3";
 
         /// <summary>Tooltip of the PLC version in the rail.</summary>
         public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
@@ -39,6 +39,18 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.9.0", "2026-11-21", new[]
+            {
+                "IO-Link ports as in IO list V1.9: every instrument is on the zone's analog hub. Zones 2 and 3 (BNI00KM): pressure transmitters Pt1-Pt2 on ports 0-1, vacuummeters Vakum1-Vakum2 on 2-3, flowmeters FM1-FM4 on 4-7. Zone 1 (BNI0007): Pt1 on port 0, Vakum1 on 1, FM1-FM2 on 2-3. The BNI00AJ carries torque, speed, sound, water and ambient temperature (ports 0, 1, 2, 4, 5) in every zone. 20 instrument positions.",
+                "The suction vacuummeter is chosen on the zone screen (Emme vakummetresi) like the discharge transmitter; the choice is stored with every sample and in the archive (column Vakummetre).",
+                "New Analog Ayarları screen: range (min/max raw, min/max value) and filter settings of the fixed sensors (torque, speed, sound, temperatures, vibration), with their live raw, filtered and scaled values. Engineer login.",
+                "The IO-Link screen shows the raw value the channel works with, also for a channel bound straight to its hardware word.",
+                "The instrument screen has two tabs, Enstrüman Pozisyonları and Enstrüman Kütüphanesi, each full width with larger text.",
+                "A click on a value field or an editable table cell selects the whole value, so typing replaces it; table cells edit with one click.",
+                "Yükle on the instrument screen also works while the zone runs: it then takes over only the library entry's filter settings (type, alpha, max jump, reject count); the range stays as the test started. Changing the device stays locked while the zone runs.",
+                "Needs PLC program 1.4.3.",
+            }),
+
             new ChangeLogEntry("1.8.0", "2026-11-19", new[]
             {
                 "The PLC numbers the tests: a retained counter (StationCounters, DB206) gives each started test its number, so it no longer starts over when the HMI restarts. The zone, overview and TV screens show it.",

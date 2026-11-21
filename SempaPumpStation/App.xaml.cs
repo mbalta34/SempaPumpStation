@@ -92,6 +92,8 @@ namespace SempaPumpStation
             catch (Exception ex) { sb.AppendLine("FAIL io-link : " + ex); }
             try { RunOutputForceScenario(sb, vm); }
             catch (Exception ex) { sb.AppendLine("FAIL output-force : " + ex); }
+            try { RunEditScenario(sb); }
+            catch (Exception ex) { sb.AppendLine("FAIL edit : " + ex); }
             try { RunSecurityScenario(sb); }   // ends logged in as admin, so the captures show every screen unlocked
             catch (Exception ex) { sb.AppendLine("FAIL security : " + ex); }
 
@@ -138,6 +140,17 @@ namespace SempaPumpStation
             Steps(8);
             Capture(shell, Path.Combine(dir, "IoLink_Zone3.png"));
             sb.AppendLine((ioLink.HasSelection && ioLink.CanAssign ? "OK   " : "FAIL ") + "IoLink_Zone3 (port selected, unlocked)");
+
+            // Instruments: the library on its own tab
+            var instrumentsEntry = System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "Instruments");
+            var instrumentsScreen = (Screens.InstrumentsViewModel)instrumentsEntry.Screen;
+            vm.NavigateCommand.Execute(instrumentsEntry);
+            instrumentsScreen.ShowTab(Screens.InstrumentsViewModel.LibraryTab);
+            shell.UpdateLayout();
+            Steps(8);
+            Capture(shell, Path.Combine(dir, "Instruments_Library.png"));
+            sb.AppendLine((instrumentsScreen.ShowLibrary && !instrumentsScreen.ShowPositions ? "OK   " : "FAIL ") + "Instruments_Library (own tab)");
+            instrumentsScreen.ShowTab(Screens.InstrumentsViewModel.PositionsTab);
 
             // The login modal blocks until closed: capture it from inside, then cancel it
             vm.NavigateCommand.Execute(vm.MainNav[1]);
@@ -279,7 +292,7 @@ namespace SempaPumpStation
             double q1 = c.GetDouble(Station.Sample(1, 1) + "Flow"), q6 = c.GetDouble(Station.Sample(1, 6) + "Flow");
             double p1 = c.GetDouble(Station.Sample(1, 1) + "DischargePressure"), p6 = c.GetDouble(Station.Sample(1, 6) + "DischargePressure");
             Check(string.Format("throttling lowers flow and raises pressure (Q {0:0.0}→{1:0.0}, Pd {2:0.00}→{3:0.00})", q1, q6, p1, p6), q6 < q1 && p6 > p1);
-            Check("Pt2 scaled with its loaded 0-16 bar range", c.GetDouble(Station.AiPh("Zone1_Pt2") + "MaxPv.Value") == 16.0 && p6 < 6.0);
+            Check("Pt1 scaled with its loaded 0-16 bar range", c.GetDouble(Station.AiPh("Zone1_Pt1") + "MaxPv.Value") == 16.0 && p6 < 6.0);
 
             double fm1 = c.GetDouble(Station.AiPh("Zone1_FM1") + "Pv");
             Check(string.Format("zone 1 flow comes from its own FM1 ({0:0.0}), zone 2 FM1 stays idle", fm1),
@@ -326,7 +339,7 @@ namespace SempaPumpStation
                   c.GetInt(Ph(1) + "RotationState") == Station.RotationNone && !c.GetBool(Ph(1) + "StartTest.Enabled"));
 
             // A position cannot take a device mounted elsewhere
-            c.WriteParameter(Station.PositionHp("Zone3_Pt1") + "Device.Value", Station.PositionPh("Zone3_Pt1") + "Device.Value", (short)1);
+            c.WriteParameter(Station.PositionHp("Zone3_Pt1") + "Device.Value", Station.PositionPh("Zone3_Pt1") + "Device.Value", (short)3);   // device 3 is on Zone1_Pt1
             Steps(3);
             Check("device mounted twice is rejected", c.GetInt(Station.PositionPh("Zone3_Pt1") + "Device.Value") == 9
                                                      && c.GetBool(Station.PositionPh("Zone3_Pt1") + "SelectionRejected"));
@@ -486,24 +499,30 @@ namespace SempaPumpStation
                                                          && Hub(1) == IoLinkLayout.OpenInputRaw && Hub(0) != Hub(1));
             Check("fixed sensors read their IO list ports", Raw("Zone3_Speed") == c.GetInt(IoLinkLayout.Raw(3, IoLinkModule.RtdHub, 1)));
             int Port(int zone, IoLinkModule hub, int port) => c.GetInt(IoLinkLayout.Raw(zone, hub, port));
-            // V1.8 with the zone 1 and zone 3 layouts swapped: zone 3 (and 2) has the 8 AI hub, zone 1 the BNI0007
-            Check("IO list V1.8 ports: zone 3 FM1-4 on BNI00KM 4-7, torque/speed/vacuum on BNI00AJ 0/1/3, zone 1 FM2 and torque on BNI00AJ 1/2",
-                  Raw("Zone3_FM1") == Port(3, IoLinkModule.AnalogHub, 4) && Raw("Zone3_FM4") == Port(3, IoLinkModule.AnalogHub, 7)
-                  && Raw("Zone3_Torque") == Port(3, IoLinkModule.RtdHub, 0) && Raw("Zone3_Speed") == Port(3, IoLinkModule.RtdHub, 1)
-                  && Raw("Zone3_Vacuummeter") == Port(3, IoLinkModule.RtdHub, 3) && Raw("Zone2_AmbientTemperature") == Port(2, IoLinkModule.RtdHub, 5)
-                  && Raw("Zone1_FM2") == Port(1, IoLinkModule.RtdHub, 1) && Raw("Zone1_Torque") == Port(1, IoLinkModule.RtdHub, 2)
-                  && Raw("Zone1_Vacuummeter") == Port(1, IoLinkModule.RtdHub, 5) && Raw("Zone1_Pt4") == Port(1, IoLinkModule.AnalogHub, 3));
+            // IO list V1.9: every instrument on the analog hub; the BNI00AJ carries torque, speed, sound, water and ambient
+            Check("IO list V1.9 ports: zone 3 Pt1-2, Vakum1-2, FM1-4 on BNI00KM 0-7; zone 1 Pt1, Vakum1, FM1-2 on BNI0007 0-3; BNI00AJ torque/speed/sound/water/ambient 0/1/2/4/5",
+                  Raw("Zone3_Pt2") == Port(3, IoLinkModule.AnalogHub, 1) && Raw("Zone3_Vacuummeter1") == Port(3, IoLinkModule.AnalogHub, 2)
+                  && Raw("Zone3_Vacuummeter2") == Port(3, IoLinkModule.AnalogHub, 3)
+                  && Raw("Zone3_FM1") == Port(3, IoLinkModule.AnalogHub, 4) && Raw("Zone3_FM4") == Port(3, IoLinkModule.AnalogHub, 7)
+                  && Raw("Zone1_Pt1") == Port(1, IoLinkModule.AnalogHub, 0) && Raw("Zone1_Vacuummeter1") == Port(1, IoLinkModule.AnalogHub, 1)
+                  && Raw("Zone1_FM1") == Port(1, IoLinkModule.AnalogHub, 2) && Raw("Zone1_FM2") == Port(1, IoLinkModule.AnalogHub, 3)
+                  && Raw("Zone1_Torque") == Port(1, IoLinkModule.RtdHub, 0) && Raw("Zone3_Speed") == Port(3, IoLinkModule.RtdHub, 1)
+                  && Raw("Zone2_Sound") == Port(2, IoLinkModule.RtdHub, 2) && Raw("Zone2_WaterTemperature") == Port(2, IoLinkModule.RtdHub, 4)
+                  && Raw("Zone1_AmbientTemperature") == Port(1, IoLinkModule.RtdHub, 5));
             var z3Analog = IoLinkLayout.Ports(3, IoLinkModule.AnalogHub);
             var z3Rtd = IoLinkLayout.Ports(3, IoLinkModule.RtdHub);
             var z1Analog = IoLinkLayout.Ports(1, IoLinkModule.AnalogHub);
             var z1Rtd = IoLinkLayout.Ports(1, IoLinkModule.RtdHub);
-            Check("IO-Link page labels follow the V1.8 sheet, zone 1 and 3 swapped (" + Station.Positions.Length + " instrument positions)",
-                  Station.Positions.Length == 25 && Station.FlowmeterCount(1) == 2 && Station.FlowmeterCount(3) == 4
-                  && z3Analog[4].Position == "Zone3_FM1" && z3Analog[7].Position == "Zone3_FM4" && z3Analog[0].Position == "Zone3_Pt1"
-                  && z3Rtd[0].Label == "Tork" && z3Rtd[1].Label == "Devir sayısı" && z3Rtd[3].Position == "Zone3_Vacuummeter"
-                  && z3Rtd[6].Label == "" && z3Rtd[7].Label == "" && IoLinkLayout.TypeName(3, IoLinkModule.AnalogHub) == "BNI00KM"
-                  && z1Rtd[1].Position == "Zone1_FM2" && z1Rtd[7].Channel == "Zone1_AmbientTemperature"
-                  && z1Analog[3].Position == "Zone1_Pt4" && !z1Analog[4].Present && IoLinkLayout.TypeName(1, IoLinkModule.AnalogHub) == "BNI0007");
+            Check("IO-Link page labels follow the V1.9 sheet (" + Station.Positions.Length + " instrument positions)",
+                  Station.Positions.Length == 20 && Station.FlowmeterCount(1) == 2 && Station.FlowmeterCount(3) == 4
+                  && Station.TransmitterCount(1) == 1 && Station.TransmitterCount(2) == 2 && Station.VacuummeterCount(1) == 1 && Station.VacuummeterCount(3) == 2
+                  && z3Analog[1].Position == "Zone3_Pt2" && z3Analog[2].Position == "Zone3_Vacuummeter1" && z3Analog[3].Label == "Vakummetre 2"
+                  && z3Analog[4].Position == "Zone3_FM1" && z3Analog[7].Position == "Zone3_FM4"
+                  && z3Rtd[0].Label == "Tork" && z3Rtd[1].Label == "Devir sayısı" && z3Rtd[2].Label == "Ses seviyesi" && z3Rtd[3].Label == ""
+                  && z3Rtd[4].Channel == "Zone3_WaterTemperature" && z3Rtd[6].Label == "" && IoLinkLayout.TypeName(3, IoLinkModule.AnalogHub) == "BNI00KM"
+                  && z1Analog[0].Position == "Zone1_Pt1" && z1Analog[1].Position == "Zone1_Vacuummeter1" && z1Analog[3].Position == "Zone1_FM2"
+                  && !z1Analog[4].Present && z1Rtd[0].Label == "Tork" && z1Rtd[5].Channel == "Zone1_AmbientTemperature"
+                  && IoLinkLayout.TypeName(1, IoLinkModule.AnalogHub) == "BNI0007");
 
             // The device on a port is chosen on the IO-Link screen
             var screen = (Screens.IoLinkViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "IoLink").Screen;
@@ -527,6 +546,64 @@ namespace SempaPumpStation
             screen.Hubs[1].Ports[0].SelectCommand.Execute(null);   // zone 1 Pt1, zone 1 runs
             Steps(2);
             Check("the device is locked while the zone runs", !screen.CanAssign);
+
+            // Yükle while zone 1 runs: the library entry's filter settings reach the channel, its range does not
+            {
+                var instruments = (Screens.InstrumentsViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "Instruments").Screen;
+                var row = System.Linq.Enumerable.First(instruments.Positions, r => r.Name == "Zone1_Pt1");
+                string entry = Station.LibraryEntry(Station.PressureTransmitter, c.GetInt(Ph("Zone1_Pt1") + "Device.Value"));
+                string ai = Station.AiHp("Zone1_Pt1");
+                int filterType = c.GetInt(entry + "FilterType");
+                double maxPv = c.GetDouble(entry + "MaxPv"), channelMaxPv = c.GetDouble(ai + "MaxPv.Value");
+                c.SetValue(entry + "FilterType", (short)2);
+                c.SetValue(entry + "MaxPv", (float)(maxPv + 10));
+                Steps(2);
+                bool loadable = row.CanLoad && !row.Enabled;
+                row.LoadCommand.Execute(null);
+                Steps(3);
+                Check("Yükle while the zone runs takes the filter type (" + c.GetInt(ai + "FilterType.Value") + ") but keeps the range",
+                      loadable && c.GetInt(ai + "FilterType.Value") == 2 && System.Math.Abs(c.GetDouble(ai + "MaxPv.Value") - channelMaxPv) < 1e-6);
+                c.SetValue(entry + "FilterType", (short)filterType);
+                c.SetValue(entry + "MaxPv", (float)maxPv);
+                Steps(2);
+                row.LoadCommand.Execute(null);
+                Steps(3);
+                Check("restored the filter type", c.GetInt(ai + "FilterType.Value") == filterType);
+            }
+
+            // Suction vacuummeter (IO list V1.9): zone 2 measures with the one selected, also while it runs; zone 1 has one
+            {
+                string z2hp = Station.ZoneHp(2), z2ph = Station.ZonePh(2), z1hp = Station.ZoneHp(1), z1ph = Station.ZonePh(1);
+                c.WriteParameter(z2hp + "Vacuummeter.Value", z2ph + "Vacuummeter.Value", (short)2);
+                Steps(4);
+                double suction = c.GetDouble(z2ph + "SuctionPressure"), vac2 = c.GetDouble(Station.AiPh("Zone2_Vacuummeter2") + "Pv");
+                Check(string.Format("zone 2 suction from the selected Vakum2 ({0:0.000} bar, device {1})", suction, c.GetInt(z2ph + "VacuummeterDevice")),
+                      c.GetInt(z2ph + "Vacuummeter.Value") == 2 && Math.Abs(suction - vac2) < 0.05
+                      && c.GetInt(z2ph + "VacuummeterDevice") == c.GetInt(Ph("Zone2_Vacuummeter2") + "Device.Value"));
+                c.WriteParameter(z1hp + "Vacuummeter.Value", z1ph + "Vacuummeter.Value", (short)2);
+                Steps(4);
+                Check("zone 1 refuses a second vacuummeter", c.GetInt(z1ph + "Vacuummeter.Value") == 1 && c.GetBool(z1ph + "SelectionRejected"));
+                c.WriteParameter(z2hp + "Vacuummeter.Value", z2ph + "Vacuummeter.Value", (short)1);
+                Steps(4);
+                Check("zone 2 back on Vakum1", c.GetInt(z2ph + "Vacuummeter.Value") == 1);
+            }
+
+            // Analog Ayarları: a fixed sensor's filter set on the screen reaches the channel
+            {
+                var settings = (Screens.AnalogSettingsViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "AnalogSettings").Screen;
+                var sound = System.Linq.Enumerable.First(settings.Rows, r => r.Channel == "Zone2_Sound");
+                int before = sound.FilterType;
+                sound.FilterType = 2;
+                sound.MaxRaw = 27000;
+                Steps(4);
+                string ai = Station.AiPh("Zone2_Sound");
+                Check("Analog Ayarları writes the sensor's filter and range (" + settings.Rows.Count + " sensors)",
+                      settings.Rows.Count == 21 && c.GetInt(ai + "FilterType.Value") == 2 && c.GetInt(ai + "MaxRaw.Value") == 27000
+                      && sound.FilterType == 2 && sound.Raw.Length > 0);
+                sound.FilterType = before;
+                sound.MaxRaw = 27648;
+                Steps(4);
+            }
 
             // BNI007Z row by row as in the sheet: 0 tower green/yellow, 1 start, 2 siren/red, 3 stop, 4 free, 5 sample, 6 panel E-stop, 7 E-stop
             var dio = screen.Hubs[2].Ports;
@@ -583,7 +660,7 @@ namespace SempaPumpStation
                   inputs.Count == 85 && inputs.Find(r => r.Name == "Zone3_Q560Ss_Closed").Pv && !inputs.Find(r => r.Name == "Zone3_Q560Ss_Open").Pv);
             io.ShowTab(Screens.IoViewModel.AnalogInputsTab);
             Steps(2);
-            var pt2 = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(io.AnalogGroups, g => g.Rows), r => r.Name == "Zone1_Pt2");
+            var pt2 = System.Linq.Enumerable.First(System.Linq.Enumerable.SelectMany(io.AnalogGroups, g => g.Rows), r => r.Name == "Zone1_Pt1");
             Check("AI watch shows value, raw and range (" + pt2.Value + ", " + pt2.Raw + ", " + pt2.Range + ")",
                   pt2.Value.EndsWith("bar") && pt2.Raw.Length > 0 && pt2.Range.Contains("16"));
             io.ShowTab(Screens.IoViewModel.AnalogOutputsTab);
@@ -598,6 +675,48 @@ namespace SempaPumpStation
         }
 
         // ---------------------------------------------------------------- login system
+        // ---------------------------------------------------------------- editing a value
+        // A click on a parameter box or an editable table cell selects the whole value, so typing replaces it
+        public sealed class EditProbeRow { public double Value { get; set; } = 27648; public string Name { get; set; } = "x"; }
+
+        private void RunEditScenario(System.Text.StringBuilder sb)
+        {
+            void Check(string what, bool ok) => sb.AppendLine((ok ? "PASS " : "FAIL ") + what);
+            System.Windows.Input.MouseButtonEventArgs Click(UIElement target) =>
+                new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+                { RoutedEvent = UIElement.PreviewMouseDownEvent, Source = target };
+
+            var box = new Controls.TagTextBox { Text = "80.5", Width = 120 };
+            var grid = new System.Windows.Controls.DataGrid { Style = (Style)FindResource("Dg"), Height = 120, Width = 300 };
+            grid.Columns.Add(new System.Windows.Controls.DataGridTextColumn { Header = "Ad", Binding = new System.Windows.Data.Binding("Name"), IsReadOnly = true });
+            grid.Columns.Add(new System.Windows.Controls.DataGridTextColumn { Header = "Değer", Binding = new System.Windows.Data.Binding("Value") });
+            grid.ItemsSource = new System.Collections.ObjectModel.ObservableCollection<EditProbeRow> { new EditProbeRow() };   // an array cannot be edited
+            var panel = new System.Windows.Controls.StackPanel();
+            panel.Children.Add(new System.Windows.Controls.TextBox());   // takes the focus first
+            panel.Children.Add(box);
+            panel.Children.Add(grid);
+            var window = new Window { Content = panel, Width = 400, Height = 300, ShowInTaskbar = false, Left = -2000, Top = -2000 };
+            window.Show();
+            try
+            {
+                window.UpdateLayout(); DoEvents();
+                box.RaiseEvent(Click(box)); DoEvents();
+                Check("a click on a parameter box selects its value (\"" + box.SelectedText + "\")", box.IsKeyboardFocused && box.SelectedText == "80.5");
+
+                var row = (System.Windows.Controls.DataGridRow)grid.ItemContainerGenerator.ContainerFromIndex(0);
+                var cell = (System.Windows.Controls.DataGridCell)grid.Columns[1].GetCellContent(row).Parent;
+                cell.RaiseEvent(Click(cell)); DoEvents();
+                var editor = grid.Columns[1].GetCellContent(row) as System.Windows.Controls.TextBox;
+                Check("one click on a table cell edits it with the value selected (\"" + editor?.SelectedText + "\")",
+                      cell.IsEditing && editor != null && editor.SelectedText == "27648");
+                grid.CancelEdit();
+                var readOnlyCell = (System.Windows.Controls.DataGridCell)grid.Columns[0].GetCellContent(row).Parent;
+                readOnlyCell.RaiseEvent(Click(readOnlyCell)); DoEvents();
+                Check("a read-only cell does not start editing", !readOnlyCell.IsEditing);
+            }
+            finally { window.Close(); }
+        }
+
         private void RunSecurityScenario(System.Text.StringBuilder sb)
         {
             var sec = _context.Security;

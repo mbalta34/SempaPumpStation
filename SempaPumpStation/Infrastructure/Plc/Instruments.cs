@@ -130,6 +130,8 @@ namespace SempaPumpStation.Infrastructure.Plc
 
         public int MountedDevice => _mountedDevice;
         public bool LoadNow { get; private set; }
+        /// <summary>With <see cref="LoadNow"/>: Yükle pressed while the zone runs, so only the filter settings are copied.</summary>
+        public bool LoadFilterOnly { get; private set; }
         public InstrumentPositionInfo Info => _info;
 
         public InstrumentPosition(InstrumentPositionInfo info, int retainedDevice)
@@ -146,6 +148,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             _load.Run(t, _hp + "Load", _ph + "Load");
 
             LoadNow = false;
+            LoadFilterOnly = false;
 
             // A physical device can be mounted at one position only. A rejected value is written back
             // into the parameter, which pushes it to the HMI again.
@@ -168,8 +171,12 @@ namespace SempaPumpStation.Infrastructure.Plc
                 }
             }
 
-            // Re-apply after the catalog entry of the mounted device has been edited
-            if (_load.QR && selectionEnabled && _mountedDevice > 0) LoadNow = true;
+            // Yükle re-applies the mounted device's catalog entry; while the zone runs only its filter settings
+            if (_load.QR && _mountedDevice > 0)
+            {
+                LoadNow = true;
+                LoadFilterOnly = !selectionEnabled;
+            }
 
             assigned[_info.Index] = _mountedDevice > 0 ? _info.Category * KeyFactor + _mountedDevice : 0;
             t.W(_ph + "SelectionRejected", _selectionRejected);
@@ -200,16 +207,19 @@ namespace SempaPumpStation.Infrastructure.Plc
 
                 var position = Positions[info.Name];
                 position.Run(t, Station.LibrarySize, enabled, _assigned);
-                if (position.LoadNow) LoadInstrument(t, info.Category, position.MountedDevice, info.Channel);
+                if (position.LoadNow) LoadInstrument(t, info.Category, position.MountedDevice, info.Channel, position.LoadFilterOnly);
             }
         }
 
-        // FC_Station_LoadInstrument: library entry → the channel's HMI-to-PLC parameters
-        private static void LoadInstrument(PlcTags t, int category, int device, string channel)
+        // FC_Station_LoadInstrument: library entry → the channel's HMI-to-PLC parameters. filterOnly (the zone runs):
+        // the range stays as the test started, only the filter settings are taken over.
+        private static void LoadInstrument(PlcTags t, int category, int device, string channel, bool filterOnly)
         {
             string entry = Station.LibraryEntry(category, device), hp = Station.AiHp(channel);
-            foreach (var n in Station.AiRealParameters) t.W(hp + n + ".Value", t.R(entry + n));
-            foreach (var n in Station.AiIntParameters) t.W(hp + n + ".Value", t.I(entry + n));
+            foreach (var n in Station.AiRealParameters)
+                if (!filterOnly || Station.IsAiFilterParameter(n)) t.W(hp + n + ".Value", t.R(entry + n));
+            foreach (var n in Station.AiIntParameters)
+                if (!filterOnly || Station.IsAiFilterParameter(n)) t.W(hp + n + ".Value", t.I(entry + n));
         }
     }
 }

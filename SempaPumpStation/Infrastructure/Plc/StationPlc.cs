@@ -96,8 +96,10 @@ namespace SempaPumpStation.Infrastructure.Plc
 
                 var fm = Station.FlowmeterPositions(z);
                 for (int f = 1; f <= 5; f++) p.Flowmeters[f] = f <= fm.Length ? _ai[fm[f - 1]].Pv : 0.0;
-                for (int t = 1; t <= Station.TransmitterCount; t++) p.DischargeTransmitters[t] = _ai[Station.TransmitterPosition(z, t)].Pv;
-                p.Vacuummeter = _ai[Station.VacuummeterPosition(z)].Pv;
+                for (int t = 1; t <= Station.MaxTransmitterCount; t++)
+                    p.DischargeTransmitters[t] = t <= Station.TransmitterCount(z) ? _ai[Station.TransmitterPosition(z, t)].Pv : 0.0;
+                for (int v = 1; v <= Station.MaxVacuummeterCount; v++)
+                    p.Vacuummeters[v] = v <= Station.VacuummeterCount(z) ? _ai[Station.VacuummeterPosition(z, v)].Pv : 0.0;
                 p.WaterTemperature = _ai["Zone" + z + "_WaterTemperature"].Pv;
                 p.AmbientTemperature = _ai["Zone" + z + "_AmbientTemperature"].Pv;
                 p.Vibration = _ai["Zone" + z + "_Vibration"].Pv;
@@ -128,8 +130,10 @@ namespace SempaPumpStation.Infrastructure.Plc
                 var p = _zoneInputs[z];
                 var fm = Station.FlowmeterPositions(z);
                 for (int f = 1; f <= 5; f++) p.FlowmeterDevices[f] = f <= fm.Length ? _instruments.Device(fm[f - 1]) : 0;
-                for (int t = 1; t <= Station.TransmitterCount; t++) p.DischargeTransmitterDevices[t] = _instruments.Device(Station.TransmitterPosition(z, t));
-                p.VacuummeterDevice = _instruments.Device(Station.VacuummeterPosition(z));
+                for (int t = 1; t <= Station.MaxTransmitterCount; t++)
+                    p.DischargeTransmitterDevices[t] = t <= Station.TransmitterCount(z) ? _instruments.Device(Station.TransmitterPosition(z, t)) : 0;
+                for (int v = 1; v <= Station.MaxVacuummeterCount; v++)
+                    p.VacuummeterDevices[v] = v <= Station.VacuummeterCount(z) ? _instruments.Device(Station.VacuummeterPosition(z, v)) : 0;
             }
 
             // A manipulation in any zone (found last scan) holds every zone stopped
@@ -150,7 +154,8 @@ namespace SempaPumpStation.Infrastructure.Plc
                 // Every zone has its own flowmeters, so none is held by another zone
                 var flowmeterHeld = new bool[6];
 
-                _zones[z].Run(_t, _zoneInputs[z], sourceHeld, flowmeterHeld, Station.FlowmeterCount(z), _cycle);
+                _zones[z].Run(_t, _zoneInputs[z], sourceHeld, flowmeterHeld, Station.FlowmeterCount(z),
+                              Station.TransmitterCount(z), Station.VacuummeterCount(z), _cycle);
             }
 
             // A contactor or magnetic switch changed state without a command: stop every motor in this scan

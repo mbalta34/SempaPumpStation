@@ -55,6 +55,7 @@ namespace SempaPumpStation.Infrastructure
             new Entry { Description = "Wika S-20 -1..1.5 bar", Serial = "WK-V20047", Unit = "bar", MinPv = -1, MaxPv = 1.5 },
             new Entry { Description = "Danfoss MBS -1..5 bar", Serial = "DF-V3-4410", Unit = "bar", MinPv = -1, MaxPv = 5 },
             new Entry { Description = "Keller PA-21 -1..3 bar", Serial = "KE-V55410", Unit = "bar", MinPv = -1, MaxPv = 3 },
+            new Entry { Description = "Danfoss MBS -1..1.5 bar", Serial = "DF-V3-4452", Unit = "bar", MinPv = -1, MaxPv = 1.5 },
         };
 
         /// <summary>Library start values as (tag name, value) pairs.</summary>
@@ -101,21 +102,16 @@ namespace SempaPumpStation.Infrastructure
                 case "Zone3_FM2": return 10;
                 case "Zone3_FM3": return 11;
                 case "Zone3_FM4": return 12;
-                case "Zone1_Pt1": return 1;
-                case "Zone1_Pt2": return 3;
-                case "Zone1_Pt3": return 4;
-                case "Zone1_Pt4": return 6;
+                case "Zone1_Pt1": return 3;
                 case "Zone2_Pt1": return 2;
                 case "Zone2_Pt2": return 7;
-                case "Zone2_Pt3": return 8;
-                case "Zone2_Pt4": return 5;
                 case "Zone3_Pt1": return 9;
                 case "Zone3_Pt2": return 10;
-                case "Zone3_Pt3": return 11;
-                case "Zone3_Pt4": return 12;
-                case "Zone1_Vacuummeter": return 1;
-                case "Zone2_Vacuummeter": return 2;
-                case "Zone3_Vacuummeter": return 4;
+                case "Zone1_Vacuummeter1": return 1;
+                case "Zone2_Vacuummeter1": return 2;
+                case "Zone2_Vacuummeter2": return 3;
+                case "Zone3_Vacuummeter1": return 4;
+                case "Zone3_Vacuummeter2": return 5;
                 default: return 0;
             }
         }

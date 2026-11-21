@@ -25,6 +25,8 @@ namespace SempaPumpStation.Infrastructure.Security
         public const string AlarmReset = "Alarms.Reset";
         /// <summary>Calibration data of the instrument library.</summary>
         public const string EditLibrary = "Instruments.Library";
+        /// <summary>Scaling and filter settings of the fixed analog sensors (Analog Ayarları).</summary>
+        public const string AnalogSettings = "Analog.Settings";
         /// <summary>Creating, saving and deleting recipes.</summary>
         public const string ManageRecipes = "Recipes.Manage";
         public const string ExitApplication = "App.Exit";
@@ -45,6 +47,7 @@ namespace SempaPumpStation.Infrastructure.Security
                 { ReportData, Operator },
                 { AlarmReset, Operator },
                 { EditLibrary, Engineer },
+                { AnalogSettings, Engineer },
                 { ManageRecipes, Engineer },
                 { ExitApplication, Engineer },
                 { ForceOutputs, Engineer },

@@ -16,6 +16,7 @@ namespace SempaPumpStation.Infrastructure
         public int PowerSource { get; set; }
         public int Flowmeter { get; set; }
         public int DischargeTransmitter { get; set; }
+        public int Vacuummeter { get; set; }      // the suction vacuummeter selected (1-2); 0 in archives from before 1.9
         public int FlowmeterDevice { get; set; }
         public int DischargeTransmitterDevice { get; set; }
         public int VacuummeterDevice { get; set; }
@@ -171,6 +172,7 @@ namespace SempaPumpStation.Infrastructure
                 PowerSource = _ctx.GetInt(p + "PowerSource"),
                 Flowmeter = _ctx.GetInt(p + "Flowmeter"),
                 DischargeTransmitter = _ctx.GetInt(p + "DischargeTransmitter"),
+                Vacuummeter = _ctx.GetInt(p + "Vacuummeter"),
                 FlowmeterDevice = _ctx.GetInt(p + "FlowmeterDevice"),
                 DischargeTransmitterDevice = _ctx.GetInt(p + "DischargeTransmitterDevice"),
                 VacuummeterDevice = _ctx.GetInt(p + "VacuummeterDevice"),
@@ -210,7 +212,7 @@ namespace SempaPumpStation.Infrastructure
             "No", "Zaman", "Kaynak", "Debimetre", "BasincTr", "DebimetreCihaz", "BasincTrCihaz", "VakumCihaz",
             "Debi_m3h", "BasmaBasinci_bar", "EmmeBasinci_bar", "Hm_m", "HidrolikGuc_kW",
             "SuSicakligi_C", "OrtamSicakligi_C", "Titresim_mms", "MotorSicakligi_C", "Ses_dB", "Devir_dk",
-            "Gerilim_V", "Akim_A", "HizRef_yuzde", "PompaCalisiyor", "Tork_Nm", "CosPhi",
+            "Gerilim_V", "Akim_A", "HizRef_yuzde", "PompaCalisiyor", "Tork_Nm", "CosPhi", "Vakummetre",
         };
 
         private const int OldColumnCount = 23;
@@ -233,6 +235,7 @@ namespace SempaPumpStation.Infrastructure
                     N(s.Flow), N(s.DischargePressure, "0.000"), N(s.SuctionPressure, "0.000"), N(s.Head), N(s.HydraulicPower),
                     N(s.WaterTemperature), N(s.AmbientTemperature), N(s.Vibration), N(s.Temperature), N(s.Sound), N(s.Speed, "0"),
                     N(s.Voltage), N(s.Current), N(s.SpeedReference), s.PumpRunning ? "1" : "0", N(s.Torque, "0.0"), N(s.PowerFactor, "0.000"),
+                    s.Vacuummeter.ToString(Inv),
                 }));
             }
             File.WriteAllText(r.File, sb.ToString(), new UTF8Encoding(true));
@@ -295,6 +298,7 @@ namespace SempaPumpStation.Infrastructure
                         PumpRunning = c[22] == "1",
                         Torque = Named("Tork_Nm"),
                         PowerFactor = Named("CosPhi"),
+                        Vacuummeter = (int)Named("Vakummetre"),
                     });
                 }
                 return r;

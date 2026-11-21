@@ -3,105 +3,130 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:SempaPumpStation.Controls"
              xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
-    <Grid Margin="20">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1.05*"/>
-            <ColumnDefinition Width="14"/>
-            <ColumnDefinition Width="1*"/>
-        </Grid.ColumnDefinitions>
+    <UserControl.Resources>
+        <!-- Larger headers for the full-width tables (the Dg style's own headers are 11 px) -->
+        <Style x:Key="WideHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource B.Card2}"/>
+            <Setter Property="Foreground" Value="{StaticResource B.TextDim}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+    </UserControl.Resources>
 
-        <!-- ============ Positions ============ -->
-        <Border Grid.Column="0" Style="{StaticResource Card}">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
-                    <TextBlock Text="ENSTRÜMAN POZİSYONLARI" Style="{StaticResource T.Section}"/>
-                    <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
-                               Text="Pozisyona takılan cihazın kütüphane numarasını girin. Yeni cihaz kabul edilince parametreleri analog girişe yüklenir; kütüphane kaydı değiştiyse Yükle'ye basın. Bölgesi çalışırken pozisyon kilitlidir; aynı cihaz iki pozisyona takılamaz."/>
-                </StackPanel>
-                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Positions}" IsReadOnly="True" RowHeight="32"
-                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Pozisyon" Binding="{Binding Name}" Width="138"/>
-                        <DataGridTextColumn Header="Tür" Binding="{Binding CategoryName}" Width="125"/>
-                        <DataGridTemplateColumn Header="Cihaz No" Width="74">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding PhDeviceTag}" WriteTag="{Binding DeviceTag}" Format="0"
-                                                  IsEnabled="{Binding Enabled}" Height="26" Padding="6,0"
-                                                  sec:Access.Requires="Instruments.Mount"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <!-- Fixed widths: on a narrower screen the table scrolls sideways instead of cutting columns -->
-                        <DataGridTemplateColumn Header="Cihaz" Width="200">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Device}" VerticalAlignment="Center"/>
-                                        <TextBlock Text="  reddedildi" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center"
-                                                   Visibility="{Binding Rejected, Converter={StaticResource BoolVis}}"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="105"/>
-                        <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" Width="88"/>
-                        <DataGridTemplateColumn Header="" Width="66">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border sec:Access.Requires="Instruments.Mount">
-                                        <Button Content="Yükle" Style="{StaticResource Btn}" Padding="8,2" FontSize="11.5"
-                                                Command="{Binding LoadCommand}" IsEnabled="{Binding Enabled}"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </DockPanel>
-        </Border>
+    <DockPanel>
+        <!-- ============ Tabs ============ -->
+        <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Tabs}" Margin="20,20,20,0">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Style="{StaticResource Choice}" Tag="{Binding State}" Command="{Binding Command}" Padding="18,8">
+                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-        <!-- ============ Library ============ -->
-        <Border Grid.Column="2" Style="{StaticResource Card}">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
-                    <ItemsControl ItemsSource="{Binding Categories}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource Choice}" Tag="{Binding State}" Command="{Binding Command}" Padding="14,7">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock Text="{Binding LibraryTitle}" Style="{StaticResource T.Section}" Margin="0,4,0,4"/>
-                    <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
-                               Text="Hücreye çift tıklayıp düzenleyin (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer."/>
-                </StackPanel>
-                <!-- Fixed column widths: wider than the card, the table scrolls sideways (No and Tanım stay) instead of cutting columns -->
-                <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2"
-                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                          sec:Access.Requires="Instruments.Library">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="No" Binding="{Binding Device}" IsReadOnly="True" Width="40"/>
-                        <DataGridTextColumn Header="Tanım" Binding="{Binding Description}" Width="180"/>
-                        <DataGridTextColumn Header="Seri No" Binding="{Binding SerialNumber}" Width="100"/>
-                        <DataGridTextColumn Header="Birim" Binding="{Binding Unit}" Width="56"/>
-                        <DataGridTextColumn Header="Min Ham" Binding="{Binding MinRaw}" Width="64"/>
-                        <DataGridTextColumn Header="Max Ham" Binding="{Binding MaxRaw}" Width="64"/>
-                        <DataGridTextColumn Header="Min" Binding="{Binding MinPv}" Width="60"/>
-                        <DataGridTextColumn Header="Max" Binding="{Binding MaxPv}" Width="60"/>
-                        <DataGridTextColumn Header="Filtre" Binding="{Binding FilterType}" Width="48"/>
-                        <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha}" Width="56"/>
-                        <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="80"/>
-                        <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="64"/>
-                        <DataGridTextColumn Header="Takılı" Binding="{Binding MountedAt}" IsReadOnly="True" Width="140"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </DockPanel>
-        </Border>
-    </Grid>
+        <Grid Margin="20,12,20,20">
+            <!-- ============ Positions ============ -->
+            <Border Style="{StaticResource Card}" Visibility="{Binding ShowPositions, Converter={StaticResource BoolVis}}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="ENSTRÜMAN POZİSYONLARI" Style="{StaticResource T.Section}"/>
+                        <TextBlock Style="{StaticResource T.Label}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
+                                   Text="Pozisyona takılan cihazın kütüphane numarasını girin. Yeni cihaz kabul edilince parametreleri analog girişe yüklenir; kütüphane kaydı değiştiyse Yükle'ye basın. Bölgesi çalışırken cihaz değiştirilemez ve Yükle yalnızca filtre ayarlarını alır (ölçek test sonuna kadar aynı kalır); aynı cihaz iki pozisyona takılamaz."/>
+                    </StackPanel>
+                    <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Positions}" IsReadOnly="True" RowHeight="36" FontSize="14"
+                              ColumnHeaderStyle="{StaticResource WideHeader}"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Pozisyon" Binding="{Binding Name}" Width="190"/>
+                            <DataGridTextColumn Header="Tür" Binding="{Binding CategoryName}" Width="170"/>
+                            <DataGridTemplateColumn Header="Cihaz No" Width="96">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding PhDeviceTag}" WriteTag="{Binding DeviceTag}" Format="0"
+                                                      IsEnabled="{Binding Enabled}" Height="30" Padding="6,0" FontSize="14"
+                                                      sec:Access.Requires="Instruments.Mount"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Cihaz" Width="*" MinWidth="260">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Device}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="  reddedildi" Foreground="{StaticResource B.Warn}" VerticalAlignment="Center"
+                                                       Visibility="{Binding Rejected, Converter={StaticResource BoolVis}}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="160"/>
+                            <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" Width="130"/>
+                            <DataGridTemplateColumn Header="" Width="96">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border sec:Access.Requires="Instruments.Mount">
+                                            <Button Content="Yükle" Style="{StaticResource Btn}" Padding="12,3" FontSize="13"
+                                                    Command="{Binding LoadCommand}" IsEnabled="{Binding CanLoad}"
+                                                    ToolTip="{Binding LoadHint}" ToolTipService.ShowOnDisabled="True"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <!-- ============ Library ============ -->
+            <Border Style="{StaticResource Card}" Visibility="{Binding ShowLibrary, Converter={StaticResource BoolVis}}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <ItemsControl ItemsSource="{Binding Categories}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource Choice}" Tag="{Binding State}" Command="{Binding Command}" Padding="16,8">
+                                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"/>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding LibraryTitle}" Style="{StaticResource T.Section}" Margin="0,4,0,4"/>
+                        <TextBlock Style="{StaticResource T.Label}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
+                                   Text="Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Filtre: 0 yok, 1 EMA, 2 EMA + aykırı değer. Takılı bir cihazın değişikliği, pozisyondaki Yükle ile analog girişe geçer."/>
+                    </StackPanel>
+                    <!-- Fixed column widths; on a narrow screen the table scrolls sideways (No and Tanım stay) -->
+                    <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2" RowHeight="36" FontSize="14.5"
+                              ColumnHeaderStyle="{StaticResource WideHeader}"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                              sec:Access.Requires="Instruments.Library">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="No" Binding="{Binding Device}" IsReadOnly="True" Width="56"/>
+                            <DataGridTextColumn Header="Tanım" Binding="{Binding Description}" Width="260"/>
+                            <DataGridTextColumn Header="Seri No" Binding="{Binding SerialNumber}" Width="140"/>
+                            <DataGridTextColumn Header="Birim" Binding="{Binding Unit}" Width="80"/>
+                            <DataGridTextColumn Header="Min Ham" Binding="{Binding MinRaw}" Width="96"/>
+                            <DataGridTextColumn Header="Max Ham" Binding="{Binding MaxRaw}" Width="96"/>
+                            <DataGridTextColumn Header="Min" Binding="{Binding MinPv}" Width="84"/>
+                            <DataGridTextColumn Header="Max" Binding="{Binding MaxPv}" Width="84"/>
+                            <DataGridTextColumn Header="Filtre" Binding="{Binding FilterType}" Width="72"/>
+                            <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha}" Width="84"/>
+                            <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="124"/>
+                            <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="96"/>
+                            <DataGridTextColumn Header="Takılı" Binding="{Binding MountedAt}" IsReadOnly="True" Width="*" MinWidth="180"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
 </UserControl>

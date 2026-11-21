@@ -18,6 +18,7 @@ namespace SempaPumpStation.PlcInterface
             PowerSource = k.Leaf(name + ".PowerSource", DataType.INT);
             Flowmeter = k.Leaf(name + ".Flowmeter", DataType.INT);
             DischargeTransmitter = k.Leaf(name + ".DischargeTransmitter", DataType.INT);
+            Vacuummeter = k.Leaf(name + ".Vacuummeter", DataType.INT);
             FlowmeterDevice = k.Leaf(name + ".FlowmeterDevice", DataType.INT);
             DischargeTransmitterDevice = k.Leaf(name + ".DischargeTransmitterDevice", DataType.INT);
             VacuummeterDevice = k.Leaf(name + ".VacuummeterDevice", DataType.INT);
@@ -42,6 +43,7 @@ namespace SempaPumpStation.PlcInterface
         public SiemensS7PlcTag PowerSource { get; private set; }
         public SiemensS7PlcTag Flowmeter { get; private set; }
         public SiemensS7PlcTag DischargeTransmitter { get; private set; }
+        public SiemensS7PlcTag Vacuummeter { get; private set; }
         public SiemensS7PlcTag FlowmeterDevice { get; private set; }
         public SiemensS7PlcTag DischargeTransmitterDevice { get; private set; }
         public SiemensS7PlcTag VacuummeterDevice { get; private set; }

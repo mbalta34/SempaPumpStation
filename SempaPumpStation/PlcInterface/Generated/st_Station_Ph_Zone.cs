@@ -17,6 +17,7 @@ namespace SempaPumpStation.PlcInterface
             PowerSource = k.Next(new st_Hmi_Ph_ParameterInt(c, name + ".PowerSource", db, k.Struct(), w, r));
             Flowmeter = k.Next(new st_Hmi_Ph_ParameterInt(c, name + ".Flowmeter", db, k.Struct(), w, r));
             DischargeTransmitter = k.Next(new st_Hmi_Ph_ParameterInt(c, name + ".DischargeTransmitter", db, k.Struct(), w, r));
+            Vacuummeter = k.Next(new st_Hmi_Ph_ParameterInt(c, name + ".Vacuummeter", db, k.Struct(), w, r));
             SpeedReference = k.Next(new st_Hmi_Ph_ParameterReal(c, name + ".SpeedReference", db, k.Struct(), w, r));
             Stop = k.Next(new st_Hmi_Ph_CommandButton(c, name + ".Stop", db, k.Struct(), w, r));
             ResetFault = k.Next(new st_Hmi_Ph_CommandButton(c, name + ".ResetFault", db, k.Struct(), w, r));
@@ -54,6 +55,7 @@ namespace SempaPumpStation.PlcInterface
         public st_Hmi_Ph_ParameterInt PowerSource { get; private set; }
         public st_Hmi_Ph_ParameterInt Flowmeter { get; private set; }
         public st_Hmi_Ph_ParameterInt DischargeTransmitter { get; private set; }
+        public st_Hmi_Ph_ParameterInt Vacuummeter { get; private set; }
         public st_Hmi_Ph_ParameterReal SpeedReference { get; private set; }
         public st_Hmi_Ph_CommandButton Stop { get; private set; }
         public st_Hmi_Ph_CommandButton ResetFault { get; private set; }
