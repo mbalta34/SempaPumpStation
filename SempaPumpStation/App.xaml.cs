@@ -307,6 +307,9 @@ namespace SempaPumpStation
                       && Math.Abs(live.DischargeHead + live.SuctionHead + live.VelocityHead + 0.6 - live.Head) < 0.001
                       && Math.Abs(live.ElectricalPower.Value - ns) < 0.05 && Math.Abs(live.PumpPower.Value - np) < 0.05
                       && Math.Abs(live.Efficiency.Value - eta) < 0.5);
+                // The meter's power factor is signed by quadrant: Nş takes its magnitude (400 V, 10 A, cos φ 0.85 → 5.889 kW)
+                Check("Nş = 1.732 × |cos φ| × U × I / 1000, also for a negative meter power factor",
+                      Math.Abs(PumpCalc.ElectricalPower(400, 10, -0.85) - 5.8888) < 0.001 && Math.Abs(PumpCalc.ElectricalPower(400, 10, 0.85) - 5.8888) < 0.001);
             }
             Check("zone voltage and current come from the meter",
                   c.GetDouble(Station.Sample(1, 6) + "Voltage") > 390 && c.GetDouble(Station.Sample(1, 6) + "Current") > 0);

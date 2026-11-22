@@ -103,9 +103,16 @@ namespace SempaPumpStation.Infrastructure
 
         public static double HydraulicPower(double flow, double head) => flow * head / HydraulicPowerDivisor;
 
-        /// <summary>Nş, the electrical input √3·U·I·cosφ in kW (report column M); 0 without a valid cos φ.</summary>
+        /// <summary>
+        /// Nş, the electrical input √3·U·I·cosφ in kW (report column M), from the line voltage, current and power factor;
+        /// not the meter's own active power. The meter's power factor carries the quadrant as its sign (leading /
+        /// lagging), so its magnitude is used. 0 without a valid cos φ.
+        /// </summary>
         public static double ElectricalPower(double voltage, double current, double powerFactor)
-            => powerFactor > 0 && powerFactor <= 1 ? Sqrt3 * powerFactor * voltage * current / 1000.0 : 0.0;
+        {
+            double cos = Math.Abs(powerFactor);
+            return cos > 0 && cos <= 1 ? Sqrt3 * cos * voltage * current / 1000.0 : 0.0;
+        }
 
         /// <summary>
         /// Np, the pump power (report column N): Nş times the motor's efficiency at its load band (up to 25, 50, 75 % of

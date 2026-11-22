@@ -118,7 +118,8 @@ namespace SempaPumpStation.Infrastructure
                 w.Number("D" + row, s.Flow);
                 w.Number("F" + row, submersible ? 0.0 : -s.SuctionPressure);
                 w.Number("G" + row, s.DischargePressure);
-                if (s.PowerFactor > 0 && s.PowerFactor <= 1) w.Number("J" + row, s.PowerFactor);
+                double cos = Math.Abs(s.PowerFactor);   // the meter's sign is the quadrant; the report wants cos φ
+                if (cos > 0 && cos <= 1) w.Number("J" + row, cos);
                 w.Number("K" + row, s.Voltage);
                 w.Number("L" + row, s.Current);
                 w.Number("P" + row, s.Torque);

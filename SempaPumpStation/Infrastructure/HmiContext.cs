@@ -232,6 +232,11 @@ namespace SempaPumpStation.Infrastructure
             try { return v == null ? 0 : Convert.ToDouble(v); } catch { return 0; }
         }
 
+        /// <summary>
+        /// A PLC Real for display and editing: rounded to 4 decimal places, so 0.02 reads 0.02 and not 0.0199999995529652.
+        /// </summary>
+        public double GetReal(string name) => Math.Round(GetDouble(name), 4);
+
         public int GetInt(string name) => (int)Math.Round(GetDouble(name));
 
         public string GetString(string name) => Tag(name)?.TagValue?.ToString() ?? string.Empty;

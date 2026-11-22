@@ -307,15 +307,126 @@
         </Setter>
     </Style>
 
-    <!-- ============================ ComboBox (light styling) ============================ -->
+    <!-- ============================ ComboBox (dark, dropdown included) ============================ -->
+    <!-- The default template ignores Background and opens a white system popup, so the whole control is templated -->
+    <Style x:Key="CbItem" TargetType="ComboBoxItem">
+        <Setter Property="FontFamily" Value="{StaticResource F.Ui}"/>
+        <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="4" Margin="3,1" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#123A44"/>
+                            <Setter Property="Foreground" Value="{StaticResource B.Accent}"/>
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource B.CardHi}"/>
+                            <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource B.TextFaint}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <ControlTemplate x:Key="Cb.Toggle" TargetType="ToggleButton">
+        <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding Tag}" SnapsToDevicePixels="True">
+            <Path x:Name="arrow" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
+                  Data="M0,0 L4,4 L8,0" Stroke="{StaticResource B.TextDim}" StrokeThickness="1.6"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource B.BorderHi}"/>
+                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource B.Text}"/>
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource B.Accent}"/>
+                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource B.Accent}"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
     <Style x:Key="Cb" TargetType="ComboBox">
         <Setter Property="FontFamily" Value="{StaticResource F.Ui}"/>
         <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
         <Setter Property="Background" Value="{StaticResource B.Field}"/>
         <Setter Property="BorderBrush" Value="{StaticResource B.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Height" Value="34"/>
-        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="Padding" Value="9,0,28,0"/>
+        <!-- Tag: the corner radius of the box -->
+        <Setter Property="Tag"><Setter.Value><CornerRadius>6</CornerRadius></Setter.Value></Setter>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource CbItem}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid x:Name="root" SnapsToDevicePixels="True">
+                        <ToggleButton Template="{StaticResource Cb.Toggle}" Focusable="False" ClickMode="Press"
+                                      Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                      BorderThickness="{TemplateBinding BorderThickness}" Tag="{TemplateBinding Tag}"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                        <ContentPresenter IsHitTestVisible="False" Margin="{TemplateBinding Padding}"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False"
+                               PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}"
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                            <Border x:Name="drop" Margin="0,2,0,0" Padding="0,3" CornerRadius="6"
+                                    Background="{StaticResource B.Card2}" BorderBrush="{StaticResource B.BorderHi}" BorderThickness="1"
+                                    TextElement.Foreground="{StaticResource B.Text}"
+                                    MinWidth="{Binding ActualWidth, ElementName=root}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <ScrollViewer SnapsToDevicePixels="True">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasItems" Value="False">
+                            <Setter TargetName="drop" Property="MinHeight" Value="40"/>
+                        </Trigger>
+                        <Trigger Property="IsGrouping" Value="True">
+                            <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- In a table cell: fills the cell, the table's font size, square corners. A DataGridComboBoxColumn gives its
+         editor a default style of its own, so set EditingElementStyle="{StaticResource Cb.Cell}" on the column. -->
+    <Style x:Key="Cb.Cell" TargetType="ComboBox" BasedOn="{StaticResource Cb}">
+        <!-- The cell centres its content, so the box takes the row's height and cancels the cell's 6 px side padding -->
+        <Setter Property="Height" Value="{Binding RowHeight, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+        <Setter Property="Margin" Value="-6,0"/>
+        <Setter Property="FontSize" Value="{Binding FontSize, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+        <Setter Property="Padding" Value="6,0,26,0"/>
+        <Setter Property="Tag"><Setter.Value><CornerRadius>0</CornerRadius></Setter.Value></Setter>
+        <Setter Property="BorderBrush" Value="{StaticResource B.Accent}"/>
     </Style>
 
     <!-- ============================ ListBox ============================ -->
@@ -468,5 +579,6 @@
     <Style TargetType="TextBox" BasedOn="{StaticResource Tb}"/>
     <Style TargetType="Button" BasedOn="{StaticResource Btn}"/>
     <Style TargetType="ComboBox" BasedOn="{StaticResource Cb}"/>
+    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource CbItem}"/>
 
 </ResourceDictionary>

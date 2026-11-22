@@ -56,11 +56,11 @@ namespace SempaPumpStation.Screens
         public string Unit { get => S("Unit"); set => W("Unit", value ?? ""); }
         public int MinRaw { get => _ctx.GetInt(_e + "MinRaw"); set => W("MinRaw", (short)value); }
         public int MaxRaw { get => _ctx.GetInt(_e + "MaxRaw"); set => W("MaxRaw", (short)value); }
-        public double MinPv { get => _ctx.GetDouble(_e + "MinPv"); set => W("MinPv", (float)value); }
-        public double MaxPv { get => _ctx.GetDouble(_e + "MaxPv"); set => W("MaxPv", (float)value); }
+        public double MinPv { get => _ctx.GetReal(_e + "MinPv"); set => W("MinPv", (float)value); }
+        public double MaxPv { get => _ctx.GetReal(_e + "MaxPv"); set => W("MaxPv", (float)value); }
         public int FilterType { get => _ctx.GetInt(_e + "FilterType"); set => W("FilterType", (short)value); }
-        public double FilterEmaAlpha { get => _ctx.GetDouble(_e + "FilterEmaAlpha"); set => W("FilterEmaAlpha", (float)value); }
-        public double FilterOutlierMaxJump { get => _ctx.GetDouble(_e + "FilterOutlierMaxJump"); set => W("FilterOutlierMaxJump", (float)value); }
+        public double FilterEmaAlpha { get => _ctx.GetReal(_e + "FilterEmaAlpha"); set => W("FilterEmaAlpha", (float)value); }
+        public double FilterOutlierMaxJump { get => _ctx.GetReal(_e + "FilterOutlierMaxJump"); set => W("FilterOutlierMaxJump", (float)value); }
         public int FilterOutlierMaxRejectCount { get => _ctx.GetInt(_e + "FilterOutlierMaxRejectCount"); set => W("FilterOutlierMaxRejectCount", (short)value); }
 
         private string _mountedAt = "";

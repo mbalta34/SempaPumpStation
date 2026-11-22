@@ -14,7 +14,7 @@ namespace SempaPumpStation.Infrastructure
         // ---- bump these ----
         public const int Major = 1;
         public const int Minor = 9;
-        public const int Build = 1;
+        public const int Build = 2;
 
         public const string ProductName = "Sempa HMI";
 
@@ -39,6 +39,15 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.9.2", "2026-11-22", new[]
+            {
+                "Nş (zone screen, report) is 1.732 × |cos φ| × U × I / 1000 with the magnitude of the meter's power factor, whose sign only tells the quadrant (leading / lagging): a negative power factor no longer zeroes Nş, Pp and the efficiency. The Excel report's cos φ column gets the same magnitude.",
+                "Zone screen sample table: Hm uses the loaded recipes' pipe diameters (velocity head), as the live tiles and the report do.",
+                "Combo boxes (filter type in the tables) in the dark theme: dark dropdown, items in the theme's text colour, the selected item highlighted. In the tables the filter combo fills its cell.",
+                "Analog Ayarları and the instrument library show the PLC's Real values rounded to 4 decimal places; EMA α as x.xxxx (0.0200, not 0.0199999995).",
+                "Needs PLC program 1.4.3.",
+            }),
+
             new ChangeLogEntry("1.9.1", "2026-11-21", new[]
             {
                 "The zone and TV screens calculate as the Excel report: Hm includes the velocity head difference between the discharge and suction pipes (10.2 m per bar); Pp is the pump power, √3·U·I·cosφ from the source's PM5550 times the motor efficiency at its load (motor recipe); the efficiency is the pump efficiency Q·Hm/367.2 / Pp. The zone screen also shows the discharge and suction heads Hb and He (m) and the electrical power Nş; the report screen shows Pp and the efficiency per sample, and archives are recalculated when loaded.",

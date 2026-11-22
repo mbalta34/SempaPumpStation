@@ -107,7 +107,7 @@ namespace SempaPumpStation.Screens
         public string SuctionHeadText { get => _suctionHeadText; private set => Set(ref _suctionHeadText, value); }
 
         private string _electricalPowerText = "—";
-        /// <summary>Nş, the electrical input from the meter (√3·U·I·cosφ).</summary>
+        /// <summary>Nş, the electrical input from the meter values (√3·U·I·cosφ).</summary>
         public string ElectricalPowerText { get => _electricalPowerText; private set => Set(ref _electricalPowerText, value); }
 
         private string _flowUnit = "m³/h";
@@ -252,8 +252,9 @@ namespace SempaPumpStation.Screens
             _lastStarted = started;
 
             var record = new TestRecord { Zone = _zone };
-            record.Header["GEO_YUKSEKLIK"] = Ctx.GetDouble("GEO_YUKSEKLIK").ToString(System.Globalization.CultureInfo.InvariantCulture);
-            record.Header["DALGIC_PMP_SEL"] = Ctx.GetBool("DALGIC_PMP_SEL").ToString();
+            // The loaded recipes, as the archive takes them at test end, so Hm here matches the live tiles and the report
+            foreach (var k in TestArchive.HeaderKeys)
+                record.Header[k] = Convert.ToString(Ctx.Tag(k)?.TagValue, System.Globalization.CultureInfo.InvariantCulture) ?? "";
             for (int i = 1; i <= count; i++) record.Samples.Add(ReadSample(i));
             TestArchive.Derive(record);
 

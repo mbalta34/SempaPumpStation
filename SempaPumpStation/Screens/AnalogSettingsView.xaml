@@ -27,8 +27,9 @@
                         <DataGridTextColumn Header="Min" Binding="{Binding MinPv}" Width="64"/>
                         <DataGridTextColumn Header="Max" Binding="{Binding MaxPv}" Width="64"/>
                         <DataGridComboBoxColumn Header="Filtre" Width="180" ItemsSource="{x:Static inf:AnalogFilter.Items}"
+                                                    EditingElementStyle="{StaticResource Cb.Cell}"
                                                     SelectedValueBinding="{Binding FilterType}" SelectedValuePath="Value" DisplayMemberPath="Display"/>
-                        <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha}" Width="60"/>
+                        <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha, StringFormat=0.0000}" Width="60"/>
                         <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="90"/>
                         <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="70"/>
                         <DataGridTextColumn Header="Kanal" Binding="{Binding Channel}" IsReadOnly="True" Width="190"/>

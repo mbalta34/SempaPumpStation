@@ -49,7 +49,7 @@ namespace SempaPumpStation.Screens
         public bool Editing { get; set; }
 
         private int I(string n) => _ctx.GetInt(_ph + n + ".Value");
-        private double R(string n) => _ctx.GetDouble(_ph + n + ".Value");
+        private double R(string n) => _ctx.GetReal(_ph + n + ".Value");
 
         private void W(string n, object v)
         {
