@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TerakkiFramework.Plc;
 using TerakkiFramework.Tags;
 
@@ -28,10 +29,15 @@ namespace SempaPumpStation.Infrastructure
                 foreach (var ch in Station.AnalogInputs()) AddAnalogInput(t, ch);
                 for (int c = Station.Flowmeter; c <= Station.Vacuummeter; c++)
                     for (int d = 1; d <= Station.LibrarySize; d++)
+                    {
                         foreach (var f in Station.InstrumentFields) Add(t, Station.LibraryEntry(c, d) + f.Name, f.Kind);
+                        foreach (var f in Station.AdjustmentFields) Add(t, Station.AdjustmentEntry(c, d) + f.Name, f.Kind);
+                    }
                 for (int z = 1; z <= Station.ZoneCount; z++) AddSamples(t, z);
                 for (int z = 1; z <= Station.ZoneCount; z++) AddIoLink(t, z);
                 for (int s = 1; s <= Station.SourceCount; s++) AddPowermeter(t, s);
+                foreach (var f in Station.DriveFields) Add(t, Station.Drive630 + f.Name, f.Kind);
+                AddFilterSettings(t, Station.DriveFilterHp, Station.DriveFilterPh);
                 S(t, "StationPh.PlcVersion");
                 D(t, Station.NextTestNo);
                 foreach (var o in DigitalOutputs.All) AddDigitalOutput(t, o);
@@ -57,7 +63,7 @@ namespace SempaPumpStation.Infrastructure
             foreach (var n in Station.ZoneButtons) { B(t, hp + n + ".Click"); B(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
 
             I(t, ph + "PowerState");
-            foreach (var n in new[] { "PumpRunning", "DeviceFault", "DriveFault", "EStop", "SafetyStop", "SelectionRejected", "TestActive", "SampleBufferFull", "LampGreen", "LampYellow", "LampRed" })
+            foreach (var n in new[] { "PumpRunning", "DeviceFault", "DriveFault", "DriveFeedbackFault", "EStop", "SafetyStop", "SelectionRejected", "TestActive", "SampleBufferFull", "LampGreen", "LampYellow", "LampRed" })
                 B(t, ph + n);
             I(t, ph + "SampleCount"); I(t, ph + "ManipulatedDevice");
             foreach (var n in new[] { "Flow", "DischargePressure", "SuctionPressure" }) R(t, ph + n);
@@ -67,9 +73,8 @@ namespace SempaPumpStation.Infrastructure
         private static void AddPosition(List<TagDefinition> t, string pos)
         {
             string hp = Station.PositionHp(pos), ph = Station.PositionPh(pos);
-            I(t, hp + "Device.Value"); B(t, hp + "Load.Click");
+            I(t, hp + "Device.Value");
             I(t, ph + "Device.Value"); B(t, ph + "Device.Enabled");
-            B(t, ph + "Load.Value"); B(t, ph + "Load.Enabled");
             B(t, ph + "SelectionRejected");
         }
 
@@ -96,6 +101,15 @@ namespace SempaPumpStation.Infrastructure
             B(t, m + "CommOk");
             foreach (var g in Station.MeterGroups)
                 foreach (var v in Station.MeterValues) R(t, m + g + "." + v);
+
+            AddFilterSettings(t, Station.MeterFilterHp(source), Station.MeterFilterPh(source));
+        }
+
+        /// <summary>The filter settings of a meter or the drive (st_Communication_*_PowermeterFilter).</summary>
+        private static void AddFilterSettings(List<TagDefinition> t, string hp, string ph)
+        {
+            foreach (var n in Station.MeterFilterIntParameters) { I(t, hp + n + ".Value"); I(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
+            foreach (var n in Station.MeterFilterRealParameters) { R(t, hp + n + ".Value"); R(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
         }
 
         private static void AddIoLink(List<TagDefinition> t, int z)
@@ -109,9 +123,10 @@ namespace SempaPumpStation.Infrastructure
         private static void AddAnalogInput(List<TagDefinition> t, string ch)
         {
             string hp = Station.AiHp(ch), ph = Station.AiPh(ch);
-            foreach (var n in Station.AiRealParameters) { R(t, hp + n + ".Value"); R(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
-            foreach (var n in Station.AiIntParameters) { I(t, hp + n + ".Value"); I(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
+            foreach (var n in Station.AiRealParameters.Concat(Station.AiChannelRealParameters)) { R(t, hp + n + ".Value"); R(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
+            foreach (var n in Station.AiIntParameters.Concat(Station.AiChannelIntParameters)) { I(t, hp + n + ".Value"); I(t, ph + n + ".Value"); B(t, ph + n + ".Enabled"); }
             R(t, ph + "Pv"); I(t, ph + "RawValue"); R(t, ph + "FilteredRaw"); B(t, ph + "WireBreak");
+            I(t, ph + "SignalType"); R(t, ph + "RawSignal"); R(t, ph + "FilteredSignal");
         }
 
         private static void AddSamples(List<TagDefinition> t, int z)
@@ -135,6 +150,7 @@ namespace SempaPumpStation.Infrastructure
             {
                 B(t, Station.SimDrive(d) + "Fault");
                 B(t, Station.SimDrive(d) + "Running");
+                B(t, Station.SimDrive(d) + "NoFeedback");   // the drive's running contact does not reach the PLC
             }
         }
 

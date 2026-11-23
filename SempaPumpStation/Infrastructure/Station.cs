@@ -158,13 +158,34 @@ namespace SempaPumpStation.Infrastructure
         public const string NextTestNo = "StationCounters.NextTestNo";
         public static string Sample(int zone, int index) => Samples(zone) + "Samples[" + index + "].";
         public static string LibraryEntry(int category, int device) => "StationInstruments." + LibraryArray(category) + "[" + device + "].";
+        /// <summary>The same device's coefficient, offset and moving average ("StationInstrumentAdjustments", kept apart from the library DB).</summary>
+        public static string AdjustmentEntry(int category, int device) => "StationInstrumentAdjustments." + LibraryArray(category) + "[" + device + "].";
         public static string SimZone(int zone) => "Sim.Zone" + zone + ".";
         public static string SimDrive(int source) => "Sim.Drive" + source + ".";
-        /// <summary>The PM5550 on a power source ("Powermeters".Meter[s], filled by FB_Communication_Pm5550Decoder).</summary>
+        /// <summary>The PM5550 on a power source ("Powermeters".Meter[s]: decoded by FB_Communication_Pm5550Decoder, filtered by FB_Communication_PowermeterFilter).</summary>
         public static string Meter(int source) => "Powermeters.Meter[" + source + "].";
+        /// <summary>The filter settings of a power source's meter (FB_Communication_PowermeterFilterHmi).</summary>
+        public static string MeterFilterHp(int source) => "StationHp.Powermeters[" + source + "].";
+        public static string MeterFilterPh(int source) => "StationPh.Powermeters[" + source + "].";
+
+        // ---------------------------------------------------------------- drive
+        /// <summary>The power source whose drive is read over Modbus: the ATV660 of the 630 kW VFD.</summary>
+        public const int DriveSource = 8;
+        /// <summary>Its values ("Drives".Vfd630, FB_Communication_Atv600Decoder; read only).</summary>
+        public const string Drive630 = "Drives.Vfd630.";
+        /// <summary>The drive's filter settings (FB_Communication_DriveFilter; the same parameters as a meter's).</summary>
+        public const string DriveFilterHp = "StationHp.Drive630.", DriveFilterPh = "StationPh.Drive630.";
+        /// <summary>st_Instruments_DriveData members with the tag data kind.</summary>
+        public static readonly (string Name, char Kind)[] DriveFields =
+        {
+            ("CommOk", 'B'), ("StatusWord", 'I'), ("OutputFrequency", 'R'), ("MotorCurrent", 'R'), ("MotorTorque", 'R'),
+            ("MainsVoltage", 'R'), ("MotorVoltage", 'R'), ("MotorPower", 'R'), ("ExtraCommOk", 'B'), ("MotorTorqueNm", 'R'),
+            ("MotorMechanicalPower", 'R'), ("OutputElectricalPower", 'R'),
+        };
 
         // ---------------------------------------------------------------- power meters
         /// <summary>The value groups of a meter (st_Instruments_PowermeterData).</summary>
+        /// <remarks>The station is a 3-wire system: the phases carry the line-to-line voltages (A-B, B-C, C-A) and the phase currents only.</remarks>
         public static readonly string[] MeterGroups = { "PhaseA", "PhaseB", "PhaseC", "General" };
         /// <summary>The values of each group (st_Instruments_PowermeterPhaseData).</summary>
         public static readonly string[] MeterValues =
@@ -174,6 +195,10 @@ namespace SempaPumpStation.Infrastructure
         /// PLC passes them on unchanged, the HMI shows kWh.
         /// </summary>
         public const double MeterEnergyPerKwh = 1000.0;
+
+        /// <summary>A meter's filter parameters (st_Communication_*_PowermeterFilter), all Int except the EMA weight.</summary>
+        public static readonly string[] MeterFilterIntParameters = { "FilterType", "FilterAverageCount", "FilterOutlierMaxRejectCount" };
+        public static readonly string[] MeterFilterRealParameters = { "FilterEmaAlpha", "FilterOutlierMaxJump" };
 
         /// <summary>Selection parameters of a zone (FB_Station_ZoneHmi): name and whether it is Real.</summary>
         public static readonly string[] ZoneIntParameters = { "PowerSource", "Flowmeter", "DischargeTransmitter", "Vacuummeter" };
@@ -193,12 +218,28 @@ namespace SempaPumpStation.Infrastructure
             }
         }
 
-        /// <summary>The analog input parameters that FC_Station_LoadInstrument copies from the library.</summary>
+        /// <summary>The analog input parameters that FC_Station_LoadInstrument copies from the library (every cycle).</summary>
         public static readonly string[] AiRealParameters = { "MinPv", "MaxPv", "FilterEmaAlpha", "FilterOutlierMaxJump" };
         public static readonly string[] AiIntParameters = { "MinRaw", "MaxRaw", "FilterType", "FilterOutlierMaxRejectCount" };
 
-        /// <summary>The filter settings among them: the only ones Yükle takes over while the zone runs.</summary>
-        public static bool IsAiFilterParameter(string name) => name.StartsWith("Filter", System.StringComparison.Ordinal);
+        /// <summary>
+        /// Pv = scaled × Coefficient + Offset. A fixed sensor's own parameters (Analog Ayarları); on an instrument position they
+        /// come from the mounted device's <see cref="AdjustmentEntry"/>, the same names.
+        /// </summary>
+        public static readonly string[] AiChannelRealParameters = { "Coefficient", "Offset" };
+        /// <summary>The channel's own moving average (FilterAverageCount values, one per OB30 cycle; 0 or 1 = off).</summary>
+        public static readonly string[] AiChannelIntParameters = { "FilterAverageCount" };
+
+        /// <summary>
+        /// The signal type the PLC program passes to a channel (FB_Station_Instruments → FB_Io_AnalogInput.signalType):
+        /// torque −10..10 V, speed 0..10 V, every other channel the default 4..20 mA.
+        /// </summary>
+        public static int SignalType(string channel)
+        {
+            if (channel.EndsWith("_Torque", System.StringComparison.Ordinal)) return AnalogSignal.VoltageMinus10To10;
+            if (channel.EndsWith("_Speed", System.StringComparison.Ordinal)) return AnalogSignal.Voltage0To10;
+            return AnalogSignal.Current4To20;
+        }
 
         /// <summary>st_Station_Sample members, in declaration order, with the tag data kind (R real, I int, B bool, S string).</summary>
         public static readonly (string Name, char Kind)[] SampleFields =
@@ -212,6 +253,9 @@ namespace SempaPumpStation.Infrastructure
         };
 
         /// <summary>st_Station_Instrument members with the tag data kind.</summary>
+        /// <summary>st_Station_InstrumentAdjustment members with the tag data kind.</summary>
+        public static readonly (string Name, char Kind)[] AdjustmentFields = { ("Coefficient", 'R'), ("Offset", 'R'), ("FilterAverageCount", 'I') };
+
         public static readonly (string Name, char Kind)[] InstrumentFields =
         {
             ("Description", 'S'), ("SerialNumber", 'S'), ("Unit", 'S'),

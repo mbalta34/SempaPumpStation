@@ -9,8 +9,9 @@ using System.Xml.Linq;
 namespace SempaPumpStation.Infrastructure
 {
     /// <summary>
-    /// The Excel test report: a copy of Reports\Sempa_Rapor_Sablon.xlsx (the 2017 Sempa report with two
-    /// extra columns, P torque and Q speed) filled with an archived test. Only the input cells
+    /// The Excel test report: a copy of Reports\Sempa_Rapor_Sablon.xlsx (the 2017 Sempa report with the torque
+    /// meter's four extra columns: P torque and Q speed, filled here; R shaft power T × n / 9549 kW and S the pump
+    /// efficiency on it, formulas) filled with an archived test. Only the input cells
     /// are written; the template's formulas (head, power, efficiency, NPSH) and charts do the rest, and
     /// Excel recalculates them when the file is opened. Excel is not needed to create the file.
     /// </summary>
@@ -61,7 +62,7 @@ namespace SempaPumpStation.Infrastructure
 
             // Title row and customer
             w.Number("N1", ParseTime(r.Ended ?? r.Started).ToOADate());
-            w.Number("AS1", r.TestNo);
+            w.Number("AU1", r.TestNo);   // next to "DENEY NO :" (AT1)
             w.Text("D3", h["WRT_FIRMA_ADI"]);
             w.Text("J3", h["WRT_ADRES"]);
 

@@ -72,6 +72,8 @@ namespace SempaPumpStation.Infrastructure.Plc
         public bool PanelEStopPressed(int z) => _t.B(Station.SimZone(z) + "PanelEStopPressed");
         public bool PanelEStopOk(int z) => !PanelEStopPressed(z);
         public bool DriveRunning(int s) => _driveRunning[s];
+        /// <summary>The drive's speed as a fraction of its rated speed (0..1).</summary>
+        public double DriveSpeed(int s) => _driveSpeed[s];
         public bool DriveFault(int s) => _t.B(Station.SimDrive(s) + "Fault");
 
         public int Raw(string channel)
@@ -159,7 +161,7 @@ namespace SempaPumpStation.Infrastructure.Plc
         /// <summary>What the PM5550 on source s would measure, in the units the PLC's decoder produces.</summary>
         public sealed class MeterReading
         {
-            public double VoltageLL, VoltageLN, Current, ActiveKw, ReactiveKvar, ApparentKva, PowerFactor, Frequency;
+            public double VoltageLL, Current, ActiveKw, ReactiveKvar, ApparentKva, PowerFactor, Frequency;
         }
 
         /// <summary>
@@ -169,7 +171,6 @@ namespace SempaPumpStation.Infrastructure.Plc
         public MeterReading Meter(int s)
         {
             var m = new MeterReading { VoltageLL = 400.0 + 1.5 * Math.Sin(_meterPhase + s), Frequency = 50.0 };
-            m.VoltageLN = m.VoltageLL / Math.Sqrt(3.0);
 
             int z = FedZone(s);
             if (z > 0 && _driveRunning[s])

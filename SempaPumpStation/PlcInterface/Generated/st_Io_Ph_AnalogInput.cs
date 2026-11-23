@@ -30,6 +30,12 @@ namespace SempaPumpStation.PlcInterface
             WireBreak = k.Leaf(name + ".WireBreak", DataType.BOOL);
             ForcingActive = k.Leaf(name + ".ForcingActive", DataType.BOOL);
             FilteredRaw = k.Leaf(name + ".FilteredRaw", DataType.REAL);
+            Coefficient = k.Next(new st_Hmi_Ph_ParameterReal(c, name + ".Coefficient", db, k.Struct(), w, r));
+            Offset = k.Next(new st_Hmi_Ph_ParameterReal(c, name + ".Offset", db, k.Struct(), w, r));
+            SignalType = k.Leaf(name + ".SignalType", DataType.INT);
+            RawSignal = k.Leaf(name + ".RawSignal", DataType.REAL);
+            FilteredSignal = k.Leaf(name + ".FilteredSignal", DataType.REAL);
+            FilterAverageCount = k.Next(new st_Hmi_Ph_ParameterInt(c, name + ".FilterAverageCount", db, k.Struct(), w, r));
         }
 
         public st_Hmi_Ph_ParameterReal MinPv { get; private set; }
@@ -48,5 +54,11 @@ namespace SempaPumpStation.PlcInterface
         public SiemensS7PlcTag WireBreak { get; private set; }
         public SiemensS7PlcTag ForcingActive { get; private set; }
         public SiemensS7PlcTag FilteredRaw { get; private set; }
+        public st_Hmi_Ph_ParameterReal Coefficient { get; private set; }
+        public st_Hmi_Ph_ParameterReal Offset { get; private set; }
+        public SiemensS7PlcTag SignalType { get; private set; }
+        public SiemensS7PlcTag RawSignal { get; private set; }
+        public SiemensS7PlcTag FilteredSignal { get; private set; }
+        public st_Hmi_Ph_ParameterInt FilterAverageCount { get; private set; }
     }
 }

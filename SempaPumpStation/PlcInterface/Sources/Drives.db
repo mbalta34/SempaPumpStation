@@ -1,0 +1,13 @@
+DATA_BLOCK "Drives"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+NON_RETAIN
+   STRUCT 
+      Vfd630 : "st_Instruments_DriveData";   // ATV660 of the 630 kW VFD (source 8), read over Modbus TCP. Standard access: the HMI reads it by address
+   END_STRUCT;
+
+
+BEGIN
+
+END_DATA_BLOCK
+

@@ -1,6 +1,9 @@
 <UserControl x:Class="SempaPumpStation.Screens.PowermetersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:SempaPumpStation.Controls"
+             xmlns:inf="clr-namespace:SempaPumpStation.Infrastructure"
+             xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI">
     <UserControl.Resources>
         <!-- Shared column layout of the header and the value rows -->
         <Style x:Key="Cell" TargetType="TextBlock" BasedOn="{StaticResource T.Base}">
@@ -13,6 +16,38 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{StaticResource B.TextFaint}"/>
         </Style>
+
+        <!-- The filter settings of a meter or the drive (FilterSettings): type, EMA α, outlier jump (%) and count, average -->
+        <DataTemplate x:Key="FilterStripTemplate">
+            <Border BorderBrush="{StaticResource B.Border}" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,8,0,0">
+                <WrapPanel Orientation="Horizontal" sec:Access.Requires="Analog.Settings">
+                    <WrapPanel.Resources>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource T.Label}">
+                            <Setter Property="FontSize" Value="10.5"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Margin" Value="12,0,6,0"/>
+                        </Style>
+                    </WrapPanel.Resources>
+                    <TextBlock Text="FİLTRE" Margin="0,0,8,0"/>
+                    <ComboBox Style="{StaticResource Cb}" Width="160" Height="28" Margin="0,2" ItemsSource="{x:Static inf:AnalogFilter.MeterItems}"
+                              SelectedValuePath="Value" DisplayMemberPath="Display" SelectedValue="{Binding FilterType}"
+                              DropDownOpened="Filter_DropDownOpened" DropDownClosed="Filter_DropDownClosed"/>
+                    <TextBlock Text="EMA α"/>
+                    <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding AlphaTag}" WriteTag="{Binding AlphaWriteTag}" Format="0.0000"
+                                  Width="70" Height="28" Padding="6,0" FontSize="13"/>
+                    <TextBlock Text="MAKS. SIÇRAMA %"/>
+                    <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding JumpTag}" WriteTag="{Binding JumpWriteTag}" Format="0.#"
+                                  Width="56" Height="28" Padding="6,0" FontSize="13"/>
+                    <TextBlock Text="RED ADEDİ"/>
+                    <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding RejectTag}" WriteTag="{Binding RejectWriteTag}" Format="0"
+                                  Width="44" Height="28" Padding="6,0" FontSize="13"/>
+                    <TextBlock Text="ORTALAMA"/>
+                    <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding AverageTag}" WriteTag="{Binding AverageWriteTag}" Format="0"
+                                  Width="52" Height="28" Padding="6,0" FontSize="13"/>
+                    <TextBlock Text="{Binding AverageText}" FontSize="11" Margin="6,0,0,0"/>
+                </WrapPanel>
+            </Border>
+        </DataTemplate>
 
         <DataTemplate x:Key="RowTemplate">
             <Grid Margin="0,3,0,0">
@@ -59,7 +94,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="1" Text="V" Style="{StaticResource HeadCell}"/>
+                        <TextBlock Grid.Column="1" Text="V (L-L)" Style="{StaticResource HeadCell}"/>
                         <TextBlock Grid.Column="2" Text="A" Style="{StaticResource HeadCell}"/>
                         <TextBlock Grid.Column="3" Text="kW" Style="{StaticResource HeadCell}"/>
                         <TextBlock Grid.Column="4" Text="kVAR" Style="{StaticResource HeadCell}"/>
@@ -88,6 +123,9 @@
                             </TextBlock>
                         </StackPanel>
                     </UniformGrid>
+
+                    <!-- The meter's filter: one setting for all of its values (FB_Communication_PowermeterFilter) -->
+                    <ContentControl Content="{Binding Filter}" ContentTemplate="{StaticResource FilterStripTemplate}"/>
                 </StackPanel>
             </Border>
             <DataTemplate.Triggers>
@@ -98,12 +136,98 @@
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+        <DataTemplate x:Key="DriveTemplate">
+            <Border Style="{StaticResource Card}" Margin="0,0,14,14" Padding="14,12">
+                <StackPanel>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Right" x:Name="driveStatus" Style="{StaticResource Pill}" Background="#4A1C1C" Padding="9,2">
+                            <TextBlock x:Name="driveStatusText" Text="İLETİŞİM YOK" FontSize="10.5" FontWeight="SemiBold" Foreground="#FF8A80"/>
+                        </Border>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Style="{StaticResource T.Label}" FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource T.Section}" Margin="0"/>
+                            <TextBlock Text="{Binding Usage}" Style="{StaticResource T.Label}" FontSize="11"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <UniformGrid Columns="7" Margin="0,10,0,0">
+                        <UniformGrid.Resources>
+                            <Style TargetType="TextBlock" x:Key="DriveValue" BasedOn="{StaticResource T.Base}">
+                                <Setter Property="FontSize" Value="18"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
+                            </Style>
+                        </UniformGrid.Resources>
+                        <StackPanel>
+                            <TextBlock Text="ÇIKIŞ FREKANSI" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}" Foreground="{StaticResource B.Run}">
+                                <Run Text="{Binding Frequency, Mode=OneWay}"/><Run Text=" Hz" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="MOTOR AKIMI" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}">
+                                <Run Text="{Binding Current, Mode=OneWay}"/><Run Text=" A" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="MOTOR GERİLİMİ" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}">
+                                <Run Text="{Binding MotorVoltage, Mode=OneWay}"/><Run Text=" V" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="MOTOR TORKU" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}">
+                                <Run Text="{Binding TorqueNm, Mode=OneWay}"/><Run Text=" Nm" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource T.Label}" FontSize="11">
+                                <Run Text="{Binding Torque, Mode=OneWay}"/><Run Text=" % nominal"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="MOTOR GÜCÜ (MİL)" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}">
+                                <Run Text="{Binding MechanicalKw, Mode=OneWay}"/><Run Text=" kW" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource T.Label}" FontSize="11">
+                                <Run Text="{Binding Power, Mode=OneWay}"/><Run Text=" % nominal"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="ÇIKIŞ ELEKTRİK GÜCÜ" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}">
+                                <Run Text="{Binding ElectricalKw, Mode=OneWay}"/><Run Text=" kW" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="ŞEBEKE GERİLİMİ" Style="{StaticResource T.Label}" FontSize="10.5"/>
+                            <TextBlock Style="{StaticResource DriveValue}">
+                                <Run Text="{Binding MainsVoltage, Mode=OneWay}"/><Run Text=" V" FontSize="12" Foreground="{StaticResource B.TextDim}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </UniformGrid>
+                    <!-- The drive's filter: one setting for all of its values (FB_Communication_DriveFilter) -->
+                    <ContentControl Content="{Binding Filter}" ContentTemplate="{StaticResource FilterStripTemplate}"/>
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding CommOk}" Value="True">
+                    <Setter TargetName="driveStatus" Property="Background" Value="#1C3A2A"/>
+                    <Setter TargetName="driveStatusText" Property="Text" Value="BAĞLI"/>
+                    <Setter TargetName="driveStatusText" Property="Foreground" Value="{StaticResource B.Run}"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,20,6,6">
         <StackPanel>
             <TextBlock Style="{StaticResource T.Label}" TextWrapping="Wrap" Margin="0,0,14,12"
-                       Text="Her güç kaynağında bir Schneider PM5550 enerji analizörü; PLC değerleri Modbus TCP ile okur. Fazlarda faz-nötr gerilim, toplamda faz-faz ortalama gerilim ve ortalama akım gösterilir. IP adresleri ve iletişim izni PLC'de DB_Communication_ModbusDevices'ta ayarlanır."/>
+                       Text="Her güç kaynağında bir Schneider PM5550 enerji analizörü; PLC değerleri Modbus TCP ile okur. Sistem 3 telli (nötr yok, analizörler 3PH3W): fazlarda faz-faz gerilim (L1 satırında L1-L2, L2'de L2-L3, L3'te L3-L1) ve faz akımı, toplamda faz-faz ortalama gerilim, ortalama akım, toplam güçler ve cos φ gösterilir. Her analizörün ve sürücünün filtresi tüm değerlerine uygulanır (enerji sayaçları hariç): Yok, EMA veya EMA + aykırı değer; EMA α yeni değerin ağırlığı; aykırı değer, filtrelenmiş değerden maks. sıçrama yüzdesinden fazla uzaklaşan değerdir ve art arda red adedi kadar gelirse yeni seviye kabul edilir; ortalama son n değerin hareketli ortalaması (100 ms'de bir değer; 0 veya 1 = kapalı, en çok 100 = 10 s). IP adresleri ve iletişim izni PLC'de DB_Communication_ModbusDevices'ta ayarlanır. 630 kW VFD'nin ATV660 sürücüsü de Modbus TCP ile okunur (yalnızca okuma; IP adresi DB_Communication_DriveDevices'ta)."/>
+            <!-- The ATV660 of the 630 kW VFD: motor values read over Modbus TCP (read only) -->
+            <ContentControl Content="{Binding Drive}" ContentTemplate="{StaticResource DriveTemplate}"/>
+
             <ItemsControl ItemsSource="{Binding Meters}" ItemTemplate="{StaticResource MeterTemplate}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>

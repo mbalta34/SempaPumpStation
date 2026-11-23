@@ -8,6 +8,8 @@ NON_RETAIN
       Zone3 : "st_Station_Ph_Zone";
       Instruments : "st_Station_Ph_Instruments";
       PlcVersion : String[20];   // Program version, written by FB_Station_Main; the HMI shows it and compares it with the one it was built for
+      Powermeters : Array[1..8] of "st_Communication_Ph_PowermeterFilter";   // Filter settings of each PM5550, in source order
+      Drive630 : "st_Communication_Ph_PowermeterFilter";   // Filter settings of the 630 kW VFD's ATV660
    END_STRUCT;
 
 

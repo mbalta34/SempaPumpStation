@@ -50,6 +50,7 @@ namespace SempaPumpStation.PlcInterface
             RotationRemaining = k.Leaf(name + ".RotationRemaining", DataType.REAL);
             SafetyStop = k.Leaf(name + ".SafetyStop", DataType.BOOL);
             ManipulatedDevice = k.Leaf(name + ".ManipulatedDevice", DataType.INT);
+            DriveFeedbackFault = k.Leaf(name + ".DriveFeedbackFault", DataType.BOOL);
         }
 
         public st_Hmi_Ph_ParameterInt PowerSource { get; private set; }
@@ -88,5 +89,6 @@ namespace SempaPumpStation.PlcInterface
         public SiemensS7PlcTag RotationRemaining { get; private set; }
         public SiemensS7PlcTag SafetyStop { get; private set; }
         public SiemensS7PlcTag ManipulatedDevice { get; private set; }
+        public SiemensS7PlcTag DriveFeedbackFault { get; private set; }
     }
 }

@@ -128,7 +128,15 @@ namespace SempaPumpStation.Infrastructure
             return electricalPower * eff / 100.0 * line.PlantEfficiency * line.MechanicalEfficiency;
         }
 
-        /// <summary>Pump efficiency in % (report column O): hydraulic power over pump power; null when that is unknown or zero.</summary>
+        /// <summary>
+        /// Nmil, the shaft power from the torque meter in kW (report column R): P [W] = T [Nm] × n [rpm] / 9.549, so
+        /// kW = T × n / 9549. Null without torque or speed.
+        /// </summary>
+        public static double? ShaftPower(double torque, double speed)
+            => torque > 0 && speed > 0 ? torque * speed / 9549.0 : (double?)null;
+
+        /// <summary>Pump efficiency in % (report column O): hydraulic power over pump power; null when that is unknown or zero.
+        /// With the shaft power (report column S) it is the efficiency on the torque meter.</summary>
         public static double? Efficiency(double hydraulicPower, double? pumpPower)
             => pumpPower.HasValue && pumpPower.Value > 0 ? hydraulicPower / pumpPower.Value * 100.0 : (double?)null;
 

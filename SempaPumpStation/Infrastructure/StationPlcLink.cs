@@ -46,6 +46,8 @@ namespace SempaPumpStation.Infrastructure
         public StationPhDb Ph { get; }
         public StationSamplesDb Samples { get; }
         public StationInstrumentsDb Library { get; }
+        /// <summary>The library devices' coefficient, offset and moving average (same device numbers as the library).</summary>
+        public StationInstrumentAdjustmentsDb Adjustments { get; }
         public MaintenancePhDb Maintenance { get; }
         /// <summary>HMI-to-PLC side of the IO channels (forcing); written only, like StationHp.</summary>
         public MaintenanceHpDb MaintenanceHp { get; }
@@ -55,6 +57,8 @@ namespace SempaPumpStation.Infrastructure
         public StationCountersDb Counters { get; }
         /// <summary>The PM5550 power meters, one per power source.</summary>
         public PowermetersDb Powermeters { get; }
+        /// <summary>The ATV660 of the 630 kW VFD, read over Modbus TCP by the PLC.</summary>
+        public DrivesDb Drives { get; }
 
         public string IpAddress { get; }
         public bool IsConnected => _connection.State == ConnectionState.Connected;
@@ -80,11 +84,13 @@ namespace SempaPumpStation.Infrastructure
             Ph = new StationPhDb(_connection, w, ReadPlan.DbBulk);
             Samples = new StationSamplesDb(_connection, w, ReadPlan.DbBulk);
             Library = new StationInstrumentsDb(_connection, w, ReadPlan.DbBulk);
+            Adjustments = new StationInstrumentAdjustmentsDb(_connection, w, ReadPlan.DbBulk);
             Maintenance = new MaintenancePhDb(_connection, w, ReadPlan.DbBulk);
             MaintenanceHp = new MaintenanceHpDb(_connection, w, ReadPlan.Individual);
             IoLink = new IoLinkDb(_connection, w, ReadPlan.DbBulk);
             Counters = new StationCountersDb(_connection, w, ReadPlan.DbBulk);
             Powermeters = new PowermetersDb(_connection, w, ReadPlan.DbBulk);
+            Drives = new DrivesDb(_connection, w, ReadPlan.DbBulk);
 
             // Status and live values fast; the sample buffers once a second (12 kB, consistent with
             // TestActive since both come from one read); the library rarely changes.
@@ -99,21 +105,23 @@ namespace SempaPumpStation.Infrastructure
             AddPlan("AO", 300, MaintenancePhDb.Number, aout.ByteOffset, S7Layout.SizeOf(aout), aout);
             AddPlan("SAMPLES", 1000, StationSamplesDb.Number, 0, S7Layout.SizeOf(Samples), Samples);
             AddPlan("LIBRARY", 5000, StationInstrumentsDb.Number, 0, S7Layout.SizeOf(Library), Library);
+            AddPlan("ADJUST", 5000, StationInstrumentAdjustmentsDb.Number, 0, S7Layout.SizeOf(Adjustments), Adjustments);
             AddPlan("IOLINK", 500, IoLinkDb.Number, 0, S7Layout.SizeOf(IoLink), IoLink);
             AddPlan("COUNTERS", 1000, StationCountersDb.Number, 0, S7Layout.SizeOf(Counters), Counters);
             AddPlan("POWER", 500, PowermetersDb.Number, 0, S7Layout.SizeOf(Powermeters), Powermeters);
+            AddPlan("DRIVES", 500, DrivesDb.Number, 0, S7Layout.SizeOf(Drives), Drives);
 
             // Logged so a drift between these models and the PLC's DBs shows up at once (compare with
             // the DB lengths / offsets in TIA)
             _log.Information("Interface layout: StationHp DB{Hp} {HpLen} B | StationPh DB{Ph} {PhLen} B | StationSamples DB{S} {SLen} B | " +
-                             "StationInstruments DB{L} {LLen} B | MaintenancePh DB{M} AnalogInputs @{AiOff} {AiLen} B, DigitalInputs @{DiOff} {DiLen} B, DigitalOutputs @{DoOff} {DoLen} B, AnalogOutputs @{AoOff} {AoLen} B | " +
-                             "MaintenanceHp DB{MH} {MHLen} B | IoLink DB{IoL} {IoLLen} B | Powermeters DB{Pm} {PmLen} B",
+                             "StationInstruments DB{L} {LLen} B | StationInstrumentAdjustments DB{LA} {LALen} B | MaintenancePh DB{M} AnalogInputs @{AiOff} {AiLen} B, DigitalInputs @{DiOff} {DiLen} B, DigitalOutputs @{DoOff} {DoLen} B, AnalogOutputs @{AoOff} {AoLen} B | " +
+                             "MaintenanceHp DB{MH} {MHLen} B | IoLink DB{IoL} {IoLLen} B | Powermeters DB{Pm} {PmLen} B | Drives DB{Dr} {DrLen} B",
                 StationHpDb.Number, S7Layout.SizeOf(Hp), StationPhDb.Number, S7Layout.SizeOf(Ph),
-                StationSamplesDb.Number, S7Layout.SizeOf(Samples), StationInstrumentsDb.Number, S7Layout.SizeOf(Library),
+                StationSamplesDb.Number, S7Layout.SizeOf(Samples), StationInstrumentsDb.Number, S7Layout.SizeOf(Library), StationInstrumentAdjustmentsDb.Number, S7Layout.SizeOf(Adjustments),
                 MaintenancePhDb.Number, ai.ByteOffset, S7Layout.SizeOf(ai), din.ByteOffset, S7Layout.SizeOf(din), dout.ByteOffset, S7Layout.SizeOf(dout),
                 aout.ByteOffset, S7Layout.SizeOf(aout),
                 MaintenanceHpDb.Number, S7Layout.SizeOf(MaintenanceHp), IoLinkDb.Number, S7Layout.SizeOf(IoLink),
-                PowermetersDb.Number, S7Layout.SizeOf(Powermeters));
+                PowermetersDb.Number, S7Layout.SizeOf(Powermeters), DrivesDb.Number, S7Layout.SizeOf(Drives));
         }
 
         private void AddPlan(string id, int intervalMs, int db, int start, int length, SiemensS7PlcTag tag)
@@ -124,9 +132,20 @@ namespace SempaPumpStation.Infrastructure
             _connection.RegisterTagToPlan(id, tag);
         }
 
-        /// <summary>Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the analog and digital inputs, the digital inputs and outputs (state and forcing), the analog outputs, the IO-Link hubs, the test counter and the power meters.</summary>
+        /// <summary>
+        /// Every leaf tag the HMI binds to: StationHp/Ph, the sample buffers, the library, the IO channels in both
+        /// directions (MaintenancePh: state and parameters as the PLC has them; MaintenanceHp: the entries and force
+        /// commands the HMI writes, for the analog inputs and outputs as well as the digital ones), the IO-Link hubs, the
+        /// test counter and the power meters. A tag missing here does not exist in PLC mode, so writes to it are dropped.
+        /// </summary>
         public IEnumerable<SiemensS7PlcTag> Leaves() =>
-            new SiemensS7PlcTag[] { Hp, Ph, Samples, Library, Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, Maintenance.Io.AnalogOutputs, MaintenanceHp.Io.DigitalInputs, MaintenanceHp.Io.DigitalOutputs, IoLink, Counters, Powermeters }.SelectMany(Flatten);
+            new SiemensS7PlcTag[]
+            {
+                Hp, Ph, Samples, Library, Adjustments,
+                Maintenance.Io.AnalogInputs, Maintenance.Io.DigitalInputs, Maintenance.Io.DigitalOutputs, Maintenance.Io.AnalogOutputs,
+                MaintenanceHp.Io.AnalogInputs, MaintenanceHp.Io.DigitalInputs, MaintenanceHp.Io.DigitalOutputs, MaintenanceHp.Io.AnalogOutputs,
+                IoLink, Counters, Powermeters, Drives,
+            }.SelectMany(Flatten);
 
         private static IEnumerable<SiemensS7PlcTag> Flatten(SiemensS7PlcTag tag)
         {
@@ -148,14 +167,35 @@ namespace SempaPumpStation.Infrastructure
         }
 
         /// <summary>
-        /// Called every HMI scan. A block that is missing or shorter than the generated interface means the PLC runs
-        /// another program version: its offsets cannot be trusted, so the link stops (no more writes) until restart.
+        /// A block must stay missing or short this long before it counts as a program mismatch: while TIA downloads the
+        /// program its data blocks are replaced, and a read in that moment fails the same way.
+        /// </summary>
+        private static readonly TimeSpan MismatchAfter = TimeSpan.FromSeconds(15);
+        private readonly Dictionary<S7DbReadPlan, DateTime> _shortSince = new Dictionary<S7DbReadPlan, DateTime>();
+
+        /// <summary>
+        /// Called every HMI scan. A block that stays missing or shorter than the generated interface (for
+        /// <see cref="MismatchAfter"/>, so a download in progress does not count) means the PLC runs another program
+        /// version: its offsets cannot be trusted, so the link stops (no more writes) until restart.
         /// </summary>
         public void CheckInterface()
         {
             if (Problem != null) return;
-            var bad = _plans.FirstOrDefault(p => p.ConsecutiveFailures > 0
-                                                 && (p.LastErrorCode == ErrAddressOutOfRange || p.LastErrorCode == ErrItemNotAvailable));
+            DateTime now = DateTime.Now;
+            S7DbReadPlan bad = null;
+            foreach (var p in _plans)
+            {
+                bool shortBlock = p.ConsecutiveFailures > 0 && (p.LastErrorCode == ErrAddressOutOfRange || p.LastErrorCode == ErrItemNotAvailable);
+                if (!shortBlock) { _shortSince.Remove(p); continue; }
+                DateTime since;
+                if (!_shortSince.TryGetValue(p, out since))
+                {
+                    _shortSince[p] = now;
+                    _log.Warning("Block {Plan} (DB{Db}, {Len} B from {Start}) missing or short ({Err}); a mismatch if it stays so for {S} s (a download replaces the blocks)",
+                                 p.Id, p.Db, p.Length, p.Start, p.LastErrorCode, MismatchAfter.TotalSeconds);
+                }
+                else if (now - since >= MismatchAfter && bad == null) bad = p;
+            }
             if (bad == null) return;
 
             Problem = (bad.LastErrorCode == ErrItemNotAvailable ? "PLC'de DB" + bad.Db + " yok" : "PLC'deki DB" + bad.Db + " HMI'nın beklediğinden kısa")

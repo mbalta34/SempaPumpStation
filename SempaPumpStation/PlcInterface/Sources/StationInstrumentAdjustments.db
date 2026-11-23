@@ -1,0 +1,14 @@
+DATA_BLOCK "StationInstrumentAdjustments"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+   STRUCT 
+      Flowmeters : Array[1..100] of "st_Station_InstrumentAdjustment";   // Same device numbers as "StationInstruments"; kept apart so that DB's entries survive the extension
+      PressureTransmitters : Array[1..100] of "st_Station_InstrumentAdjustment";
+      Vacuummeters : Array[1..100] of "st_Station_InstrumentAdjustment";
+   END_STRUCT;
+
+
+BEGIN
+
+END_DATA_BLOCK
+

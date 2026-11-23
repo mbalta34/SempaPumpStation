@@ -15,10 +15,8 @@ namespace SempaPumpStation.PlcInterface
         {
             var k = new S7Cursor(c, db, byteOffset, w, r);
             Device = k.Next(new st_Hmi_Hp_ParameterInt(c, name + ".Device", db, k.Struct(), w, r));
-            Load = k.Next(new st_Hmi_Hp_CommandButton(c, name + ".Load", db, k.Struct(), w, r));
         }
 
         public st_Hmi_Hp_ParameterInt Device { get; private set; }
-        public st_Hmi_Hp_CommandButton Load { get; private set; }
     }
 }

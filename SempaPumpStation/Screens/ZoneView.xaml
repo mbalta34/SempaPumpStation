@@ -60,6 +60,10 @@
                                 Visibility="{Binding Ph[DriveFault].TagValue, Converter={StaticResource BoolVis}}">
                             <TextBlock Text="SÜRÜCÜ ARIZASI" FontSize="12" FontWeight="SemiBold" Foreground="#FF8A80"/>
                         </Border>
+                        <Border Style="{StaticResource Pill}" Margin="0,0,10,0" Background="#4A1C1C"
+                                Visibility="{Binding Ph[DriveFeedbackFault].TagValue, Converter={StaticResource BoolVis}}">
+                            <TextBlock Text="SÜRÜCÜ ÇALIŞMA SİNYALİ YOK" FontSize="12" FontWeight="SemiBold" Foreground="#FF8A80"/>
+                        </Border>
                         <Border Style="{StaticResource Pill}" Background="#3A3220"
                                 Visibility="{Binding Ph[SelectionRejected].TagValue, Converter={StaticResource BoolVis}}">
                             <TextBlock Text="Seçim reddedildi" FontSize="12" Foreground="{StaticResource B.Warn}"/>

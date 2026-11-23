@@ -23,11 +23,18 @@ namespace SempaPumpStation.PlcInterface
             Zone2 = k.Next(new st_Station_Hp_Zone(c, name + ".Zone2", db, k.Struct(), w, r));
             Zone3 = k.Next(new st_Station_Hp_Zone(c, name + ".Zone3", db, k.Struct(), w, r));
             Instruments = k.Next(new st_Station_Hp_Instruments(c, name + ".Instruments", db, k.Struct(), w, r));
+            Powermeters = new List<st_Communication_Hp_PowermeterFilter>();
+            k.ArrayStart();
+            for (int i = 1; i <= 8; i++)
+                Powermeters.Add(k.Next(new st_Communication_Hp_PowermeterFilter(c, name + ".Powermeters[" + i + "]", db, k.Struct(), w, r)));
+            Drive630 = k.Next(new st_Communication_Hp_PowermeterFilter(c, name + ".Drive630", db, k.Struct(), w, r));
         }
 
         public st_Station_Hp_Zone Zone1 { get; private set; }
         public st_Station_Hp_Zone Zone2 { get; private set; }
         public st_Station_Hp_Zone Zone3 { get; private set; }
         public st_Station_Hp_Instruments Instruments { get; private set; }
+        public List<st_Communication_Hp_PowermeterFilter> Powermeters { get; private set; }
+        public st_Communication_Hp_PowermeterFilter Drive630 { get; private set; }
     }
 }

@@ -24,6 +24,11 @@ namespace SempaPumpStation.PlcInterface
             Zone3 = k.Next(new st_Station_Ph_Zone(c, name + ".Zone3", db, k.Struct(), w, r));
             Instruments = k.Next(new st_Station_Ph_Instruments(c, name + ".Instruments", db, k.Struct(), w, r));
             PlcVersion = k.Leaf(name + ".PlcVersion", DataType.STRING, 20);
+            Powermeters = new List<st_Communication_Ph_PowermeterFilter>();
+            k.ArrayStart();
+            for (int i = 1; i <= 8; i++)
+                Powermeters.Add(k.Next(new st_Communication_Ph_PowermeterFilter(c, name + ".Powermeters[" + i + "]", db, k.Struct(), w, r)));
+            Drive630 = k.Next(new st_Communication_Ph_PowermeterFilter(c, name + ".Drive630", db, k.Struct(), w, r));
         }
 
         public st_Station_Ph_Zone Zone1 { get; private set; }
@@ -31,5 +36,7 @@ namespace SempaPumpStation.PlcInterface
         public st_Station_Ph_Zone Zone3 { get; private set; }
         public st_Station_Ph_Instruments Instruments { get; private set; }
         public SiemensS7PlcTag PlcVersion { get; private set; }
+        public List<st_Communication_Ph_PowermeterFilter> Powermeters { get; private set; }
+        public st_Communication_Ph_PowermeterFilter Drive630 { get; private set; }
     }
 }

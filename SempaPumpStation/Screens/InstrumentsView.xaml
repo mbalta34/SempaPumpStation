@@ -39,15 +39,16 @@
                     <StackPanel DockPanel.Dock="Top">
                         <TextBlock Text="ENSTRÜMAN POZİSYONLARI" Style="{StaticResource T.Section}"/>
                         <TextBlock Style="{StaticResource T.Label}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
-                                   Text="Pozisyona takılan cihazın kütüphane numarasını girin. Yeni cihaz kabul edilince parametreleri analog girişe yüklenir; kütüphane kaydı değiştiyse Yükle'ye basın. Bölgesi çalışırken cihaz değiştirilemez ve Yükle yalnızca filtre ayarlarını alır (ölçek test sonuna kadar aynı kalır); aynı cihaz iki pozisyona takılamaz."/>
+                                   Text="Pozisyona takılan cihazın kütüphane numarasını girin; cihazın kütüphane kaydı (ölçek, filtre, ortalama, katsayı ve ofset) analog girişe hemen geçer, kayıt değişince de. Bu değerler burada yalnızca gösterilir; Enstrüman Kütüphanesi'nde değiştirilir. Cihaz pompa çalışırken de değiştirilebilir; aynı cihaz iki pozisyona takılamaz. Sinyal türü PLC programında verilir (varsayılan 4…20 mA); ham değerler sayım ve mA / V olarak gösterilir."/>
                     </StackPanel>
-                    <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Positions}" IsReadOnly="True" RowHeight="36" FontSize="14"
-                              ColumnHeaderStyle="{StaticResource WideHeader}"
+                    <!-- Read-only except the device number (its own cell and permission): scaling, filter, coefficient, offset and average come from the library -->
+                    <DataGrid x:Name="PositionsGrid" Style="{StaticResource Dg}" ItemsSource="{Binding Positions}" RowHeight="36" FontSize="14"
+                              ColumnHeaderStyle="{StaticResource WideHeader}" FrozenColumnCount="1"
                               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Pozisyon" Binding="{Binding Name}" Width="190"/>
-                            <DataGridTextColumn Header="Tür" Binding="{Binding CategoryName}" Width="170"/>
-                            <DataGridTemplateColumn Header="Cihaz No" Width="96">
+                            <DataGridTextColumn Header="Pozisyon" Binding="{Binding Name}" IsReadOnly="True" Width="190"/>
+                            <DataGridTextColumn Header="Tür" Binding="{Binding CategoryName}" IsReadOnly="True" Width="170"/>
+                            <DataGridTemplateColumn Header="Cihaz No" Width="96" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <c:TagTextBox Style="{StaticResource Tb}" PlcTag="{Binding PhDeviceTag}" WriteTag="{Binding DeviceTag}" Format="0"
@@ -56,7 +57,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Cihaz" Width="*" MinWidth="260">
+                            <DataGridTemplateColumn Header="Cihaz" Width="240" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
@@ -67,21 +68,16 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" Width="160"/>
-                            <DataGridTextColumn Header="Ham" Binding="{Binding Raw}" Width="80"/>
-                            <DataGridTextColumn Header="Filtreli ham" Binding="{Binding Filtered}" Width="110"/>
-                            <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" Width="130"/>
-                            <DataGridTemplateColumn Header="" Width="96">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border sec:Access.Requires="Instruments.Mount">
-                                            <Button Content="Yükle" Style="{StaticResource Btn}" Padding="12,3" FontSize="13"
-                                                    Command="{Binding LoadCommand}" IsEnabled="{Binding CanLoad}"
-                                                    ToolTip="{Binding LoadHint}" ToolTipService.ShowOnDisabled="True"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Ölçek" Binding="{Binding Range}" IsReadOnly="True" Width="160"/>
+                            <DataGridTextColumn Header="Sinyal" Binding="{Binding Channel.Signal}" IsReadOnly="True" Width="96"/>
+                            <DataGridTextColumn Header="Ham" Binding="{Binding Channel.Raw}" IsReadOnly="True" Width="76"/>
+                            <DataGridTextColumn Header="Filtreli ham" Binding="{Binding Channel.Filtered}" IsReadOnly="True" Width="104"/>
+                            <DataGridTextColumn Header="Ham sinyal" Binding="{Binding Channel.RawSignal}" IsReadOnly="True" Width="110"/>
+                            <DataGridTextColumn Header="Filtreli sinyal" Binding="{Binding Channel.FilteredSignal}" IsReadOnly="True" Width="122"/>
+                            <DataGridTextColumn Header="Katsayı" Binding="{Binding Channel.Coefficient, StringFormat=0.0000}" IsReadOnly="True" Width="96"/>
+                            <DataGridTextColumn Header="Ofset" Binding="{Binding Channel.Offset}" IsReadOnly="True" Width="90"/>
+                            <DataGridTextColumn Header="Ortalama" Binding="{Binding Channel.FilterAverageCount}" IsReadOnly="True" Width="100"/>
+                            <DataGridTextColumn Header="Değer" Binding="{Binding Pv}" IsReadOnly="True" Width="*" MinWidth="130"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>
@@ -105,7 +101,7 @@
                         </ItemsControl>
                         <TextBlock Text="{Binding LibraryTitle}" Style="{StaticResource T.Section}" Margin="0,4,0,4"/>
                         <TextBlock Style="{StaticResource T.Label}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
-                                   Text="Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Takılı bir cihazın değişikliği, pozisyondaki Yükle ile analog girişe geçer."/>
+                                   Text="Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir). Ham değer aralığı S7 analog kartı için tipik olarak 0…27648. Takılı bir cihazın kaydındaki değişiklik analog girişe hemen geçer, pompa çalışırken de. Değer = ölçeklenmiş değer × katsayı + ofset (katsayı 0 ise 1 alınır). Ortalama: filtreden sonra son n değerin hareketli ortalaması (100 ms'de bir değer; 0 veya 1 = kapalı, en çok 100 = 10 s), pompanın basınç dalgalanması gibi sürekli salınımlar için."/>
                     </StackPanel>
                     <!-- Fixed column widths; on a narrow screen the table scrolls sideways (No and Tanım stay) -->
                     <DataGrid Style="{StaticResource Dg}" ItemsSource="{Binding Library}" FrozenColumnCount="2" RowHeight="36" FontSize="14.5"
@@ -127,6 +123,9 @@
                             <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha, StringFormat=0.0000}" Width="84"/>
                             <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="124"/>
                             <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="96"/>
+                            <DataGridTextColumn Header="Ortalama" Binding="{Binding FilterAverageCount}" Width="96"/>
+                            <DataGridTextColumn Header="Katsayı" Binding="{Binding Coefficient, StringFormat=0.0000}" Width="90"/>
+                            <DataGridTextColumn Header="Ofset" Binding="{Binding Offset}" Width="80"/>
                             <DataGridTextColumn Header="Takılı" Binding="{Binding MountedAt}" IsReadOnly="True" Width="*" MinWidth="180"/>
                         </DataGrid.Columns>
                     </DataGrid>

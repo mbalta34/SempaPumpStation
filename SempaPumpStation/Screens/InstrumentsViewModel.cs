@@ -9,7 +9,11 @@ using TerakkiFramework.Mvvm.Commands;
 
 namespace SempaPumpStation.Screens
 {
-    /// <summary>An instrument position: which library device is mounted, and the channel it feeds.</summary>
+    /// <summary>
+    /// An instrument position: which library device is mounted, and the channel it feeds. The mounted device's library
+    /// entry applies to the channel at once (the PLC copies it every cycle); the channel's live values, coefficient, offset and moving
+    /// average are shown through <see cref="Channel"/> (they are set in the library).
+    /// </summary>
     public sealed class PositionRow : ViewModelBase
     {
         public InstrumentPositionInfo Info { get; set; }
@@ -18,35 +22,34 @@ namespace SempaPumpStation.Screens
         public string ZonesText => "Bölge " + string.Join(", ", Info.Zones);
         public IPlcTag DeviceTag { get; set; }     // StationHp.Instruments.<pos>.Device.Value (written)
         public IPlcTag PhDeviceTag { get; set; }   // StationPh.Instruments.<pos>.Device.Value (shown)
-        public ICommand LoadCommand { get; set; }
+        /// <summary>The position's analog input: signal type, the live raw / filtered values, and the coefficient, offset and average loaded from the library.</summary>
+        public AnalogSettingRow Channel { get; set; }
 
-        private string _device, _range, _pv, _raw, _filtered, _loadHint;
-        private bool _enabled, _rejected, _canLoad;
+        private string _device, _range, _pv;
+        private bool _enabled, _rejected;
         public string Device { get => _device; set => Set(ref _device, value); }
         public string Range { get => _range; set => Set(ref _range, value); }
         public string Pv { get => _pv; set => Set(ref _pv, value); }
-        /// <summary>The channel's raw value from the hardware and after the filter (FB_Io_AnalogInput FilteredRaw).</summary>
-        public string Raw { get => _raw; set => Set(ref _raw, value); }
-        public string Filtered { get => _filtered; set => Set(ref _filtered, value); }
-        /// <summary>The device can be changed (its zones are stopped).</summary>
+        /// <summary>The device can be changed (always, also while the zone runs).</summary>
         public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
-        /// <summary>Yükle: whenever a device is mounted; while the zone runs it takes over the filter settings only.</summary>
-        public bool CanLoad { get => _canLoad; set => Set(ref _canLoad, value); }
-        public string LoadHint { get => _loadHint; set => Set(ref _loadHint, value); }
         public bool Rejected { get => _rejected; set => Set(ref _rejected, value); }
     }
 
-    /// <summary>One StationInstruments library entry, editable in a grid. Writes go straight to the DB members.</summary>
+    /// <summary>
+    /// One library device, editable in a grid: its StationInstruments entry and its StationInstrumentAdjustments entry
+    /// (coefficient, offset, moving average). Writes go straight to the DB members.
+    /// </summary>
     public sealed class LibraryRow : ViewModelBase
     {
         private readonly HmiContext _ctx;
-        private readonly string _e;
+        private readonly string _e, _a;
 
         public LibraryRow(HmiContext ctx, int category, int device)
         {
             _ctx = ctx;
             Device = device;
             _e = Station.LibraryEntry(category, device);
+            _a = Station.AdjustmentEntry(category, device);
         }
 
         public int Device { get; }
@@ -62,6 +65,15 @@ namespace SempaPumpStation.Screens
         public double FilterEmaAlpha { get => _ctx.GetReal(_e + "FilterEmaAlpha"); set => W("FilterEmaAlpha", (float)value); }
         public double FilterOutlierMaxJump { get => _ctx.GetReal(_e + "FilterOutlierMaxJump"); set => W("FilterOutlierMaxJump", (float)value); }
         public int FilterOutlierMaxRejectCount { get => _ctx.GetInt(_e + "FilterOutlierMaxRejectCount"); set => W("FilterOutlierMaxRejectCount", (short)value); }
+        /// <summary>Pv = scaled value × Coefficient + Offset (a coefficient of 0 is taken as 1).</summary>
+        public double Coefficient { get => _ctx.GetReal(_a + "Coefficient"); set => WA("Coefficient", (float)value); }
+        public double Offset { get => _ctx.GetReal(_a + "Offset"); set => WA("Offset", (float)value); }
+        /// <summary>Moving average over the last n filtered values (one per 100 ms); 0 or 1 = off, at most 100.</summary>
+        public int FilterAverageCount
+        {
+            get => _ctx.GetInt(_a + "FilterAverageCount");
+            set => WA("FilterAverageCount", (short)System.Math.Max(0, System.Math.Min(AnalogFilter.AverageMax, value)));
+        }
 
         private string _mountedAt = "";
         public string MountedAt { get => _mountedAt; set => Set(ref _mountedAt, value); }
@@ -71,6 +83,12 @@ namespace SempaPumpStation.Screens
         private void W(string f, object v)
         {
             _ctx.SetValue(_e + f, v);
+            OnPropertyChanged(f);
+        }
+
+        private void WA(string f, object v)
+        {
+            _ctx.SetValue(_a + f, v);
             OnPropertyChanged(f);
         }
     }
@@ -106,13 +124,12 @@ namespace SempaPumpStation.Screens
         {
             foreach (var p in Station.Positions)
             {
-                var info = p;
                 Positions.Add(new PositionRow
                 {
                     Info = p,
                     DeviceTag = ctx.Tag(Station.PositionHp(p.Name) + "Device.Value"),
                     PhDeviceTag = ctx.Tag(Station.PositionPh(p.Name) + "Device.Value"),
-                    LoadCommand = new SyncCommand(() => Ctx.Click(Station.PositionHp(info.Name) + "Load")),
+                    Channel = new AnalogSettingRow(ctx, AnalogInputList.All.First(a => a.Name == p.Channel)),
                 });
             }
 
@@ -145,6 +162,8 @@ namespace SempaPumpStation.Screens
 
         private void Refresh()
         {
+            // The parameters (and the "mounted at" column) once a second, the live values every scan
+            bool parameters = _tick++ % 10 == 0;
             foreach (var r in Positions)
             {
                 string ph = Station.PositionPh(r.Name), ai = Station.AiPh(r.Info.Channel);
@@ -155,20 +174,15 @@ namespace SempaPumpStation.Screens
                 r.Device = device > 0 ? (string.IsNullOrEmpty(desc) ? "(tanımsız)" : desc) : "Takılı değil";
                 r.Range = Ctx.GetDouble(ai + "MinPv.Value").ToString("0.##", CultureInfo.InvariantCulture) + " … "
                         + Ctx.GetDouble(ai + "MaxPv.Value").ToString("0.##", CultureInfo.InvariantCulture) + " " + unit;
-                r.Raw = Ctx.GetInt(ai + "RawValue").ToString(CultureInfo.InvariantCulture);
-                r.Filtered = Ctx.GetDouble(ai + "FilteredRaw").ToString("0", CultureInfo.InvariantCulture);
+                r.Channel.RefreshLive();
+                if (parameters) r.Channel.RefreshParameters();
                 r.Pv = Ctx.GetBool(ai + "WireBreak") ? "Tel kopuk"
                      : Ctx.GetDouble(ai + "Pv").ToString(r.Info.Category == Station.Flowmeter ? "0.0" : "0.000", CultureInfo.InvariantCulture) + " " + unit;
                 r.Enabled = Ctx.GetBool(ph + "Device.Enabled");
-                r.CanLoad = device > 0 && (Ctx.IsSimulation || Ctx.GetBool("PLC_COMM_OK"));
-                r.LoadHint = device <= 0 ? "Pozisyonda cihaz yok."
-                           : r.Enabled ? "Kütüphane kaydını (ölçek ve filtre) analog girişe yükler."
-                           : "Bölge çalışıyor: yalnızca filtre ayarları yüklenir, ölçek test sonuna kadar aynı kalır.";
                 r.Rejected = Ctx.GetBool(ph + "SelectionRejected");
             }
 
-            // The "mounted at" column changes rarely; refresh it once a second
-            if (++_tick % 10 == 0) RefreshMounted();
+            if (parameters) RefreshMounted();
         }
 
         private void RefreshMounted()

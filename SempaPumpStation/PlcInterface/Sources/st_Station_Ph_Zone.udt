@@ -37,6 +37,7 @@ VERSION : 0.1
       RotationRemaining { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Seconds left of the running rotation test
       SafetyStop { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Every motor of the station is stopped because a contactor or magnetic switch was manipulated
       ManipulatedDevice { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // The device (source 1-8) of this zone that was manipulated, 0 none; kept until reset
+      DriveFeedbackFault { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // The drive was commanded to run but did not report running within 2 s; kept until reset
    END_STRUCT;
 
 END_TYPE

@@ -94,6 +94,11 @@ namespace SempaPumpStation.Infrastructure.Plc
 
         // The first device (1-8) found manipulated, 0 none; kept until reset
         private int _manipulation;
+
+        // Drive feedback watchdog: commanded to run without the drive's running signal for DriveFeedbackMs; kept until reset
+        private readonly Ton _driveFeedbackTimer = new Ton();
+        private bool _driveFeedbackFault;
+        public const double DriveFeedbackMs = 2000;
         private double _rotationElapsedMs;
         private const double RotationDefaultTime = 3.0, RotationMaxTime = 600.0;
 
@@ -123,10 +128,11 @@ namespace SempaPumpStation.Infrastructure.Plc
             var outputs = Outputs;
             bool testActive = t.B(_samples + "TestActive");
 
-            // Source and flowmeter can only be changed while the pump is stopped
+            // The power source can only be changed while the pump is stopped (no start given, drive not running);
+            // the instruments can be changed at any time
             bool selectionEnabled = !_runRequest && !_rotationRequest && !inputs.DriveRunning;
             _powerSource.Run(t, _hp + "PowerSource", _ph + "PowerSource", 0, false, selectionEnabled);
-            _flowmeter.Run(t, _hp + "Flowmeter", _ph + "Flowmeter", 0, true, selectionEnabled);
+            _flowmeter.Run(t, _hp + "Flowmeter", _ph + "Flowmeter", 0, true, true);
             _dischargeTransmitter.Run(t, _hp + "DischargeTransmitter", _ph + "DischargeTransmitter", 0, true, true);
             _vacuummeter.Run(t, _hp + "Vacuummeter", _ph + "Vacuummeter", 0, true, true);
             _speedReference.Run(t, _hp + "SpeedReference", _ph + "SpeedReference", 0, true, true);
@@ -272,14 +278,21 @@ namespace SempaPumpStation.Infrastructure.Plc
             else powerState = Station.StateOpening;
             t.W(_ph + "PowerState", powerState);
 
+            // ---------------------------------------------------------------- drive feedback watchdog
+            // The drive is commanded to run (pump or rotation test) but does not report running for DRIVE_FEEDBACK_TIME,
+            // at the start or while running: a fault that drops the run request, so the drive's run output goes off.
+            _driveFeedbackTimer.Run((_runRequest || _rotationRequest) && !inputs.DriveRunning, DriveFeedbackMs, c);
+            if (_driveFeedbackTimer.Q) _driveFeedbackFault = true;
+            else if (resetFault) _driveFeedbackFault = false;
+
             // ---------------------------------------------------------------- pump
             _startTrigger.Run(inputs.PendantStart);
 
-            if (_startTrigger.Q && deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop && !stopAll && !_rotationRequest)
+            if (_startTrigger.Q && deviceClosed && !deviceFault && !inputs.DriveFault && !_driveFeedbackFault && !_eStop && !stopAll && !_rotationRequest)
                 _runRequest = true;
 
             // Stop wins over start
-            if (inputs.PendantStop || _stop.QR || deviceFault || !deviceClosed || inputs.DriveFault || _eStop || stopAll)
+            if (inputs.PendantStop || _stop.QR || deviceFault || !deviceClosed || inputs.DriveFault || _driveFeedbackFault || _eStop || stopAll)
                 _runRequest = false;
 
             // ---------------------------------------------------------------- rotation test
@@ -295,7 +308,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 _rotationState = Station.RotationNone;
             }
 
-            _rotationAllowed = deviceClosed && !deviceFault && !inputs.DriveFault && !_eStop && !stopAll
+            _rotationAllowed = deviceClosed && !deviceFault && !inputs.DriveFault && !_driveFeedbackFault && !_eStop && !stopAll
                                && !_runRequest && !inputs.DriveRunning && !testActive
                                && _rotationState != Station.RotationRunning;
 
@@ -306,7 +319,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             }
 
             // Stop, a fault, the E-stop or a manipulation aborts it unconfirmed
-            if (_rotationRequest && (inputs.PendantStop || _stop.QR || deviceFault || inputs.DriveFault || _eStop || stopAll))
+            if (_rotationRequest && (inputs.PendantStop || _stop.QR || deviceFault || inputs.DriveFault || _driveFeedbackFault || _eStop || stopAll))
             {
                 _rotationRequest = false;
                 _rotationState = Station.RotationNone;
@@ -415,7 +428,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(_samples + "Count", count);
 
             // ---------------------------------------------------------------- tower lamp
-            outputs.LampRed = _eStop || deviceFault || inputs.DriveFault || stopAll;
+            outputs.LampRed = _eStop || deviceFault || inputs.DriveFault || _driveFeedbackFault || stopAll;
             outputs.Manipulated = _manipulation != 0;
 
             // ---------------------------------------------------------------- button lamps
@@ -433,6 +446,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(_ph + "PumpRunning", inputs.DriveRunning);
             t.W(_ph + "DeviceFault", deviceFault);
             t.W(_ph + "DriveFault", inputs.DriveFault);
+            t.W(_ph + "DriveFeedbackFault", _driveFeedbackFault);
             t.W(_ph + "EStop", _eStop);
             t.W(_ph + "SelectionRejected", _selectionRejected);
             t.W(_ph + "TestActive", testActive);

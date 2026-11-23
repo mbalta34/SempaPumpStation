@@ -42,6 +42,8 @@ namespace SempaPumpStation.Infrastructure
         public double ElectricalPower { get; set; } // Nş, kW
         public double? PumpPower { get; set; }      // Np, kW
         public double? Efficiency { get; set; }     // pump efficiency, %
+        public double? ShaftPower { get; set; }     // Nmil from the torque meter, T × n / 9549, kW (report column R)
+        public double? ShaftEfficiency { get; set; } // pump efficiency on the shaft power, % (report column S)
 
         public string TimeText => Timestamp != null && Timestamp.Length >= 19 ? Timestamp.Substring(11) : Timestamp;
         public string SourceText => Station.Source(PowerSource)?.Name ?? "—";
@@ -208,6 +210,8 @@ namespace SempaPumpStation.Infrastructure
                 s.ElectricalPower = PumpCalc.ElectricalPower(s.Voltage, s.Current, s.PowerFactor);
                 s.PumpPower = PumpCalc.PumpPower(s.ElectricalPower, line);
                 s.Efficiency = PumpCalc.Efficiency(s.HydraulicPower, s.PumpPower);
+                s.ShaftPower = PumpCalc.ShaftPower(s.Torque, s.Speed);
+                s.ShaftEfficiency = PumpCalc.Efficiency(s.HydraulicPower, s.ShaftPower);
             }
         }
 

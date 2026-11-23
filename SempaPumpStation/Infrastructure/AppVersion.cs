@@ -13,16 +13,16 @@ namespace SempaPumpStation.Infrastructure
     {
         // ---- bump these ----
         public const int Major = 1;
-        public const int Minor = 9;
-        public const int Build = 2;
+        public const int Minor = 12;
+        public const int Build = 0;
 
         public const string ProductName = "Sempa HMI";
 
         /// <summary>
         /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
-        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.4.2, PLC_VERSION 1.4.3). Another version in the PLC raises an alarm.
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.5.0, PLC_VERSION 1.5.0). Another version in the PLC raises an alarm.
         /// </summary>
-        public const string ExpectedPlcVersion = "1.4.3";
+        public const string ExpectedPlcVersion = "1.5.0";
 
         /// <summary>Tooltip of the PLC version in the rail.</summary>
         public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
@@ -39,6 +39,36 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.12.0", "2026-11-22", new[]
+            {
+                "630 kW VFD: the ATV660 is read over Modbus TCP (read only; start, stop and speed reference stay on the wired IO): output frequency, motor current, motor voltage, motor torque (% of nominal and Nm), motor power (% of nominal and shaft power in kW), output electrical power in kW, mains voltage and the status word. Shown at the top of Enerji Analizörleri. PLC: DB_Communication_DriveDevices (IP, two connections), FB_Communication_Atv600Decoder, \"Drives\".Vfd630 (DB304).",
+                "Energy meters and the ATV660: the filter offers none, EMA or EMA + outlier rejection (FB_Communication_ValueFilter, shared by both), then the moving average. The outlier jump is in % of the value (Maks. sıçrama %, default 20 %; Red adedi, default 5), since the values have different units. The drive has its own setting on its card (\"StationHp\".Drive630).",
+                "Energy meter filters: the 100 ms sample pulse now really pulses (an S7-1500 IEC timer updates Q when it is read, so the old \"IN := NOT Q\" never let the filters take a value: EMA stayed at its first value, the average stayed off).",
+                "Needs PLC program 1.5.0.",
+            }),
+
+            new ChangeLogEntry("1.11.0", "2026-11-22", new[]
+            {
+                "Analog inputs: optional moving average per channel (Ortalama), after the filter: the mean of the last n filtered values, one per OB30 cycle (100 ms); 0 or 1 = off, at most 100 = 10 s. For continuous pulsation such as a pump's suction pressure. Set on Analog Ayarları for the fixed sensors and in the instrument library for flowmeters, transmitters and vacuummeters.",
+                "Instrument library: coefficient, offset and moving average (Katsayı, Ofset, Ortalama) per device, in a new DB StationInstrumentAdjustments (DB207, same device numbers; kept apart so the library's entries survive the download). The mounted device's values apply to its position at once; the instrument positions only show them.",
+                "Energy meters: a filter per PM5550 (FB_Communication_PowermeterFilter), applied to every instantaneous value of that meter: none or EMA, then an optional moving average, a value every 100 ms. The energy counters are not filtered. Set on Enerji Analizörleri; the zones, samples and reports get the filtered values.",
+                "Energy meters for a 3-wire system (PM5550 set to 3PH3W): no line-to-neutral values any more. The phase lines show the line-to-line voltages (L1-L2, L2-L3, L3-L1) and the phase currents; powers and cos φ are totals only.",
+                "Retained analog input parameters that read 0 after a reinitialising download fall back to working defaults in the PLC (Max Ham 27648 when Min and Max are both 0, EMA α 0.2, maks. sıçrama 1000, red adedi 5, katsayı 1) instead of freezing or dividing by zero; the same for a meter's EMA α.",
+                "Needs PLC program 1.4.9.",
+            }),
+
+            new ChangeLogEntry("1.10.0", "2026-11-22", new[]
+            {
+                "Analog inputs: signal type per channel, an input of FB_Io_AnalogInput (signalType, constants SIGNAL_4_20_MA, SIGNAL_0_20_MA, SIGNAL_0_10_V, SIGNAL_MINUS10_10_V; default 4…20 mA), passed by FB_Station_Instruments: torque −10…10 V, speed 0…10 V, the rest 4…20 mA. Not set on the HMI. MinRaw / MaxRaw are the raw values at the two ends of the signal range.",
+                "Analog Ayarları and the instrument positions show the raw value, the filtered raw value, and both as the signal (mA or V), with the channel's signal type.",
+                "Analog inputs: coefficient and offset per channel, Pv = scaled value × coefficient + offset (a coefficient of 0 is taken as 1). Set on Analog Ayarları and on the instrument positions.",
+                "No more Yükle on the instrument positions: a mounted device's library entry applies to its channel at once, also while the zone runs. Instrument positions, flowmeter, discharge transmitter and vacuummeter can be changed while the pump runs; only the power source stays locked once start is given.",
+                "Excel report and Deney Raporu: the torque meter's shaft power Nmil = T × n / 9549 kW (P [W] = T [Nm] × n [rpm] / 9.549, report column R) and the pump efficiency on it, hydraulic power / Nmil (column S). The report template is rebuilt with Make-ReportTemplate.ps1; the test number moved to AU1.",
+                "Drive feedback watchdog: a drive commanded to run that does not report running for 2 s (at start or while running) raises a fault that stops the pump and drops the drive's run output, until the fault is reset.",
+                "A data block that is missing or short counts as a PLC program mismatch (link stopped until restart) only when it stays so for 15 s: a download replaces the blocks, and a read in that moment no longer stops the link.",
+                "Needs PLC program 1.4.7.",
+            }),
+
             new ChangeLogEntry("1.9.2", "2026-11-22", new[]
             {
                 "Nş (zone screen, report) is 1.732 × |cos φ| × U × I / 1000 with the magnitude of the meter's power factor, whose sign only tells the quadrant (leading / lagging): a negative power factor no longer zeroes Nş, Pp and the efficiency. The Excel report's cos φ column gets the same magnitude.",

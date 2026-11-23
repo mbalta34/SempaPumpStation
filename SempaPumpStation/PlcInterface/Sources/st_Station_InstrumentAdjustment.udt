@@ -1,0 +1,10 @@
+TYPE "st_Station_InstrumentAdjustment"
+VERSION : 0.1
+   STRUCT
+      Coefficient { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1.0;   // Pv = scaled value * Coefficient + Offset (0 is taken as 1)
+      Offset { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;
+      FilterAverageCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 0;   // Moving average over the last n filtered values (one per 100 ms); 0 or 1 = off, max 100
+   END_STRUCT;
+
+END_TYPE
+

@@ -1,4 +1,4 @@
-﻿TYPE "st_Io_Ph_AnalogInput"
+TYPE "st_Io_Ph_AnalogInput"
 VERSION : 0.1
    STRUCT
       MinPv { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterReal";
@@ -17,6 +17,12 @@ VERSION : 0.1
       WireBreak { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
       ForcingActive { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
       FilteredRaw { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      Coefficient { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterReal";
+      Offset { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterReal";
+      SignalType { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // FB_Io_AnalogInput's signalType input (SIGNAL_*: 1 4..20 mA, 2 0..20 mA, 3 0..10 V, 4 -10..10 V)
+      RawSignal { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // The raw value as the signal: mA or V by SignalType (0 while not set)
+      FilteredSignal { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // The filtered raw value as the signal
+      FilterAverageCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Ph_ParameterInt";
    END_STRUCT;
 
 END_TYPE

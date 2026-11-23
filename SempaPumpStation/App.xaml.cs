@@ -194,6 +194,18 @@ namespace SempaPumpStation
             string Sim(int z) => Station.SimZone(z);
             bool Lamp(int z, string n) => c.GetBool("MaintenancePh.Io.DigitalOutputs.Zone" + z + "_" + n + ".Pv");
 
+            // PLC mode has only the tags the link creates: every PLC tag the simulation knows must exist there too,
+            // or the screens read nothing and their writes are dropped (MaintenanceHp's analog inputs once were missing)
+            {
+                var link = new StationPlcLink("0.0.0.0", 0, 1, TerakkiFramework.Logging.LogBootstrap.CreateDefault());
+                var plcNames = new System.Collections.Generic.HashSet<string>(System.Linq.Enumerable.Select(link.Leaves(), t => t.Name));
+                string[] plcDbs = { "StationHp.", "StationPh.", "StationSamples.", "StationInstruments.", "MaintenanceHp.", "MaintenancePh.", "IoLink.", "StationCounters.", "Powermeters." };
+                var missing = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Where(c.Tags.Keys,
+                    n => System.Linq.Enumerable.Any(plcDbs, db => n.StartsWith(db, StringComparison.Ordinal)) && !plcNames.Contains(n)));
+                Check("every PLC tag of the screens exists in PLC mode (" + missing.Count + " missing" + (missing.Count > 0 ? ", e.g. " + string.Join(", ", System.Linq.Enumerable.Take(missing, 3)) : "") + ")",
+                      missing.Count == 0 && plcNames.Contains(Station.AiHp("Zone1_Speed") + "MinRaw.Value") && plcNames.Contains(Station.AiHp("Zone1_Speed") + "Coefficient.Value"));
+            }
+
             Steps(20);   // instruments accepted and loaded, springs charging
             Check("PLC program version read and as expected (" + c.PlcVersion + ")",
                   c.PlcVersion == AppVersion.ExpectedPlcVersion && c.GetBool("PLC_VERSION_OK") && c.GetString("PLC_VERSION_TEXT") == "PLC " + AppVersion.ExpectedPlcVersion);
@@ -237,7 +249,14 @@ namespace SempaPumpStation
             Steps(40);
             Check("pump runs without a test", c.GetBool(Ph(1) + "PumpRunning"));
             Check("start button lit while the pump runs, stop button dark", Lamp(1, "LampStart") && !Lamp(1, "LampStop"));
-            Check("selection locked while running", !c.GetBool(Ph(1) + "PowerSource.Enabled"));
+            Check("power source locked while running", !c.GetBool(Ph(1) + "PowerSource.Enabled"));
+            // Only the power source: the flowmeter can be changed while the pump runs
+            c.WriteParameter(Hp(1) + "Flowmeter.Value", Ph(1) + "Flowmeter.Value", (short)2);
+            Steps(3);
+            bool flowmeterChanged = c.GetInt(Ph(1) + "Flowmeter.Value") == 2 && c.GetBool(Ph(1) + "Flowmeter.Enabled") && c.GetBool(Ph(1) + "PumpRunning");
+            c.WriteParameter(Hp(1) + "Flowmeter.Value", Ph(1) + "Flowmeter.Value", (short)1);
+            Steps(3);
+            Check("flowmeter can be changed while running", flowmeterChanged && c.GetInt(Ph(1) + "Flowmeter.Value") == 1);
 
             // Rotation test before the test: with the pump stopped, run it for the set time, then confirm the direction
             c.Click(Hp(1) + "Stop");
@@ -358,6 +377,15 @@ namespace SempaPumpStation
             Check("Excel report filled from the template (tester, flow, torque, charts to row 37, recalculated on open)",
                   sheetXml.Contains(archived.Header["TESTI_YAPAN"]) && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"D32\"[^>]*><v>[1-9]") && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"P37\"[^>]*><v>[1-9]")
                   && chartXml.Contains("$D$32:$D$37") && !chartXml.Contains("$D$32:$D$51") && workbookXml.Contains("fullCalcOnLoad=\"1\""));
+            // The torque meter's shaft power and the efficiency on it: formulas in R and S, and the same on the report screen
+            var torqueSample = archived.Samples[5];
+            double shaft = torqueSample.Torque * torqueSample.Speed / 9549.0;
+            Check(string.Format("report: Nmil = T × n / 9549 ({0:0.00} kW) and the efficiency on it ({1:0.0} %); test number at AU1",
+                                torqueSample.ShaftPower ?? 0, torqueSample.ShaftEfficiency ?? 0),
+                  sheetXml.Contains(">IFERROR(P32*Q32/9549,0)</f>") && sheetXml.Contains("IFERROR(((C32*I32/102)/R32)*100,0)")
+                  && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"AU1\"[^>]*><v>" + archived.TestNo + "</v>")
+                  && torqueSample.ShaftPower.HasValue && Math.Abs(torqueSample.ShaftPower.Value - shaft) < 1e-9
+                  && torqueSample.ShaftEfficiency.HasValue && Math.Abs(torqueSample.ShaftEfficiency.Value - torqueSample.HydraulicPower / shaft * 100) < 1e-6);
             Check("end test archives the samples", c.Archive.Records.Count == records + 1 && c.Archive.Records[0].Samples.Count == 6);
             Check("samples stay after end test", c.GetInt(Ph(1) + "SampleCount") == 6);
             Check("end test clears the rotation confirmation",
@@ -368,7 +396,7 @@ namespace SempaPumpStation
             Steps(3);
             Check("device mounted twice is rejected", c.GetInt(Station.PositionPh("Zone3_Pt1") + "Device.Value") == 9
                                                      && c.GetBool(Station.PositionPh("Zone3_Pt1") + "SelectionRejected"));
-            Check("position locked while its zone runs", !c.GetBool(Station.PositionPh("Zone1_Pt1") + "Device.Enabled"));
+            Check("position can be changed while its zone runs", c.GetBool(Station.PositionPh("Zone1_Pt1") + "Device.Enabled"));
 
             // Zone 3: 560 kW magnetic switch with spring, then E-stop
             c.WriteParameter(Hp(3) + "PowerSource.Value", Ph(3) + "PowerSource.Value", (short)7);
@@ -418,6 +446,28 @@ namespace SempaPumpStation
             c.SetValue(Station.SimDrive(4) + "Fault", false);
             Press(Sim(1) + "PendantStart");
             Steps(40);
+
+            // Drive feedback watchdog: zone 1's drive (source 4) stops reporting running. After 2 s without the signal
+            // the zone faults, its run request drops and with it the drive's run output; start is refused until reset.
+            {
+                string runDo = "MaintenancePh.Io.DigitalOutputs.Drive_37Vfd_Run.Pv";
+                bool ranBefore = c.GetBool(Ph(1) + "PumpRunning") && c.GetBool(runDo);
+                c.SetValue(Station.SimDrive(4) + "NoFeedback", true);
+                Steps(15);   // 1.5 s
+                bool noFaultYet = !c.GetBool(Ph(1) + "DriveFeedbackFault") && c.GetBool(runDo);
+                Steps(8);
+                Check("no running signal for 2 s: drive feedback fault, run output off, red lamp",
+                      ranBefore && noFaultYet && c.GetBool(Ph(1) + "DriveFeedbackFault") && !c.GetBool(runDo) && c.GetBool(Ph(1) + "LampRed"));
+                c.SetValue(Station.SimDrive(4) + "NoFeedback", false);
+                Press(Sim(1) + "PendantStart");
+                Steps(5);
+                Check("start is refused until the feedback fault is reset", !c.GetBool(runDo) && c.GetBool(Ph(1) + "DriveFeedbackFault"));
+                c.Click(Hp(1) + "ResetFault");
+                Steps(3);
+                Press(Sim(1) + "PendantStart");
+                Steps(40);
+                Check("reset clears it and the pump starts again", !c.GetBool(Ph(1) + "DriveFeedbackFault") && c.GetBool(Ph(1) + "PumpRunning"));
+            }
 
             // Someone closes a contactor of zone 3 by hand: every motor stops at once, also zone 1's
             bool zone1Ran = c.GetBool(Ph(1) + "PumpRunning");
@@ -573,34 +623,217 @@ namespace SempaPumpStation
             screen.Zones[0].Command.Execute(null);
             screen.Hubs[1].Ports[0].SelectCommand.Execute(null);   // zone 1 Pt1, zone 1 runs
             Steps(2);
-            Check("the device is locked while the zone runs", !screen.CanAssign);
+            Check("the device can be changed while the zone runs", screen.CanAssign && c.GetBool(Station.ZonePh(1) + "PumpRunning"));
 
-            // Yükle while zone 1 runs: the library entry's filter settings reach the channel, its range does not
+            // No Yükle: while zone 1 runs, an edited library entry reaches the channel at once, range and filter alike
             {
                 var instruments = (Screens.InstrumentsViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "Instruments").Screen;
                 var row = System.Linq.Enumerable.First(instruments.Positions, r => r.Name == "Zone1_Pt1");
                 string entry = Station.LibraryEntry(Station.PressureTransmitter, c.GetInt(Ph("Zone1_Pt1") + "Device.Value"));
-                string ai = Station.AiHp("Zone1_Pt1");
+                string ai = Station.AiPh("Zone1_Pt1");
                 int filterType = c.GetInt(entry + "FilterType");
-                double maxPv = c.GetDouble(entry + "MaxPv"), channelMaxPv = c.GetDouble(ai + "MaxPv.Value");
+                double maxPv = c.GetDouble(entry + "MaxPv");
                 c.SetValue(entry + "FilterType", (short)2);
                 c.SetValue(entry + "MaxPv", (float)(maxPv + 10));
-                Steps(2);
-                bool loadable = row.CanLoad && !row.Enabled;
-                row.LoadCommand.Execute(null);
                 Steps(3);
-                Check("Yükle while the zone runs takes the filter type (" + c.GetInt(ai + "FilterType.Value") + ") but keeps the range",
-                      loadable && c.GetInt(ai + "FilterType.Value") == 2 && System.Math.Abs(c.GetDouble(ai + "MaxPv.Value") - channelMaxPv) < 1e-6);
+                Check("an edited library entry applies at once while the zone runs (filter " + c.GetInt(ai + "FilterType.Value") + ", max " + c.GetDouble(ai + "MaxPv.Value") + ")",
+                      c.GetBool(Station.ZonePh(1) + "PumpRunning")
+                      && c.GetInt(ai + "FilterType.Value") == 2 && System.Math.Abs(c.GetDouble(ai + "MaxPv.Value") - (maxPv + 10)) < 1e-3);
                 c.SetValue(entry + "FilterType", (short)filterType);
                 c.SetValue(entry + "MaxPv", (float)maxPv);
-                Steps(2);
-                row.LoadCommand.Execute(null);
                 Steps(3);
-                Check("restored the filter type", c.GetInt(ai + "FilterType.Value") == filterType);
-                string aiPh = Station.AiPh("Zone1_Pt1");
-                Check("positions show raw and filtered raw (" + row.Raw + " / " + row.Filtered + ")",
-                      row.Raw == c.GetInt(aiPh + "RawValue").ToString(System.Globalization.CultureInfo.InvariantCulture)
-                      && row.Filtered == c.GetDouble(aiPh + "FilteredRaw").ToString("0", System.Globalization.CultureInfo.InvariantCulture));
+                Check("and back", c.GetInt(ai + "FilterType.Value") == filterType && System.Math.Abs(c.GetDouble(ai + "MaxPv.Value") - maxPv) < 1e-3);
+
+                // Coefficient, offset and moving average belong to the library device (StationInstrumentAdjustments): set in the
+                // library, they reach the mounted position's channel at once; the position only shows them
+                {
+                    int device = c.GetInt(Ph("Zone1_Pt1") + "Device.Value");
+                    var libraryRow = new Screens.LibraryRow(c, Station.PressureTransmitter, device);
+                    libraryRow.Coefficient = 1.5;
+                    libraryRow.Offset = 0.2;
+                    libraryRow.FilterAverageCount = 10;
+                    Steps(3);
+                    row.Channel.RefreshParameters();
+                    Check(string.Format("library Katsayı / Ofset / Ortalama reach the position's channel at once ({0} / {1} / {2})",
+                                        row.Channel.Coefficient, row.Channel.Offset, row.Channel.FilterAverageCount),
+                          c.GetDouble(ai + "Coefficient.Value") == 1.5 && Math.Abs(c.GetDouble(ai + "Offset.Value") - 0.2) < 1e-6
+                          && c.GetInt(ai + "FilterAverageCount.Value") == 10 && row.Channel.FilterAverageCount == 10);
+                    libraryRow.FilterAverageCount = 500;
+                    bool limited = libraryRow.FilterAverageCount == 100;
+                    libraryRow.Coefficient = 1.0;
+                    libraryRow.Offset = 0.0;
+                    libraryRow.FilterAverageCount = 0;
+                    Steps(3);
+                    Check("library average limited to 100; and back to 1 / 0 / off",
+                          limited && c.GetDouble(ai + "Coefficient.Value") == 1.0 && c.GetDouble(ai + "Offset.Value") == 0.0 && c.GetInt(ai + "FilterAverageCount.Value") == 0);
+                }
+
+                // Signal types: passed by the PLC program, not an HMI parameter; 4…20 mA unless set
+                int Sig(string ch) => c.GetInt(Station.AiPh(ch) + "SignalType");
+                Check("signal types from the program: torque −10…10 V, speed 0…10 V, every other channel 4…20 mA; not an HMI parameter",
+                      Sig("Zone1_Pt1") == AnalogSignal.Current4To20 && Sig("Zone2_FM3") == AnalogSignal.Current4To20 && Sig("Zone3_Vacuummeter2") == AnalogSignal.Current4To20
+                      && Sig("Zone1_Torque") == AnalogSignal.VoltageMinus10To10 && Sig("Zone3_Speed") == AnalogSignal.Voltage0To10
+                      && Sig("Zone2_Sound") == AnalogSignal.Current4To20 && Sig("Zone1_WaterTemperature") == AnalogSignal.Current4To20
+                      && c.Tag(Station.AiHp("Zone1_Torque") + "SignalType.Value") == null);
+
+                // Raw and filtered raw (counts) and the same as the signal: 4 mA at MinRaw, 20 mA at MaxRaw
+                int raw = c.GetInt(ai + "RawValue"), minRaw = c.GetInt(ai + "MinRaw.Value"), maxRaw = c.GetInt(ai + "MaxRaw.Value");
+                double mA = 4.0 + 16.0 * (raw - minRaw) / (maxRaw - minRaw);
+                double filteredMa = 4.0 + 16.0 * (c.GetDouble(ai + "FilteredRaw") - minRaw) / (maxRaw - minRaw);
+                row.Channel.RefreshLive();
+                Check(string.Format("raw {0}, filtered raw {1}, raw signal {2}, filtered signal {3} ({4})",
+                                    row.Channel.Raw, row.Channel.Filtered, row.Channel.RawSignal, row.Channel.FilteredSignal, row.Channel.Signal),
+                      System.Math.Abs(c.GetDouble(ai + "RawSignal") - mA) < 0.01 && System.Math.Abs(c.GetDouble(ai + "FilteredSignal") - filteredMa) < 0.01
+                      && row.Channel.Raw == raw.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                      && row.Channel.Filtered == c.GetDouble(ai + "FilteredRaw").ToString("0", System.Globalization.CultureInfo.InvariantCulture)
+                      && row.Channel.RawSignal.EndsWith(" mA") && row.Channel.FilteredSignal.EndsWith(" mA") && row.Channel.Signal == "4…20 mA");
+
+                // Coefficient (0 taken as 1) and offset: Pv = scaled × coefficient + offset
+                string snd = Station.AiPh("Zone2_Sound"), sndHp = Station.AiHp("Zone2_Sound");
+                double Scaled() => c.GetDouble(snd + "MinPv.Value") + (c.GetDouble(snd + "FilteredRaw") - c.GetInt(snd + "MinRaw.Value"))
+                                   / (c.GetInt(snd + "MaxRaw.Value") - c.GetInt(snd + "MinRaw.Value")) * (c.GetDouble(snd + "MaxPv.Value") - c.GetDouble(snd + "MinPv.Value"));
+                bool unity = c.GetDouble(snd + "Coefficient.Value") == 1.0 && c.GetDouble(snd + "Offset.Value") == 0.0 && System.Math.Abs(c.GetDouble(snd + "Pv") - Scaled()) < 0.01;
+                c.WriteParameter(sndHp + "Coefficient.Value", snd + "Coefficient.Value", 2.0f);
+                c.WriteParameter(sndHp + "Offset.Value", snd + "Offset.Value", 5.0f);
+                Steps(3);
+                Check(string.Format("coefficient 1 / offset 0 by default; × 2 + 5 applies at once ({0:0.00} = {1:0.00} × 2 + 5)", c.GetDouble(snd + "Pv"), Scaled()),
+                      unity && System.Math.Abs(c.GetDouble(snd + "Pv") - (Scaled() * 2.0 + 5.0)) < 0.02);
+                c.WriteParameter(sndHp + "Coefficient.Value", snd + "Coefficient.Value", 0.0f);
+                c.WriteParameter(sndHp + "Offset.Value", snd + "Offset.Value", 0.0f);
+                Steps(3);
+                Check("a coefficient of 0 is taken as 1", c.GetDouble(snd + "Coefficient.Value") == 1.0 && System.Math.Abs(c.GetDouble(snd + "Pv") - Scaled()) < 0.01);
+
+                // The channel's moving average (FB_Io_AnalogInput): the mean of the last n filtered values, after the filter;
+                // a standalone port instance on the sound channel, fed known raw values
+                {
+                    var pt = new Infrastructure.Plc.PlcTags(c.Tags);
+                    var ch = new Infrastructure.Plc.AnalogInputChannel("Zone2_Sound", 0, 100);
+                    ch.FilterAverageCount.RetainValue = 4;
+                    var seen = new List<double>();
+                    foreach (int r in new[] { 1000, 2000, 3000, 4000, 5000 })
+                    {
+                        ch.Run(pt, r);
+                        seen.Add(c.GetDouble(snd + "FilteredRaw"));
+                    }
+                    Check(string.Format("moving average over 4 values: {0}", string.Join(" / ", seen.Select(v => v.ToString("0")))),
+                          seen[0] == 1000 && seen[1] == 1500 && seen[3] == 2500 && seen[4] == 3500
+                          && Math.Abs(ch.Pv - 3500.0 / 27648 * 100) < 1e-6);
+                    ch.FilterAverageCount.Value = 0;
+                    ch.Run(pt, 6000);
+                    Check("average 0 is off", c.GetDouble(snd + "FilteredRaw") == 6000);
+
+                    var zero = new Infrastructure.Plc.AnalogInputChannel("Zone2_Sound", 0, 100);
+                    zero.MaxRaw.RetainValue = 0;
+                    zero.FilterEmaAlpha.RetainValue = 0;
+                    zero.FilterOutlierMaxJump.RetainValue = 0;
+                    zero.FilterOutlierMaxRejectCount.RetainValue = 0;
+                    zero.FilterAverageCount.RetainValue = 500;
+                    zero.Run(pt, 1000);
+                    Check("parameters left at 0 by a reinitialising download fall back to the defaults (Max Ham 27648, EMA α 0.2, jump 1000, reject 5; average limited to 100)",
+                          zero.MaxRaw.Value == 27648 && zero.FilterEmaAlpha.Value == 0.2 && zero.FilterOutlierMaxJump.Value == 1000.0
+                          && zero.FilterOutlierMaxRejectCount.Value == 5 && zero.FilterAverageCount.Value == 100);
+                    Steps(3);   // the station's own sound channel writes its values again
+                }
+
+                // The average set on Analog Ayarları reaches the channel
+                {
+                    var settingsVm = (Screens.AnalogSettingsViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "AnalogSettings").Screen;
+                    var soundRow = System.Linq.Enumerable.First(settingsVm.Rows, r => r.Channel == "Zone2_Sound");
+                    soundRow.FilterAverageCount = 20;
+                    Steps(4);
+                    bool set = c.GetInt(snd + "FilterAverageCount.Value") == 20 && soundRow.FilterAverageCount == 20;
+                    soundRow.FilterAverageCount = 0;
+                    Steps(4);
+                    Check("Analog Ayarları writes the channel's average (20, then off)", set && c.GetInt(snd + "FilterAverageCount.Value") == 0);
+                }
+            }
+
+            // Energy meters: a 3-wire system (no line-to-neutral values) and one filter per meter
+            {
+                string m4 = Station.Meter(4);
+                Check(string.Format("3-wire meter: phases carry line-to-line voltages ({0:0.0} V) and currents, no phase powers; totals as before",
+                                    c.GetDouble(m4 + "PhaseA.Voltage")),
+                      c.GetDouble(m4 + "PhaseA.Voltage") > 390 && c.GetDouble(m4 + "PhaseC.Voltage") > 390 && c.GetDouble(m4 + "PhaseB.Current") > 0
+                      && c.GetDouble(m4 + "PhaseA.ActivePower") == 0 && c.GetDouble(m4 + "PhaseB.PowerFactor") == 0
+                      && c.GetDouble(m4 + "General.ActivePower") > 0 && c.GetDouble(m4 + "General.PowerFactor") > 0);
+
+                var meters = (Screens.PowermetersViewModel)System.Linq.Enumerable.First(vm.DiagNav.Concat(vm.MainNav), e => e.Key == "Powermeters").Screen;
+                var card = meters.Meters.First(m => m.Source == 4);
+                Check("Enerji Analizörleri: phase lines without powers and cos φ, the total line with them",
+                      card.Rows[0].ActivePower == "" && card.Rows[0].PowerFactor == "" && card.Rows[0].Voltage.Length > 0
+                      && card.Rows[3].ActivePower.Length > 0 && card.Rows[3].PowerFactor.Length > 0);
+
+                string fph = Station.MeterFilterPh(4);
+                Check("meter filter defaults: none, EMA α 0.2, jump 20 %, reject 5, average off; the three filter types offered",
+                      c.GetInt(fph + "FilterType.Value") == 0 && Math.Abs(c.GetDouble(fph + "FilterEmaAlpha.Value") - 0.2) < 1e-6
+                      && c.GetDouble(fph + "FilterOutlierMaxJump.Value") == 20.0 && c.GetInt(fph + "FilterOutlierMaxRejectCount.Value") == 5
+                      && c.GetInt(fph + "FilterAverageCount.Value") == 0 && card.Filter.AverageText == "Kapalı"
+                      && AnalogFilter.MeterItems.Length == 3);
+                card.Filter.FilterType = AnalogFilter.EmaOutlier;
+                c.WriteParameter(card.Filter.AverageWriteTag, card.Filter.AverageTag, (short)20);
+                c.WriteParameter(card.Filter.JumpWriteTag, card.Filter.JumpTag, 15.0f);
+                Steps(4);
+                Check("the screen writes the meter's filter (EMA + outlier, jump 15 %, average 20 = " + card.Filter.AverageText + ")",
+                      c.GetInt(fph + "FilterType.Value") == 2 && c.GetInt(fph + "FilterAverageCount.Value") == 20
+                      && c.GetDouble(fph + "FilterOutlierMaxJump.Value") == 15.0 && card.Filter.AverageText == "20 (2.0 s)");
+                card.Filter.FilterType = AnalogFilter.None;
+                c.WriteParameter(card.Filter.AverageWriteTag, card.Filter.AverageTag, (short)0);
+                c.WriteParameter(card.Filter.JumpWriteTag, card.Filter.JumpTag, 20.0f);
+                Steps(4);
+
+                // The filter itself (port of FB_Communication_PowermeterFilter), on known values: EMA α 0.5, then a 4-value average
+                var pt = new Infrastructure.Plc.PlcTags(c.Tags);
+                var f = new Infrastructure.Plc.PowermeterFilter(8);
+                f.FilterType.RetainValue = AnalogFilter.Ema;
+                f.FilterEmaAlpha.RetainValue = 0.5;
+                double[] V(double v) => Enumerable.Repeat(v, Infrastructure.Plc.PowermeterFilter.Values.Length).ToArray();
+                double a = f.Run(pt, V(100), true, true)[0];
+                double b = f.Run(pt, V(200), true, true)[0];
+                double kept = f.Run(pt, V(200), true, false)[0];
+                double d = f.Run(pt, V(200), true, true)[0];
+                f.FilterAverageCount.Value = 4;
+                double avg = f.Run(pt, V(200), true, true)[0];   // EMA 187.5; mean of 100, 150, 175, 187.5
+                Check(string.Format("meter EMA takes a value only on the 100 ms pulse ({0} → {1} → {2} → {3}), then the moving average ({4:0.000})", a, b, kept, d, avg),
+                      a == 100 && b == 150 && kept == 150 && d == 175 && Math.Abs(avg - 153.125) < 1e-9);
+                var lost = f.Run(pt, V(0), false, true);
+                double reseeded = f.Run(pt, V(300), true, true)[0];
+                var nan = V(300);
+                nan[5] = double.NaN;
+                var noNan = f.Run(pt, nan, true, true);
+                Check("a meter that stops answering passes 0; the filter starts again from its next values; a NaN counts as 0",
+                      lost.All(v => v == 0) && reseeded == 300 && !noNan.Any(double.IsNaN));
+                f.FilterEmaAlpha.Value = 0;
+                f.Run(pt, V(300), true, true);
+                Check("a meter's EMA α of 0 falls back to 0.2", f.FilterEmaAlpha.Value == 0.2);
+
+                // EMA + outlier rejection (jump in % of the value): a single spike is ignored, a lasting step is taken after 3 in a row
+                var o = new Infrastructure.Plc.PowermeterFilter(8);
+                o.FilterType.RetainValue = AnalogFilter.EmaOutlier;
+                o.FilterEmaAlpha.RetainValue = 1.0;   // no smoothing, so only the rejection shows
+                o.FilterOutlierMaxJump.RetainValue = 20.0;
+                o.FilterOutlierMaxRejectCount.RetainValue = 3;
+                var seen = new List<double>();
+                foreach (double x in new[] { 100.0, 110.0, 300.0, 110.0, 200.0, 200.0, 200.0, 200.0 }) seen.Add(o.Run(pt, V(x), true, true)[0]);
+                Check("EMA + outlier: " + string.Join(" → ", seen),
+                      seen.SequenceEqual(new[] { 100.0, 110.0, 110.0, 110.0, 110.0, 110.0, 200.0, 200.0 }));
+                Steps(3);   // meter 8's own filter writes its values again
+
+                // The 630 kW VFD's ATV660, read over Modbus TCP: stopped here (no zone runs on source 8)
+                var drive = meters.Drive;
+                string zero = 0.0.ToString("0.0");
+                Check(string.Format("ATV660 card: {0}, {1}, {2} Hz, {3} A; status word decoded (running 0x0637, fault bit 3)", drive.Name, drive.Status, drive.Frequency, drive.Current),
+                      drive.CommOk && drive.ExtraCommOk && drive.Status == "Duruyor" && drive.Frequency == zero && drive.Current == zero
+                      && Screens.DriveCard.StatusText(0x0637) == "Çalışıyor" && Screens.DriveCard.StatusText(0x0608) == "Arıza"
+                      && Screens.DriveCard.StatusText(0x0633) == "Duruyor");
+                drive.Filter.FilterType = AnalogFilter.EmaOutlier;
+                c.WriteParameter(drive.Filter.AverageWriteTag, drive.Filter.AverageTag, (short)10);
+                Steps(4);
+                Check("the drive has its own filter setting (EMA + outlier, average " + drive.Filter.AverageText + ")",
+                      c.GetInt(Station.DriveFilterPh + "FilterType.Value") == 2 && c.GetInt(Station.DriveFilterPh + "FilterAverageCount.Value") == 10
+                      && c.GetInt(fph + "FilterType.Value") == 0);
+                drive.Filter.FilterType = AnalogFilter.None;
+                c.WriteParameter(drive.Filter.AverageWriteTag, drive.Filter.AverageTag, (short)0);
+                Steps(4);
             }
 
             // Suction vacuummeter (IO list V1.9): zone 2 measures with the one selected, also while it runs; zone 1 has one

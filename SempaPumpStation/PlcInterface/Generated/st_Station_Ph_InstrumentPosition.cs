@@ -15,12 +15,10 @@ namespace SempaPumpStation.PlcInterface
         {
             var k = new S7Cursor(c, db, byteOffset, w, r);
             Device = k.Next(new st_Hmi_Ph_ParameterInt(c, name + ".Device", db, k.Struct(), w, r));
-            Load = k.Next(new st_Hmi_Ph_CommandButton(c, name + ".Load", db, k.Struct(), w, r));
             SelectionRejected = k.Leaf(name + ".SelectionRejected", DataType.BOOL);
         }
 
         public st_Hmi_Ph_ParameterInt Device { get; private set; }
-        public st_Hmi_Ph_CommandButton Load { get; private set; }
         public SiemensS7PlcTag SelectionRejected { get; private set; }
     }
 }

@@ -118,6 +118,7 @@ namespace SempaPumpStation.Infrastructure
                 list.Add(new AlarmDef { Tag = ph + "EStop", Message = name + "ACİL STOP", Severity = "ALARM" });
                 list.Add(new AlarmDef { Tag = ph + "DeviceFault", Message = name + "Kontaktör / şalter arızası (geri bildirim yok)", Severity = "ALARM" });
                 list.Add(new AlarmDef { Tag = ph + "DriveFault", Message = name + "Sürücü arızası", Severity = "ALARM" });
+                list.Add(new AlarmDef { Tag = ph + "DriveFeedbackFault", Message = name + "Sürücü çalışıyor sinyali 2 sn içinde gelmedi — pompa durduruldu", Severity = "ALARM" });
                 // A device that changed state without a command stops every motor of the station (PLC, FB_Station_Zone)
                 foreach (var s in Station.Sources)
                     list.Add(new AlarmDef

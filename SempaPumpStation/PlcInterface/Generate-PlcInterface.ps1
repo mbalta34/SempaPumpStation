@@ -9,13 +9,14 @@ param(
 )
 
 # DB numbers in MainPLC
-$dbNumbers = [ordered]@{ MaintenanceHp = 101; MaintenancePh = 102; StationHp = 201; StationPh = 202; StationSamples = 203; StationInstruments = 204; IoLink = 205; StationCounters = 206; Powermeters = 303 }
+$dbNumbers = [ordered]@{ MaintenanceHp = 101; MaintenancePh = 102; StationHp = 201; StationPh = 202; StationSamples = 203; StationInstruments = 204; IoLink = 205; StationCounters = 206; StationInstrumentAdjustments = 207; Powermeters = 303; Drives = 304 }
 
 # Types provided by TerakkiFramework.Plc.Hmi (same layout as the PLC's FB_Hmi_* UDTs) or hand-written (DTL)
 $external = 'st_Hmi_Hp_CommandButton', 'st_Hmi_Ph_CommandButton', 'st_Hmi_Hp_ParameterInt', 'st_Hmi_Ph_ParameterInt',
             'st_Hmi_Hp_ParameterReal', 'st_Hmi_Ph_ParameterReal', 'st_Hmi_Hp_ParameterBool', 'st_Hmi_Ph_ParameterBool', 'DTL'
 
-$leafTypes = @{ Bool = 'BOOL'; Int = 'INT'; DInt = 'DINT'; UInt = 'UINT'; UDInt = 'UDINT'; USInt = 'USINT'; SInt = 'SINT'; Real = 'REAL' }
+# Word has no type of its own in TerakkiFramework: read as UInt (same 2-byte layout)
+$leafTypes = @{ Bool = 'BOOL'; Word = 'UINT'; Int = 'INT'; DInt = 'DINT'; UInt = 'UINT'; UDInt = 'UDINT'; USInt = 'USINT'; SInt = 'SINT'; Real = 'REAL' }
 
 function Read-Members([string] $file) {
     $members = @()

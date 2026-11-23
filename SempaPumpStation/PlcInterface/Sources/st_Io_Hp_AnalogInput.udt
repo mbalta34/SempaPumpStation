@@ -1,4 +1,4 @@
-﻿TYPE "st_Io_Hp_AnalogInput"
+TYPE "st_Io_Hp_AnalogInput"
 VERSION : 0.1
    STRUCT
       MinPv { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
@@ -12,6 +12,9 @@ VERSION : 0.1
       FilterEmaAlpha { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
       FilterOutlierMaxJump { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
       FilterOutlierMaxRejectCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";
+      Coefficient { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";   // Pv = scaled value * Coefficient + Offset (0 is taken as 1)
+      Offset { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";
+      FilterAverageCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";   // Moving average over the last n filtered values (one per OB30 cycle, 100 ms); 0 or 1 = off, max 100
    END_STRUCT;
 
 END_TYPE

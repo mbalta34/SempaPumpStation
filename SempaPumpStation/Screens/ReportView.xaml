@@ -161,7 +161,10 @@
                                     <DataGridTextColumn Header="P hid kW" Binding="{Binding HydraulicPower, StringFormat=0.00}" Width="*"/>
                                     <DataGridTextColumn Header="Pp kW" Binding="{Binding PumpPower, StringFormat=0.00}" Width="*"/>
                                     <DataGridTextColumn Header="Verim %" Binding="{Binding Efficiency, StringFormat=0.0}" Width="*"/>
+                                    <DataGridTextColumn Header="Tork Nm" Binding="{Binding Torque, StringFormat=0.0}" Width="*"/>
                                     <DataGridTextColumn Header="d/dk" Binding="{Binding Speed, StringFormat=0}" Width="*"/>
+                                    <DataGridTextColumn Header="Nmil kW" Binding="{Binding ShaftPower, StringFormat=0.00}" Width="*"/>
+                                    <DataGridTextColumn Header="Verim (tork) %" Binding="{Binding ShaftEfficiency, StringFormat=0.0}" Width="*"/>
                                     <DataGridTextColumn Header="Su °C" Binding="{Binding WaterTemperature, StringFormat=0.0}" Width="*"/>
                                     <DataGridTextColumn Header="Titr. mm/s" Binding="{Binding Vibration, StringFormat=0.00}" Width="*"/>
                                 </DataGrid.Columns>

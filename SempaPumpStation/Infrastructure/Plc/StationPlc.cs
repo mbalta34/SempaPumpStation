@@ -43,7 +43,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             foreach (var p in Station.Positions)
             {
                 int device = retainedDevice(p);
-                if (device > 0) _ai[p.Channel].RetainFrom(tags, Station.LibraryEntry(p.Category, device));
+                if (device > 0) _ai[p.Channel].RetainFrom(tags, Station.LibraryEntry(p.Category, device), Station.AdjustmentEntry(p.Category, device));
             }
 
             for (int z = 1; z <= Station.ZoneCount; z++)
@@ -78,6 +78,7 @@ namespace SempaPumpStation.Infrastructure.Plc
 
             // ================================================================ "Communication": PM5550s → "Powermeters"
             WritePowermeters(dtMs / 1000.0);
+            WriteDrive();
 
             // FB_Station_Main: the program version for the HMI (the simulation is the program this HMI is built for)
             _t.W("StationPh.PlcVersion", AppVersion.ExpectedPlcVersion);
@@ -125,11 +126,8 @@ namespace SempaPumpStation.Infrastructure.Plc
             }
 
             // ================================================================ instruments
-            // A zone counts as running from its run request until its drive has stopped
-            var zoneRunning = new bool[4];
-            for (int z = 1; z <= Station.ZoneCount; z++)
-                zoneRunning[z] = _zoneOutputs[z].RunRequest || _zoneInputs[z].DriveRunning;
-            _instruments.Run(_t, zoneRunning);
+            // Positions can be re-assigned and library entries edited at any time; they apply at once
+            _instruments.Run(_t);
 
             for (int z = 1; z <= Station.ZoneCount; z++)
             {
@@ -246,19 +244,31 @@ namespace SempaPumpStation.Infrastructure.Plc
             }
             foreach (var s in Station.Sources)
             {
-                Input("Drive_" + s.Drive + "_Running", _field.DriveRunning(s.Id));
+                Input("Drive_" + s.Drive + "_Running", _field.DriveRunning(s.Id) && !_t.B(Station.SimDrive(s.Id) + "NoFeedback"));
                 Input("Drive_" + s.Drive + "_Fault", _field.DriveFault(s.Id));
             }
         }
 
         private void Input(string channel, bool value) => _di[channel] = _inputs[channel].Run(_t, value);
 
-        // FB_Communication_Pm5550Decoder's result: every meter answers; phases share the load evenly.
-        // Energies count up in Wh, as the PM5550 reports them.
+        // FB_Communication_Pm5550Decoder's result for a 3-wire system (PM5550 set to 3PH3W): every meter answers;
+        // the phases carry the line-to-line voltages and the phase currents, the powers and the power factor are totals only.
+        // Energies count up in Wh, as the PM5550 reports them. FB_Communication_Main then filters each meter
+        // (FB_Communication_PowermeterFilter, a value every 100 ms) into "Powermeters".
         private readonly double[] _activeWh = new double[9], _reactiveWh = new double[9], _apparentWh = new double[9];
+        private readonly PowermeterFilter[] _meterFilters =
+            Enumerable.Range(0, Station.SourceCount + 1).Select(s => s == 0 ? null : new PowermeterFilter(s)).ToArray();
+        private double _meterSampleMs;
+        private bool _meterSample;   // this scan has the 100 ms pulse (meters and drive)
+        private const double MeterSampleMs = 100.0;
 
         private void WritePowermeters(double dt)
         {
+            // A pulse every 100 ms (SampleTimer)
+            _meterSampleMs += dt * 1000.0;
+            bool sample = _meterSample = _meterSampleMs >= MeterSampleMs;
+            if (sample) _meterSampleMs = 0.0;
+
             for (int s = 1; s <= Station.SourceCount; s++)
             {
                 var m = _field.Meter(s);
@@ -267,23 +277,54 @@ namespace SempaPumpStation.Infrastructure.Plc
                 _reactiveWh[s] += m.ReactiveKvar * dt / 3.6;
                 _apparentWh[s] += m.ApparentKva * dt / 3.6;
 
+                // Decoded, in PowermeterFilter.Values order
+                double[] raw =
+                {
+                    m.VoltageLL, m.Current, m.ActiveKw, m.ReactiveKvar, m.ApparentKva, m.PowerFactor, m.Frequency,
+                    m.VoltageLL + 0.8, m.VoltageLL - 0.5, m.VoltageLL - 0.3,
+                    m.Current, m.Current, m.Current,
+                };
+                double[] filtered = _meterFilters[s].Run(_t, raw, true, sample);
+
+                var values = new Dictionary<string, double>
+                {
+                    { "General.ActiveEnergy", _activeWh[s] }, { "General.ReactiveEnergy", _reactiveWh[s] }, { "General.ApparentEnergy", _apparentWh[s] },
+                };
+                for (int i = 0; i < PowermeterFilter.Values.Length; i++) values[PowermeterFilter.Values[i]] = filtered[i];
+
                 _t.W(meter + "CommOk", true);
                 foreach (var group in Station.MeterGroups)
-                {
-                    bool general = group == "General";
-                    string g = meter + group + ".";
-                    _t.W(g + "Voltage", general ? m.VoltageLL : m.VoltageLN);
-                    _t.W(g + "Current", m.Current);
-                    _t.W(g + "ActivePower", general ? m.ActiveKw : m.ActiveKw / 3.0);
-                    _t.W(g + "ReactivePower", general ? m.ReactiveKvar : m.ReactiveKvar / 3.0);
-                    _t.W(g + "ApparentPower", general ? m.ApparentKva : m.ApparentKva / 3.0);
-                    _t.W(g + "PowerFactor", m.PowerFactor);
-                    _t.W(g + "Frequency", m.Frequency);
-                    _t.W(g + "ActiveEnergy", general ? _activeWh[s] : 0.0);
-                    _t.W(g + "ReactiveEnergy", general ? _reactiveWh[s] : 0.0);
-                    _t.W(g + "ApparentEnergy", general ? _apparentWh[s] : 0.0);
-                }
+                    foreach (var v in Station.MeterValues)
+                        _t.W(meter + group + "." + v, values.TryGetValue(group + "." + v, out var value) ? value : 0.0);
             }
+        }
+
+        // FB_Communication_Atv600Decoder's result: the ATV660 of the 630 kW VFD, read over Modbus TCP. Output frequency and
+        // voltage follow the speed (U/f), the motor gets the meter's power less the drive's losses; nominal 630 kW at 381 rpm.
+        private readonly PowermeterFilter _driveFilter = new PowermeterFilter(Station.DriveFilterHp, Station.DriveFilterPh);
+
+        private void WriteDrive()
+        {
+            const int s = Station.DriveSource;
+            const double nominalKw = 630.0, nominalRpm = 381.0;
+            var m = _field.Meter(s);
+            double speed = _field.DriveSpeed(s);
+            double electricalKw = m.ActiveKw * 0.975, mechanicalKw = electricalKw * 0.955;
+            double rpm = nominalRpm * speed, torqueNm = rpm > 1.0 ? mechanicalKw * 9549.0 / rpm : 0.0;
+            double nominalNm = nominalKw * 9549.0 / nominalRpm;
+            // Decoded, in PowermeterFilter.DriveValues order; then FB_Communication_DriveFilter (both requests answer here)
+            double[] raw =
+            {
+                50.0 * speed, m.Current * 0.98, torqueNm / nominalNm * 100.0, m.VoltageLL, 400.0 * speed, mechanicalKw / nominalKw * 100.0,
+                torqueNm, mechanicalKw, electricalKw,
+            };
+            double[] filtered = _driveFilter.Run(_t, raw, true, _meterSample);
+
+            string d = Station.Drive630;
+            _t.W(d + "CommOk", true);
+            _t.W(d + "ExtraCommOk", true);
+            _t.W(d + "StatusWord", _field.DriveRunning(s) ? 0x0637 : 0x0633);
+            for (int i = 0; i < PowermeterFilter.DriveValues.Length; i++) _t.W(d + PowermeterFilter.DriveValues[i], filtered[i]);
         }
 
         // The physical wiring: every sensor on its IO list port, free ports read as an open 4-20 mA input

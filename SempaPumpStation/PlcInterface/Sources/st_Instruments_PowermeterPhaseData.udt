@@ -1,16 +1,16 @@
-﻿TYPE "st_Instruments_PowermeterPhaseData"
+TYPE "st_Instruments_PowermeterPhaseData"
 VERSION : 0.1
    STRUCT
-      Voltage : Real;   // V. Phases: line to neutral. General: line to line average
+      Voltage : Real;   // V, line to line (3-wire system). Phases: A = A-B, B = B-C, C = C-A. General: average
       Current : Real;   // A. General: average of the phases
-      ActivePower : Real;   // kW. General: total
-      ReactivePower : Real;   // kVAR. General: total
-      ApparentPower : Real;   // kVA. General: total
-      PowerFactor : Real;   // -1..1, sign = leading / lagging. General: total
+      ActivePower : Real;   // kW. General: total; 0 on the phases (no per-phase power in a 3-wire system)
+      ReactivePower : Real;   // kVAR. General: total; 0 on the phases
+      ApparentPower : Real;   // kVA. General: total; 0 on the phases
+      PowerFactor : Real;   // -1..1, sign = leading / lagging. General: total; 0 on the phases
       ActiveEnergy : Real;   // Delivered, as the meter reports it (General only)
       ReactiveEnergy : Real;   // Delivered (General only)
       ApparentEnergy : Real;   // Delivered (General only)
-      Frequency : Real;   // Hz
+      Frequency : Real;   // Hz (General only)
    END_STRUCT;
 
 END_TYPE

@@ -5,9 +5,9 @@ namespace SempaPumpStation.Infrastructure.Plc
 {
     /// <summary>
     /// Port of FB_Io_AnalogInput with its FB_Io_AnalogInputHmi parameters (forcing left out):
-    /// raw value → optional EMA / EMA + outlier filter → NORM_X / SCALE_X with the channel's
-    /// MinRaw..MaxRaw / MinPv..MaxPv. The parameters are retained HMI parameters, which is where
-    /// FC_Station_LoadInstrument writes a library entry.
+    /// raw value → optional EMA / EMA + outlier filter → optional moving average → NORM_X / SCALE_X with the channel's
+    /// MinRaw..MaxRaw / MinPv..MaxPv → × Coefficient + Offset. The parameters are retained HMI parameters, which is
+    /// where FC_Station_LoadInstrument writes a library entry. The signal type gives the raw values as mA or V.
     /// </summary>
     public sealed class AnalogInputChannel
     {
@@ -20,6 +20,11 @@ namespace SempaPumpStation.Infrastructure.Plc
         public readonly HmiParameterInt FilterType = new HmiParameterInt();
         public readonly HmiParameterReal FilterEmaAlpha = new HmiParameterReal(), FilterOutlierMaxJump = new HmiParameterReal();
         public readonly HmiParameterInt FilterOutlierMaxRejectCount = new HmiParameterInt();
+        public readonly HmiParameterReal Coefficient = new HmiParameterReal(), Offset = new HmiParameterReal();
+        public readonly HmiParameterInt FilterAverageCount = new HmiParameterInt();
+
+        private readonly double[] _averageBuffer = new double[AnalogFilter.AverageMax];
+        private int _averageIndex, _averageFilled;
 
         private double _rawWithEma, _rawWithEmaOutlier;
         private int _rejectCount;
@@ -27,12 +32,15 @@ namespace SempaPumpStation.Infrastructure.Plc
 
         public string Name { get; }
         public double Pv { get; private set; }
+        /// <summary>The signalType input, as FB_Station_Instruments passes it (default 4..20 mA).</summary>
+        public int SignalType { get; }
 
         public AnalogInputChannel(string name, double minPv = 0.0, double maxPv = 100.0)
         {
             Name = name;
             _hp = Station.AiHp(name);
             _ph = Station.AiPh(name);
+            SignalType = Station.SignalType(name);
             // Start values of st_Io_*_AnalogInput, as retained in the PLC
             MinRaw.RetainValue = 0;
             MaxRaw.RetainValue = 27648;
@@ -44,8 +52,11 @@ namespace SempaPumpStation.Infrastructure.Plc
         }
 
         /// <summary>Retained values as left by the last load of a library entry (a station that has been running).</summary>
-        public void RetainFrom(PlcTags t, string libraryEntry)
+        public void RetainFrom(PlcTags t, string libraryEntry, string adjustmentEntry)
         {
+            Coefficient.RetainValue = t.R(adjustmentEntry + "Coefficient");
+            Offset.RetainValue = t.R(adjustmentEntry + "Offset");
+            FilterAverageCount.RetainValue = t.I(adjustmentEntry + "FilterAverageCount");
             MinPv.RetainValue = t.R(libraryEntry + "MinPv");
             MaxPv.RetainValue = t.R(libraryEntry + "MaxPv");
             MinRaw.RetainValue = t.I(libraryEntry + "MinRaw");
@@ -66,6 +77,18 @@ namespace SempaPumpStation.Infrastructure.Plc
             FilterEmaAlpha.Run(t, _hp + "FilterEmaAlpha", _ph + "FilterEmaAlpha", 0, true, true);
             FilterOutlierMaxJump.Run(t, _hp + "FilterOutlierMaxJump", _ph + "FilterOutlierMaxJump", 0, true, true);
             FilterOutlierMaxRejectCount.Run(t, _hp + "FilterOutlierMaxRejectCount", _ph + "FilterOutlierMaxRejectCount", 0, true, true);
+            Coefficient.Run(t, _hp + "Coefficient", _ph + "Coefficient", 0, true, true);
+            Offset.Run(t, _hp + "Offset", _ph + "Offset", 0, true, true);
+            FilterAverageCount.Run(t, _hp + "FilterAverageCount", _ph + "FilterAverageCount", 0, true, true);
+
+            // Retained parameters read 0 after a reinitialising download; values that cannot be meant are replaced by the defaults
+            if (Coefficient.Value == 0.0) Coefficient.Value = 1.0;
+            if (MinRaw.Value == 0 && MaxRaw.Value == 0) MaxRaw.Value = AnalogFilter.DefaultMaxRaw;
+            if (FilterEmaAlpha.Value <= 0.0 || FilterEmaAlpha.Value > 1.0) FilterEmaAlpha.Value = AnalogFilter.DefaultEmaAlpha;
+            if (FilterOutlierMaxJump.Value <= 0.0) FilterOutlierMaxJump.Value = AnalogFilter.DefaultOutlierMaxJump;
+            if (FilterOutlierMaxRejectCount.Value <= 0) FilterOutlierMaxRejectCount.Value = AnalogFilter.DefaultOutlierMaxRejectCount;
+            if (FilterAverageCount.Value < 0) FilterAverageCount.Value = 0;
+            else if (FilterAverageCount.Value > AnalogFilter.AverageMax) FilterAverageCount.Value = AnalogFilter.AverageMax;
 
             bool wireBreak = rawValue == RawOverflow || rawValue == RawUnderflow;
             double raw = rawValue;
@@ -75,6 +98,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             {
                 _rawWithEma = raw;
                 _rawWithEmaOutlier = raw;
+                _averageFilled = 0;
                 _firstCycle = false;
             }
 
@@ -104,12 +128,39 @@ namespace SempaPumpStation.Infrastructure.Plc
                             : FilterType.Value == FilterEmaOutlier ? _rawWithEmaOutlier
                             : raw;
 
+            // Optional moving average of the filtered value over the last FilterAverageCount values (0 or 1 = off)
+            if (!wireBreak)
+            {
+                _averageIndex = (_averageIndex + 1) % AnalogFilter.AverageMax;
+                _averageBuffer[_averageIndex] = filtered;
+                if (_averageFilled < AnalogFilter.AverageMax) _averageFilled++;
+            }
+            int averageCount = Math.Min(FilterAverageCount.Value, _averageFilled);
+            if (FilterAverageCount.Value >= 2 && averageCount >= 1 && !wireBreak)
+            {
+                double sum = 0.0;
+                int row = _averageIndex;
+                for (int i = 0; i < averageCount; i++)
+                {
+                    sum += _averageBuffer[row];
+                    row = row == 0 ? AnalogFilter.AverageMax - 1 : row - 1;
+                }
+                filtered = sum / averageCount;
+            }
+
             double span = MaxRaw.Value - MinRaw.Value;
             double norm = span == 0 ? 0 : (filtered - MinRaw.Value) / span;
-            Pv = MinPv.Value + norm * (MaxPv.Value - MinPv.Value);
+            double rawNorm = span == 0 ? 0 : (raw - MinRaw.Value) / span;
+            Pv = (MinPv.Value + norm * (MaxPv.Value - MinPv.Value)) * Coefficient.Value + Offset.Value;
+
+            // MinRaw / MaxRaw are the two ends of the signal range
+            var (signalMin, signalMax) = AnalogSignal.Range(SignalType);
 
             t.W(_ph + "RawValue", rawValue);
             t.W(_ph + "FilteredRaw", filtered);
+            t.W(_ph + "SignalType", SignalType);
+            t.W(_ph + "RawSignal", signalMin + rawNorm * (signalMax - signalMin));
+            t.W(_ph + "FilteredSignal", signalMin + norm * (signalMax - signalMin));
             t.W(_ph + "Pv", Pv);
             t.W(_ph + "WireBreak", wireBreak);
         }
@@ -124,14 +175,11 @@ namespace SempaPumpStation.Infrastructure.Plc
         private readonly InstrumentPositionInfo _info;
         private readonly string _hp, _ph;
         public readonly HmiParameterInt Device = new HmiParameterInt();
-        private readonly HmiCommandButton _load = new HmiCommandButton();
         private int _mountedDevice;
         private bool _selectionRejected;
 
+        /// <summary>The mounted device, 0 none; its library entry is applied to the channel every cycle.</summary>
         public int MountedDevice => _mountedDevice;
-        public bool LoadNow { get; private set; }
-        /// <summary>With <see cref="LoadNow"/>: Yükle pressed while the zone runs, so only the filter settings are copied.</summary>
-        public bool LoadFilterOnly { get; private set; }
         public InstrumentPositionInfo Info => _info;
 
         public InstrumentPosition(InstrumentPositionInfo info, int retainedDevice)
@@ -142,13 +190,10 @@ namespace SempaPumpStation.Infrastructure.Plc
             Device.RetainValue = retainedDevice;
         }
 
-        public void Run(PlcTags t, int deviceCount, bool selectionEnabled, int[] assigned)
+        public void Run(PlcTags t, int deviceCount, int[] assigned)
         {
-            Device.Run(t, _hp + "Device", _ph + "Device", 0, true, selectionEnabled);
-            _load.Run(t, _hp + "Load", _ph + "Load");
-
-            LoadNow = false;
-            LoadFilterOnly = false;
+            // The device can be changed at any time, also while the zone runs
+            Device.Run(t, _hp + "Device", _ph + "Device", 0, true, true);
 
             // A physical device can be mounted at one position only. A rejected value is written back
             // into the parameter, which pushes it to the HMI again.
@@ -164,18 +209,7 @@ namespace SempaPumpStation.Infrastructure.Plc
                 }
 
                 if (_selectionRejected) Device.Value = _mountedDevice;
-                else
-                {
-                    _mountedDevice = candidate;
-                    LoadNow = _mountedDevice > 0;
-                }
-            }
-
-            // Yükle re-applies the mounted device's catalog entry; while the zone runs only its filter settings
-            if (_load.QR && _mountedDevice > 0)
-            {
-                LoadNow = true;
-                LoadFilterOnly = !selectionEnabled;
+                else _mountedDevice = candidate;
             }
 
             assigned[_info.Index] = _mountedDevice > 0 ? _info.Category * KeyFactor + _mountedDevice : 0;
@@ -197,29 +231,30 @@ namespace SempaPumpStation.Infrastructure.Plc
 
         public int Device(string position) => Positions[position].MountedDevice;
 
-        /// <param name="zoneRunning">1-based: a position can only be re-assigned while its zones are stopped.</param>
-        public void Run(PlcTags t, bool[] zoneRunning)
+        /// <summary>
+        /// Positions can be re-assigned at any time, also while their zone runs; the mounted device's library entry is
+        /// copied into its channel every cycle, so a new device or an edited entry applies at once.
+        /// </summary>
+        public void Run(PlcTags t)
         {
             foreach (var info in Station.Positions)
             {
-                bool enabled = true;
-                foreach (int z in info.Zones) enabled &= !zoneRunning[z];
-
                 var position = Positions[info.Name];
-                position.Run(t, Station.LibrarySize, enabled, _assigned);
-                if (position.LoadNow) LoadInstrument(t, info.Category, position.MountedDevice, info.Channel, position.LoadFilterOnly);
+                position.Run(t, Station.LibrarySize, _assigned);
+                if (position.MountedDevice > 0) LoadInstrument(t, info.Category, position.MountedDevice, info.Channel);
             }
         }
 
-        // FC_Station_LoadInstrument: library entry → the channel's HMI-to-PLC parameters. filterOnly (the zone runs):
-        // the range stays as the test started, only the filter settings are taken over.
-        private static void LoadInstrument(PlcTags t, int category, int device, string channel, bool filterOnly)
+        // FC_Station_LoadInstrument: library entry and the device's adjustments (coefficient, offset, moving average) → the
+        // channel's HMI-to-PLC parameters. A parameter takes a value over only when it changes. Only the signal type belongs
+        // to the channel.
+        private static void LoadInstrument(PlcTags t, int category, int device, string channel)
         {
-            string entry = Station.LibraryEntry(category, device), hp = Station.AiHp(channel);
-            foreach (var n in Station.AiRealParameters)
-                if (!filterOnly || Station.IsAiFilterParameter(n)) t.W(hp + n + ".Value", t.R(entry + n));
-            foreach (var n in Station.AiIntParameters)
-                if (!filterOnly || Station.IsAiFilterParameter(n)) t.W(hp + n + ".Value", t.I(entry + n));
+            string entry = Station.LibraryEntry(category, device), adjustment = Station.AdjustmentEntry(category, device), hp = Station.AiHp(channel);
+            foreach (var n in Station.AiChannelRealParameters) t.W(hp + n + ".Value", t.R(adjustment + n));
+            foreach (var n in Station.AiChannelIntParameters) t.W(hp + n + ".Value", t.I(adjustment + n));
+            foreach (var n in Station.AiRealParameters) t.W(hp + n + ".Value", t.R(entry + n));
+            foreach (var n in Station.AiIntParameters) t.W(hp + n + ".Value", t.I(entry + n));
         }
     }
 }

@@ -84,6 +84,11 @@ namespace SempaPumpStation.Infrastructure
                 yield return Kv(e + "FilterEmaAlpha", 0.2);
                 yield return Kv(e + "FilterOutlierMaxJump", 1000.0);
                 yield return Kv(e + "FilterOutlierMaxRejectCount", 5);
+
+                string a = Station.AdjustmentEntry(category, d);   // start values of st_Station_InstrumentAdjustment
+                yield return Kv(a + "Coefficient", 1.0);
+                yield return Kv(a + "Offset", 0.0);
+                yield return Kv(a + "FilterAverageCount", 0);
             }
         }
 

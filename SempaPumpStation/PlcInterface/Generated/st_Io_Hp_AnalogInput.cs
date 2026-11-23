@@ -25,6 +25,9 @@ namespace SempaPumpStation.PlcInterface
             FilterEmaAlpha = k.Next(new st_Hmi_Hp_ParameterReal(c, name + ".FilterEmaAlpha", db, k.Struct(), w, r));
             FilterOutlierMaxJump = k.Next(new st_Hmi_Hp_ParameterReal(c, name + ".FilterOutlierMaxJump", db, k.Struct(), w, r));
             FilterOutlierMaxRejectCount = k.Next(new st_Hmi_Hp_ParameterInt(c, name + ".FilterOutlierMaxRejectCount", db, k.Struct(), w, r));
+            Coefficient = k.Next(new st_Hmi_Hp_ParameterReal(c, name + ".Coefficient", db, k.Struct(), w, r));
+            Offset = k.Next(new st_Hmi_Hp_ParameterReal(c, name + ".Offset", db, k.Struct(), w, r));
+            FilterAverageCount = k.Next(new st_Hmi_Hp_ParameterInt(c, name + ".FilterAverageCount", db, k.Struct(), w, r));
         }
 
         public st_Hmi_Hp_ParameterReal MinPv { get; private set; }
@@ -38,5 +41,8 @@ namespace SempaPumpStation.PlcInterface
         public st_Hmi_Hp_ParameterReal FilterEmaAlpha { get; private set; }
         public st_Hmi_Hp_ParameterReal FilterOutlierMaxJump { get; private set; }
         public st_Hmi_Hp_ParameterInt FilterOutlierMaxRejectCount { get; private set; }
+        public st_Hmi_Hp_ParameterReal Coefficient { get; private set; }
+        public st_Hmi_Hp_ParameterReal Offset { get; private set; }
+        public st_Hmi_Hp_ParameterInt FilterAverageCount { get; private set; }
     }
 }

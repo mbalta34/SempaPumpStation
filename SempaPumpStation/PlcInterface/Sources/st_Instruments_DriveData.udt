@@ -1,0 +1,19 @@
+TYPE "st_Instruments_DriveData"
+VERSION : 0.1
+   STRUCT
+      CommOk : Bool;   // The drive answered the main request (status ... motor power) in its last cycle; those values are 0 while FALSE
+      StatusWord : Word;   // ETA (3201)
+      OutputFrequency : Real;   // Hz, RFR (3202), signed
+      MotorCurrent : Real;   // A, LCR (3204)
+      MotorTorque : Real;   // % of the motor's nominal torque, OTR (3205), signed
+      MainsVoltage : Real;   // V, ULN (3207)
+      MotorVoltage : Real;   // V, UOP (3208)
+      MotorPower : Real;   // % of the motor's nominal power, OPR (3211), signed
+      ExtraCommOk : Bool;   // The drive answered the second request (torque in Nm, powers in kW); those values are 0 while FALSE
+      MotorTorqueNm : Real;   // Nm, OTQN (3268), signed
+      MotorMechanicalPower : Real;   // kW, shaft power estimate, OPRW (3292)
+      OutputElectricalPower : Real;   // kW, active electrical output power to the motor, EPRW (3293)
+   END_STRUCT;
+
+END_TYPE
+

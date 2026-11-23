@@ -1,4 +1,4 @@
-﻿DATA_BLOCK "StationHp"
+DATA_BLOCK "StationHp"
 { S7_Optimized_Access := 'FALSE' }
 VERSION : 0.1
 NON_RETAIN
@@ -7,6 +7,8 @@ NON_RETAIN
       Zone2 : "st_Station_Hp_Zone";
       Zone3 : "st_Station_Hp_Zone";
       Instruments : "st_Station_Hp_Instruments";
+      Powermeters : Array[1..8] of "st_Communication_Hp_PowermeterFilter";   // Filter settings of each PM5550, in source order
+      Drive630 : "st_Communication_Hp_PowermeterFilter";   // Filter settings of the 630 kW VFD's ATV660
    END_STRUCT;
 
 

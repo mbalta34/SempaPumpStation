@@ -1,0 +1,12 @@
+TYPE "st_Communication_Hp_PowermeterFilter"
+VERSION : 0.1
+   STRUCT
+      FilterType { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";   // 0 none, 1 EMA, 2 EMA + outlier rejection; applies to every instantaneous value of the meter / drive
+      FilterEmaAlpha { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";   // EMA weight of a new value, 0 < alpha <= 1 (one value per 100 ms)
+      FilterAverageCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";   // Moving average over the last n values (one per 100 ms); 0 or 1 = off, max 100
+      FilterOutlierMaxJump { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterReal";   // %: a value further than this from the filtered value is an outlier
+      FilterOutlierMaxRejectCount { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "st_Hmi_Hp_ParameterInt";   // This many outliers in a row are taken as a new level
+   END_STRUCT;
+
+END_TYPE
+

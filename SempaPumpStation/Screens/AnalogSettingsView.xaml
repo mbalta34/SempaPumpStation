@@ -9,7 +9,7 @@
                 <StackPanel DockPanel.Dock="Top">
                     <TextBlock Text="SABİT SENSÖRLERİN ÖLÇEK VE FİLTRE AYARLARI" Style="{StaticResource T.Section}"/>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
-                               Text="Tork, devir, ses, sıcaklık ve titreşim girişleri. Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir); değer PLC'ye gider ve hemen geçerli olur, pompa çalışırken de. Ham aralık S7 analog kartı için tipik olarak 0…27648. Maks. sıçrama ham değer cinsinden. Debimetre, basınç transmitteri ve vakummetrelerin ayarları Enstrümanlar ekranındaki kütüphaneden gelir."/>
+                               Text="Tork, devir, ses, sıcaklık ve titreşim girişleri. Hücreye tıklayıp yeni değeri yazın, Enter ile onaylayın (mühendis girişi gerekir); değer PLC'ye gider ve hemen geçerli olur, pompa çalışırken de. Min / Max Ham, sinyal aralığının iki ucundaki ham sayımdır (ör. 4 ve 20 mA, −10 ve 10 V; S7 analog kartında tipik olarak 0…27648, ±10 V'ta −27648…27648). Sinyal türü PLC programında verilir (varsayılan 4…20 mA); ham değerler sayım ve mA / V olarak gösterilir. Değer = ölçeklenmiş değer × katsayı + ofset. Maks. sıçrama ham sayım cinsinden. Ortalama: filtreden sonra son n değerin hareketli ortalaması (100 ms'de bir değer; 0 veya 1 = kapalı, en çok 100 = 10 s), pompanın basınç dalgalanması gibi sürekli salınımlar için. Debimetre, basınç transmitteri ve vakummetrelerin ölçek ve filtre ayarları Enstrümanlar ekranındaki kütüphaneden gelir."/>
                 </StackPanel>
                 <!-- Fixed column widths: on a narrow screen the table scrolls sideways (Bölge and Sensör stay) -->
                 <DataGrid x:Name="Grid" Style="{StaticResource Dg}" ItemsSource="{Binding Rows}" FrozenColumnCount="2"
@@ -19,19 +19,25 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Bölge" Binding="{Binding Zone}" IsReadOnly="True" Width="70"/>
                         <DataGridTextColumn Header="Sensör" Binding="{Binding Label}" IsReadOnly="True" Width="140"/>
+                        <DataGridTextColumn Header="Sinyal" Binding="{Binding Signal}" IsReadOnly="True" Width="76"/>
                         <DataGridTextColumn Header="Ham" Binding="{Binding Raw}" IsReadOnly="True" Width="60"/>
-                        <DataGridTextColumn Header="Filtreli ham" Binding="{Binding Filtered}" IsReadOnly="True" Width="80"/>
+                        <DataGridTextColumn Header="Filtreli ham" Binding="{Binding Filtered}" IsReadOnly="True" Width="76"/>
+                        <DataGridTextColumn Header="Ham sinyal" Binding="{Binding RawSignal}" IsReadOnly="True" Width="84"/>
+                        <DataGridTextColumn Header="Filtreli sinyal" Binding="{Binding FilteredSignal}" IsReadOnly="True" Width="90"/>
                         <DataGridTextColumn Header="Değer" Binding="{Binding Value}" IsReadOnly="True" Width="100"/>
                         <DataGridTextColumn Header="Min Ham" Binding="{Binding MinRaw}" Width="70"/>
                         <DataGridTextColumn Header="Max Ham" Binding="{Binding MaxRaw}" Width="70"/>
                         <DataGridTextColumn Header="Min" Binding="{Binding MinPv}" Width="64"/>
                         <DataGridTextColumn Header="Max" Binding="{Binding MaxPv}" Width="64"/>
+                        <DataGridTextColumn Header="Katsayı" Binding="{Binding Coefficient, StringFormat=0.0000}" Width="70"/>
+                        <DataGridTextColumn Header="Ofset" Binding="{Binding Offset}" Width="60"/>
                         <DataGridComboBoxColumn Header="Filtre" Width="180" ItemsSource="{x:Static inf:AnalogFilter.Items}"
                                                     EditingElementStyle="{StaticResource Cb.Cell}"
                                                     SelectedValueBinding="{Binding FilterType}" SelectedValuePath="Value" DisplayMemberPath="Display"/>
                         <DataGridTextColumn Header="EMA α" Binding="{Binding FilterEmaAlpha, StringFormat=0.0000}" Width="60"/>
                         <DataGridTextColumn Header="Maks. sıçrama" Binding="{Binding FilterOutlierMaxJump}" Width="90"/>
                         <DataGridTextColumn Header="Red adedi" Binding="{Binding FilterOutlierMaxRejectCount}" Width="70"/>
+                        <DataGridTextColumn Header="Ortalama" Binding="{Binding FilterAverageCount}" Width="72"/>
                         <DataGridTextColumn Header="Kanal" Binding="{Binding Channel}" IsReadOnly="True" Width="190"/>
                     </DataGrid.Columns>
                 </DataGrid>
