@@ -246,15 +246,22 @@ namespace SempaPumpStation.Infrastructure.Plc
         }
 
         // FC_Station_LoadInstrument: library entry and the device's adjustments (coefficient, offset, moving average) → the
-        // channel's HMI-to-PLC parameters. A parameter takes a value over only when it changes. Only the signal type belongs
-        // to the channel.
+        // channel's HMI-to-PLC parameters, entered as an HMI would: a value that differs from the one last entered is written
+        // and its entry counted. Only the signal type belongs to the channel.
         private static void LoadInstrument(PlcTags t, int category, int device, string channel)
         {
             string entry = Station.LibraryEntry(category, device), adjustment = Station.AdjustmentEntry(category, device), hp = Station.AiHp(channel);
-            foreach (var n in Station.AiChannelRealParameters) t.W(hp + n + ".Value", t.R(adjustment + n));
-            foreach (var n in Station.AiChannelIntParameters) t.W(hp + n + ".Value", t.I(adjustment + n));
-            foreach (var n in Station.AiRealParameters) t.W(hp + n + ".Value", t.R(entry + n));
-            foreach (var n in Station.AiIntParameters) t.W(hp + n + ".Value", t.I(entry + n));
+            foreach (var n in Station.AiChannelRealParameters) Enter(t, hp + n, (float)t.R(adjustment + n));
+            foreach (var n in Station.AiChannelIntParameters) Enter(t, hp + n, t.I(adjustment + n));
+            foreach (var n in Station.AiRealParameters) Enter(t, hp + n, (float)t.R(entry + n));
+            foreach (var n in Station.AiIntParameters) Enter(t, hp + n, t.I(entry + n));
+        }
+
+        private static void Enter(PlcTags t, string parameter, double value)
+        {
+            if ((float)t.R(parameter + ".Value") == (float)value) return;
+            t.W(parameter + ".Value", value);
+            t.W(parameter + ".EntryCounter", HmiEntry.Next(t.I(parameter + ".EntryCounter")));
         }
     }
 }

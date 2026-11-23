@@ -251,36 +251,42 @@ namespace SempaPumpStation.Infrastructure
         public void SetBool(string name, bool value) => SetValue(name, value);
         public void Toggle(string name) => SetValue(name, !GetBool(name));
 
-        /// <summary>Click of an HMI command button: sets Hp.Click, which the PLC takes and clears.</summary>
+        /// <summary>Click of an HMI command button: a press is counted in the button's EntryCounter, which the PLC acts on.</summary>
         public void Click(string hpButton)
         {
             var click = Tag(hpButton + ".Click");
             if (click == null) return;
             click.TagValue = true;
-            // The PLC acts on the rising edge and never clears Click. Against the PLC the tag pulses itself
-            // (ClickPulseMs); in the simulation it is released once the simulated PLC has scanned it.
-            if (IsSimulation) Later(click, false, 2);
+            // Against the PLC the tag pulses Click (ClickPulseMs) and counts the press (TerakkiFramework entry counter);
+            // in the simulation the press is counted here and Click released once the simulated PLC has scanned it.
+            if (IsSimulation)
+            {
+                CountEntry(click);
+                Later(click, false, 2);
+            }
         }
 
         // ---------------- HMI parameter entries ----------------
-        // BluePrism FB_Hmi_Parameter*: the PLC never writes its HMI→PLC block; a new entry is a CHANGE of the
-        // Hp value. Hp therefore can still hold an entry the PLC refused (a source held by another zone) or
-        // replaced. Re-entering that same value would be no change and be ignored, so an entry that differs
-        // from the PLC's value first writes the PLC's own value (a change the PLC takes as "no new value"),
-        // then the entry once the PLC has scanned that step.
+        // FB_Hmi_Parameter* (RailBase 1.9.2): the PLC never writes its HMI→PLC block and acts on a change of the parameter's
+        // EntryCounter, not of its value. Every entry is counted (1 … 255, never 0), so re-entering the value the PLC refused
+        // or replaced, or the value Hp already holds, is an entry too.
 
         /// <summary>Operator entry of an HMI parameter: Hp value tag, its Ph value tag (the PLC's value), new value.</summary>
         public void WriteParameter(IPlcTag hpValue, IPlcTag phValue, object value)
         {
             if (hpValue == null) return;
-            _pending.RemoveAll(p => p.Tag == hpValue);   // a newer entry replaces one still on its way
-            if (phValue == null || Same(phValue.TagValue, value))
-            {
-                hpValue.TagValue = value;
-                return;
-            }
-            hpValue.TagValue = phValue.TagValue;
-            Later(hpValue, value, IsSimulation ? 2 : (int)Math.Ceiling(ClickPulseMs / ScanMs) + 1);
+            hpValue.TagValue = value;   // against the PLC the tag writes the value and then counts the entry
+            if (IsSimulation) CountEntry(hpValue);
+        }
+
+        /// <summary>The simulation's side of the entry counter: the Hp parameter or button the tag belongs to counts one entry.</summary>
+        private void CountEntry(IPlcTag hpTag)
+        {
+            string name = hpTag.Name;
+            int dot = name.LastIndexOf('.');
+            var counter = dot > 0 ? Tag(name.Substring(0, dot) + ".EntryCounter") : null;
+            if (counter == null) return;
+            counter.TagValue = (short)HmiEntry.Next(Convert.ToInt32(counter.TagValue ?? 0));
         }
 
         /// <summary><see cref="WriteParameter(IPlcTag, IPlcTag, object)"/> by tag names.</summary>
@@ -299,14 +305,6 @@ namespace SempaPumpStation.Infrastructure
                 _pending.RemoveAt(i);
                 p.Tag.TagValue = p.Value;
             }
-        }
-
-        private static bool Same(object a, object b)
-        {
-            if (a == null || b == null) return Equals(a, b);
-            if (a is string || b is string) return string.Equals(Convert.ToString(a), Convert.ToString(b));
-            try { return Math.Abs(Convert.ToDouble(a) - Convert.ToDouble(b)) < 1e-6; }
-            catch { return Equals(a, b); }
         }
 
         /// <summary>Momentary field signal (a Sim.* MOMENTARY_BOOL pulses back to false by itself).</summary>

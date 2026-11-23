@@ -3,6 +3,7 @@
 #  - four columns after O (pump efficiency), the torque meter: torque (Nm), speed (d/dk), the shaft power from them
 #    (kW = T [Nm] x n [rpm] / 9549, i.e. P [W] = T x n / 9.549) and the pump efficiency on that shaft power (%)
 #  - header blocks that end at column O are widened to the new last column S
+#  - Hm (column I) is Hb - He, the suction pressure entered as measured
 #  - the example test data is cleared; formulas, charts and the hidden calculation columns stay
 $xl = New-Object -ComObject Excel.Application
 $xl.Visible = $false; $xl.DisplayAlerts = $false
@@ -60,6 +61,10 @@ try {
     #      efficiency on it, hydraulic power (as column O: Q [l/s] x Hm / 102) over the shaft power
     $ws.Range("R32:R51").Formula = '=IFERROR(P32*Q32/9549,0)'
     $ws.Range("S32:S51").Formula = '=IFERROR(((C32*I32/102)/R32)*100,0)'
+
+    # ---- Hm = Hb - He: F holds the suction transmitter's value as measured (bar, negative under vacuum), so it is
+    #      subtracted (the 2017 template added an inverted F): G x 10.2 - F x 10.2 + velocity head (H) + height (AG)
+    $ws.Range("I32:I51").Formula = '=IFERROR((G32*AN32)-(F32*AN32)+H32+AG32,0)'
 
     # ---- clear the example test (the HMI fills these)
     foreach ($a in "D32:D51", "F32:G51", "J32:L51", "P32:Q51", "A53",

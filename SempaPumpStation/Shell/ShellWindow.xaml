@@ -7,6 +7,7 @@
         xmlns:s="clr-namespace:SempaPumpStation.Screens"
         xmlns:sec="clr-namespace:TerakkiUI.Components.User;assembly=TerakkiUI"
         Title="SEMPA — Pompa Test Standı" Height="1000" Width="1600"
+        Icon="/SempaPumpStation;component/Assets/sempa.ico"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None" Background="{StaticResource B.App}"
         FontFamily="{StaticResource F.Ui}" TextOptions.TextFormattingMode="Ideal">
@@ -84,9 +85,11 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0">
-                    <Border Background="{StaticResource B.Accent}" CornerRadius="6" Width="30" Height="30" Margin="0,0,10,0">
-                        <TextBlock Text="S" FontSize="17" FontWeight="Bold" Foreground="#04222A"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <!-- The Sempa logo -->
+                    <Border CornerRadius="7" Width="36" Height="36" Margin="0,0,10,0">
+                        <Border.Background>
+                            <ImageBrush ImageSource="/SempaPumpStation;component/Assets/sempa_logo.png" Stretch="UniformToFill"/>
+                        </Border.Background>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="SEMPA" FontSize="14" FontWeight="Bold" Foreground="{StaticResource B.Text}"/>

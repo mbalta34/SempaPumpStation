@@ -196,9 +196,8 @@ namespace SempaPumpStation.Screens
             DischargeHeadText = reading.DischargeHead.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);   // as Hm and the pressures
             SuctionHeadText = reading.SuctionHead.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
             EfficiencyText = reading.Efficiency?.ToString("0.0") ?? "—";
-            string meter = reading.Source > 0 ? Station.Meter(reading.Source) : null;
-            VoltageText = meter != null ? Ctx.GetDouble(meter + "General.Voltage").ToString("0") : "—";
-            CurrentText = meter != null ? Ctx.GetDouble(meter + "General.Current").ToString("0.0") : "—";
+            VoltageText = reading.Source > 0 ? reading.Voltage.ToString("0") : "—";
+            CurrentText = reading.Source > 0 ? reading.Current.ToString("0.0") : "—";
 
             bool active = Ctx.GetBool(Samples.Prefix + "TestActive");
             string started = Ctx.GetDtl(Samples.Prefix + "TestStarted");

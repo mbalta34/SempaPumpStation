@@ -15,6 +15,9 @@
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Assets\sempa.ico</ApplicationIcon>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
@@ -78,6 +81,12 @@
     <Compile Include="**\*.xaml.cs" Exclude="obj\**\*.cs;bin\**\*.cs">
       <DependentUpon>%(Filename)</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <!-- The Sempa logo: window and TV header (WPF resource), and the exe icon -->
+  <ItemGroup>
+    <Resource Include="Assets\sempa_logo.png" />
+    <Resource Include="Assets\sempa.ico" />
   </ItemGroup>
 
   <!-- Properties resources -->

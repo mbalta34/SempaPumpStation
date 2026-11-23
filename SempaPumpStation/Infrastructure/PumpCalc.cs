@@ -12,7 +12,7 @@ namespace SempaPumpStation.Infrastructure
         public double Head { get; set; }
         /// <summary>Hb: discharge head, m (the report's Hb in bar × 10.2).</summary>
         public double DischargeHead { get; set; }
-        /// <summary>He: suction head, m, positive under vacuum (the report's He in bar × 10.2); 0 for a submersible pump.</summary>
+        /// <summary>He: suction head, m, as measured, negative under vacuum (the report's F in bar × 10.2); 0 for a submersible pump.</summary>
         public double SuctionHead { get; set; }
         /// <summary>Velocity head difference between the discharge and suction pipes, m (report column H).</summary>
         public double VelocityHead { get; set; }
@@ -23,8 +23,23 @@ namespace SempaPumpStation.Infrastructure
         public double? PumpPower { get; set; }
         /// <summary>Pump efficiency, %: hydraulic power over pump power (report column O); null when the pump power is unknown.</summary>
         public double? Efficiency { get; set; }
-        /// <summary>The source whose meter gave <see cref="ElectricalPower"/>, 0 = none.</summary>
+        /// <summary>The source whose values gave <see cref="ElectricalPower"/>, 0 = none.</summary>
         public int Source { get; set; }
+        /// <summary>U (line to line, V) and I (A) behind <see cref="ElectricalPower"/>.</summary>
+        public double Voltage { get; set; }
+        public double Current { get; set; }
+        /// <summary>The values are the 630 kW VFD's motor side, from its ATV660, not its PM5550.</summary>
+        public bool ElectricalFromDrive { get; set; }
+    }
+
+    /// <summary>U, I and cos φ a zone measures with on a source (FB_Station_Main, FC_Station_DriveElectrical).</summary>
+    public sealed class ZoneElectricalValues
+    {
+        public double Voltage, Current, PowerFactor;
+        /// <summary>From the drive's motor side (630 kW VFD) rather than the source's PM5550.</summary>
+        public bool FromDrive;
+        /// <summary>The device the values come from answers.</summary>
+        public bool Valid;
     }
 
     /// <summary>
@@ -91,15 +106,15 @@ namespace SempaPumpStation.Infrastructure
         /// <summary>Hb, the discharge head in m (report: Hb [bar] × F16).</summary>
         public static double DischargeHead(double dischargeBar) => dischargeBar * MetresPerBar;
 
-        /// <summary>He, the suction head in m, positive under vacuum (report: He = −Ps [bar] × F16); 0 for a submersible pump.</summary>
-        public static double SuctionHead(double suctionBar, PumpLine line) => line.Submersible ? 0.0 : -suctionBar * MetresPerBar;
+        /// <summary>He, the suction head in m as the transmitter reads it, negative under vacuum (report: F [bar] × F16); 0 for a submersible pump.</summary>
+        public static double SuctionHead(double suctionBar, PumpLine line) => line.Submersible ? 0.0 : suctionBar * MetresPerBar;
 
         /// <summary>
-        /// Total head (report column I): Hb + He, the velocity head difference and the height between the gauges. A
+        /// Total head (report column I): Hb − He, plus the velocity head difference and the height between the gauges. A
         /// submersible pump has no suction gauge, so suction is ignored.
         /// </summary>
         public static double Head(double dischargeBar, double suctionBar, double flow, PumpLine line)
-            => DischargeHead(dischargeBar) + SuctionHead(suctionBar, line) + VelocityHead(flow, line) + line.Geodetic;
+            => DischargeHead(dischargeBar) - SuctionHead(suctionBar, line) + VelocityHead(flow, line) + line.Geodetic;
 
         public static double HydraulicPower(double flow, double head) => flow * head / HydraulicPowerDivisor;
 
@@ -112,6 +127,51 @@ namespace SempaPumpStation.Infrastructure
         {
             double cos = Math.Abs(powerFactor);
             return cos > 0 && cos <= 1 ? Sqrt3 * cos * voltage * current / 1000.0 : 0.0;
+        }
+
+        /// <summary>
+        /// The electrical values of a zone on <paramref name="source"/>, as FB_Station_Main takes them: the source's PM5550, except
+        /// on the 630 kW VFD while its ATV660 answers both requests, whose meter sits on the drive's input. There the motor side
+        /// counts (FC_Station_DriveElectrical): U = motor voltage, I = motor current, cos φ = output kW / (1.732 · U · I), so
+        /// Nş is the drive's output electrical power. Null while no source is selected.
+        /// </summary>
+        /// <param name="real">Reads a REAL tag.</param>
+        /// <param name="flag">Reads a BOOL tag.</param>
+        public static ZoneElectricalValues ZoneElectrical(Func<string, double> real, Func<string, bool> flag, int source)
+        {
+            if (source < 1 || source > Station.SourceCount) return null;
+            string m = Station.Meter(source);
+            var e = new ZoneElectricalValues
+            {
+                Voltage = real(m + "General.Voltage"),
+                Current = real(m + "General.Current"),
+                PowerFactor = real(m + "General.PowerFactor"),
+                Valid = flag(m + "CommOk"),
+            };
+            if (source == Station.DriveSource)
+            {
+                string d = Station.Drive630;
+                var drive = DriveMotorSide(flag(d + "CommOk"), flag(d + "ExtraCommOk"),
+                                           real(d + "MotorVoltage"), real(d + "MotorCurrent"), real(d + "OutputElectricalPower"));
+                if (drive != null)
+                {
+                    e.Voltage = drive.Voltage;
+                    e.Current = drive.Current;
+                    e.PowerFactor = drive.PowerFactor;
+                    e.FromDrive = true;
+                    e.Valid = true;
+                }
+            }
+            return e;
+        }
+
+        /// <summary>FC_Station_DriveElectrical: the drive's motor side as U, I and cos φ; null unless both requests are answered.</summary>
+        public static ZoneElectricalValues DriveMotorSide(bool commOk, bool extraCommOk, double motorVoltage, double motorCurrent, double outputKw)
+        {
+            if (!(commOk && extraCommOk)) return null;
+            double apparentKva = Sqrt3 * motorVoltage * motorCurrent / 1000.0;
+            double cos = apparentKva > 0.001 ? Math.Max(-1.0, Math.Min(1.0, outputKw / apparentKva)) : 0.0;
+            return new ZoneElectricalValues { Voltage = motorVoltage, Current = motorCurrent, PowerFactor = cos, FromDrive = true, Valid = true };
         }
 
         /// <summary>
@@ -155,15 +215,11 @@ namespace SempaPumpStation.Infrastructure
             double head = Head(pd, ps, flow, line);
             double hydraulic = HydraulicPower(flow, head);
 
-            // Nş from the PM5550 of the zone's selected source, as each sample stores it (U, I, cos φ); unknown while
-            // no source is selected or its meter does not answer
-            double? electrical = null;
+            // Nş from the zone's selected source, as each sample stores it (U, I, cos φ): its PM5550, or on the 630 kW VFD the
+            // drive's motor side; unknown while no source is selected or its device does not answer
             int source = ctx.GetInt(ph + "PowerSource.Value");
-            if (source >= 1 && source <= Station.SourceCount && ctx.GetBool(Station.Meter(source) + "CommOk"))
-            {
-                string m = Station.Meter(source) + "General.";
-                electrical = ElectricalPower(ctx.GetDouble(m + "Voltage"), ctx.GetDouble(m + "Current"), ctx.GetDouble(m + "PowerFactor"));
-            }
+            var e = ZoneElectrical(ctx.GetDouble, ctx.GetBool, source);
+            double? electrical = e != null && e.Valid ? ElectricalPower(e.Voltage, e.Current, e.PowerFactor) : (double?)null;
             double? pump = electrical.HasValue ? PumpPower(electrical.Value, line) : null;
 
             return new PumpReading
@@ -178,6 +234,9 @@ namespace SempaPumpStation.Infrastructure
                 PumpPower = pump,
                 Efficiency = Efficiency(hydraulic, pump),
                 Source = electrical.HasValue ? source : 0,
+                Voltage = electrical.HasValue ? e.Voltage : 0.0,
+                Current = electrical.HasValue ? e.Current : 0.0,
+                ElectricalFromDrive = electrical.HasValue && e.FromDrive,
             };
         }
 

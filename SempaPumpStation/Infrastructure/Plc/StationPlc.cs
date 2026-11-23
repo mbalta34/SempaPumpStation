@@ -119,10 +119,12 @@ namespace SempaPumpStation.Infrastructure.Plc
                 int selected = _zoneOutputs[z].SelectedSource;
                 p.DriveRunning = selected > 0 && Di("Drive_" + Station.Source(selected).Drive + "_Running");
                 p.DriveFault = selected > 0 && Di("Drive_" + Station.Source(selected).Drive + "_Fault");
-                // As FB_Station_Main: the meter of the selected source, 0 while none is selected
-                p.Voltage = selected > 0 ? _t.R(Station.Meter(selected) + "General.Voltage") : 0.0;
-                p.Current = selected > 0 ? _t.R(Station.Meter(selected) + "General.Current") : 0.0;
-                p.PowerFactor = selected > 0 ? _t.R(Station.Meter(selected) + "General.PowerFactor") : 0.0;
+                // As FB_Station_Main: the meter of the selected source, on the 630 kW VFD the drive's motor side
+                // (FC_Station_DriveElectrical); 0 while none is selected
+                var e = PumpCalc.ZoneElectrical(_t.R, _t.B, selected);
+                p.Voltage = e?.Voltage ?? 0.0;
+                p.Current = e?.Current ?? 0.0;
+                p.PowerFactor = e?.PowerFactor ?? 0.0;
             }
 
             // ================================================================ instruments

@@ -13,16 +13,16 @@ namespace SempaPumpStation.Infrastructure
     {
         // ---- bump these ----
         public const int Major = 1;
-        public const int Minor = 12;
+        public const int Minor = 14;
         public const int Build = 0;
 
         public const string ProductName = "Sempa HMI";
 
         /// <summary>
         /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
-        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.5.0, PLC_VERSION 1.5.0). Another version in the PLC raises an alarm.
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.6.0, PLC_VERSION 1.6.0). Another version in the PLC raises an alarm.
         /// </summary>
-        public const string ExpectedPlcVersion = "1.5.0";
+        public const string ExpectedPlcVersion = "1.6.0";
 
         /// <summary>Tooltip of the PLC version in the rail.</summary>
         public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
@@ -39,6 +39,24 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.14.0", "2026-11-23", new[]
+            {
+                "HMI parameters and command buttons with the entry counter, as in RailHMI / RailBase 1.9.2: every Hp parameter and button carries an EntryCounter (Byte) after its value, the HMI counts every entry (1 … 255, never 0; TerakkiFramework 169ad6b / cc7da23) and FB_Hmi_* act on a change of the counter, not of the value. An entry that repeats the value, or re-enters one the PLC refused, counts too; the HMI no longer writes the PLC's own value first. 0 only re-syncs (the HMI-to-PLC blocks after a PLC restart).",
+                "FC_Station_LoadInstrument enters the library values like an HMI: a value that differs from the one last entered is written and its entry counted (FC_Hmi_NextEntryCount).",
+                "Needs PLC program 1.6.0 (every Hp parameter grows by the EntryCounter; the download reinitialises the instance DBs with HMI parameters).",
+            }),
+
+            new ChangeLogEntry("1.13.0", "2026-11-23", new[]
+            {
+                "A zone on the 630 kW VFD takes U, I and cos φ from the ATV660's motor side instead of the source's PM5550, which sits on the drive's input: U = motor voltage, I = motor current, cos φ = output electrical power / (1.732 · U · I), so Nş is the drive's output power (FC_Station_DriveElectrical in FB_Station_Main; samples and reports alike). While the drive does not answer both requests, the meter's values are used.",
+                "Excel report: column F holds the suction transmitter's value as measured (bar, negative under vacuum) instead of its inverse, and Hm (column I) is Hb − He: G × 10.2 − F × 10.2 + H + AG. The same Hm as before; the template is rebuilt with Make-ReportTemplate.ps1.",
+                "TV screen in the application's theme, like the zone screen: the zone, its source and state, KAYIT NO and DENEY NO, Q, Hm, Pp and efficiency as large tiles and every other value of the zone (pressures, Hb, He, Nş, U, I, speed, torque, temperatures, vibration, sound) as smaller tiles; still scaled to any screen.",
+                "TV outputs: each zone's TV picture full screen on a monitor chosen on the TV Ekranı page (one zone per monitor; Ekranları tanımla shows each monitor's number on it). The choice is remembered and the pictures come back on the same monitors when the HMI starts; they close with the HMI.",
+                "Zone screen in the report's convention: He is the suction pressure as measured × 10.2 (negative under vacuum), Hm = Hb − He + velocity head + height.",
+                "The Sempa logo in the window header, as the application icon and on the TV screens.",
+                "Needs PLC program 1.5.1.",
+            }),
+
             new ChangeLogEntry("1.12.0", "2026-11-22", new[]
             {
                 "630 kW VFD: the ATV660 is read over Modbus TCP (read only; start, stop and speed reference stay on the wired IO): output frequency, motor current, motor voltage, motor torque (% of nominal and Nm), motor power (% of nominal and shaft power in kW), output electrical power in kW, mains voltage and the status word. Shown at the top of Enerji Analizörleri. PLC: DB_Communication_DriveDevices (IP, two connections), FB_Communication_Atv600Decoder, \"Drives\".Vfd630 (DB304).",

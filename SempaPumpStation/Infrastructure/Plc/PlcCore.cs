@@ -127,14 +127,15 @@ namespace SempaPumpStation.Infrastructure.Plc
     }
 
     /// <summary>
-    /// Port of BluePrism's FB_Hmi_ParameterInt (no min/max limits). <see cref="Value"/> is the PLC's working
-    /// value. The PLC never writes Hp: an HMI entry is a change of Hp's value since the last scan, so whatever
-    /// Hp holds at start-up is not an entry. A change of <see cref="Value"/> by PLC code sets Q.
+    /// Port of FB_Hmi_ParameterInt (RailBase 1.9.2, no min/max limits). <see cref="Value"/> is the PLC's working value. The
+    /// PLC never writes Hp: an HMI entry is a change of Hp's EntryCounter (the HMI counts every entry, 1 … 255, never 0), so
+    /// an entry that repeats the value counts too; 0 only re-syncs (the Hp block after a restart). Whatever counter Hp
+    /// holds at start-up is not an entry. A change of <see cref="Value"/> by PLC code sets Q.
     /// </summary>
     public sealed class HmiParameterInt
     {
         private bool _firstCycle = true;
-        private int _previousValue, _toPlcOldValue;
+        private int _previousValue, _lastEntryCounter;
         public int Value;
         public int RetainValue;
         public bool Q { get; private set; }
@@ -145,7 +146,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             if (_firstCycle)
             {
                 Value = retain ? RetainValue : initialValue;
-                _toPlcOldValue = t.I(hp + ".Value");
+                _lastEntryCounter = t.I(hp + ".EntryCounter");
                 _firstCycle = false;
                 return;
             }
@@ -156,18 +157,13 @@ namespace SempaPumpStation.Infrastructure.Plc
                 Q = true;
             }
 
-            int requested = t.I(hp + ".Value");
-            if (requested != _toPlcOldValue)
+            if (HmiEntry.Taken(t, hp, ref _lastEntryCounter) && enable)
             {
-                _toPlcOldValue = requested;
-                if (enable)
+                Value = t.I(hp + ".Value");
+                if (_previousValue != Value)
                 {
-                    Value = requested;
-                    if (_previousValue != Value)
-                    {
-                        _previousValue = Value;
-                        Q = true;
-                    }
+                    _previousValue = Value;
+                    Q = true;
                 }
             }
 
@@ -177,11 +173,12 @@ namespace SempaPumpStation.Infrastructure.Plc
         }
     }
 
-    /// <summary>Port of BluePrism's FB_Hmi_ParameterReal (no min/max limits). Same handshake as the Int version.</summary>
+    /// <summary>Port of FB_Hmi_ParameterReal (RailBase 1.9.2, no min/max limits). Same handshake as the Int version.</summary>
     public sealed class HmiParameterReal
     {
         private bool _firstCycle = true;
-        private double _previousValue, _toPlcOldValue;
+        private double _previousValue;
+        private int _lastEntryCounter;
         public double Value;
         public double RetainValue;
         public bool Q { get; private set; }
@@ -192,7 +189,7 @@ namespace SempaPumpStation.Infrastructure.Plc
             if (_firstCycle)
             {
                 Value = retain ? RetainValue : initialValue;
-                _toPlcOldValue = t.R(hp + ".Value");
+                _lastEntryCounter = t.I(hp + ".EntryCounter");
                 _firstCycle = false;
                 return;
             }
@@ -203,18 +200,13 @@ namespace SempaPumpStation.Infrastructure.Plc
                 Q = true;
             }
 
-            double requested = t.R(hp + ".Value");
-            if (!Same(requested, _toPlcOldValue))
+            if (HmiEntry.Taken(t, hp, ref _lastEntryCounter) && enable)
             {
-                _toPlcOldValue = requested;
-                if (enable)
+                Value = t.R(hp + ".Value");
+                if (!Same(_previousValue, Value))
                 {
-                    Value = requested;
-                    if (!Same(_previousValue, Value))
-                    {
-                        _previousValue = Value;
-                        Q = true;
-                    }
+                    _previousValue = Value;
+                    Q = true;
                 }
             }
 
@@ -228,29 +220,27 @@ namespace SempaPumpStation.Infrastructure.Plc
     }
 
     /// <summary>
-    /// Port of BluePrism's FB_Hmi_CommandButton with buttonType BUTTON_MOMENTARY: a press is the rising edge
-    /// of Hp.Click, which the HMI pulses; the PLC never clears it. A Click already TRUE at start-up is no press.
+    /// Port of FB_Hmi_CommandButton (RailBase 1.9.2) with buttonType BUTTON_MOMENTARY: a press is a change of Hp's
+    /// EntryCounter (Click itself is not looked at); the counter Hp holds at start-up is no press, 0 only re-syncs.
     /// </summary>
     public sealed class HmiCommandButton
     {
         private bool _firstCycle = true;
-        private bool _value, _previousValue, _clickLastScan;
+        private bool _value, _previousValue;
+        private int _lastEntryCounter;
         public bool QR { get; private set; }
 
         public void Run(PlcTags t, string hp, string ph, bool enable = true)
         {
             QR = false;
-            bool click = t.B(hp + ".Click");
-            if (_firstCycle) _clickLastScan = click;
-
-            if (_value || _firstCycle)
+            if (_value || _firstCycle) _value = false;
+            if (_firstCycle)
             {
-                _value = false;
+                _lastEntryCounter = t.I(hp + ".EntryCounter");
                 _firstCycle = false;
             }
 
-            if (enable && click && !_clickLastScan) _value = true;
-            _clickLastScan = click;
+            if (HmiEntry.Taken(t, hp, ref _lastEntryCounter) && enable) _value = true;
 
             if (_previousValue != _value)
             {
@@ -261,5 +251,22 @@ namespace SempaPumpStation.Infrastructure.Plc
             t.W(ph + ".Value", _value);
             t.W(ph + ".Enabled", enable);
         }
+    }
+
+    /// <summary>The entry-counter handshake of FB_Hmi_* (RailBase 1.9.2).</summary>
+    public static class HmiEntry
+    {
+        /// <summary>Whether Hp's EntryCounter shows a new entry since the last scan; 0 is never an entry, it only re-syncs.</summary>
+        public static bool Taken(PlcTags t, string hp, ref int lastEntryCounter)
+        {
+            int counter = t.I(hp + ".EntryCounter");
+            if (counter == 0) { lastEntryCounter = 0; return false; }
+            if (counter == lastEntryCounter) return false;
+            lastEntryCounter = counter;
+            return true;
+        }
+
+        /// <summary>The next count, as the HMI counts (SiemensS7PlcTag.NextEntryCount): 1 … 255, then 1 again.</summary>
+        public static int Next(int current) => current >= 255 || current < 0 ? 1 : current + 1;
     }
 }

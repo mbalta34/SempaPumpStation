@@ -109,15 +109,16 @@ namespace SempaPumpStation.Infrastructure
             double impeller = PumpCalc.FirstNumber(h["WRT_CARK_CAPI"]);
             if (impeller > 0) w.Number("L22", impeller); else w.Text("L22", h["WRT_CARK_CAPI"]);
 
-            // Measurements: Q, He (suction, positive under vacuum), Hb, cos φ, V, I, torque and speed.
-            // A submersible pump has no suction gauge: He stays 0, as the live head (PumpCalc) leaves suction out
+            // Measurements: Q, the suction and discharge pressures as the transmitters read them (bar; suction negative under
+            // vacuum), cos φ, V, I, torque and speed. The template's Hm (column I) is Hb − He: G × 10.2 − F × 10.2 + H + AG.
+            // A submersible pump has no suction gauge: F stays 0, as the live head (PumpCalc) leaves suction out
             bool submersible = PumpLine.From(k => h[k]).Submersible;
             for (int i = 0; i < Math.Min(MaxSamples, r.Samples.Count); i++)
             {
                 var s = r.Samples[i];
                 int row = FirstRow + i;
                 w.Number("D" + row, s.Flow);
-                w.Number("F" + row, submersible ? 0.0 : -s.SuctionPressure);
+                w.Number("F" + row, submersible ? 0.0 : s.SuctionPressure);
                 w.Number("G" + row, s.DischargePressure);
                 double cos = Math.Abs(s.PowerFactor);   // the meter's sign is the quadrant; the report wants cos φ
                 if (cos > 0 && cos <= 1) w.Number("J" + row, cos);

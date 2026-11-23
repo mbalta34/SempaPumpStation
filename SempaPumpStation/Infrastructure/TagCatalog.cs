@@ -47,11 +47,20 @@ namespace SempaPumpStation.Infrastructure
                     R(t, o.Ph + "Pv"); I(t, o.Ph + "RawValue"); B(t, o.Ph + "ForcingActive");
                     R(t, o.Ph + "MinPv.Value"); R(t, o.Ph + "MaxPv.Value");
                 }
+
+                // FB_Hmi_* act on the EntryCounter of an Hp parameter or command button, as TerakkiFramework's Hp types carry it
+                var entries = t.Select(x => x.Name).Where(IsHpEntry).Select(n => n.Substring(0, n.LastIndexOf('.')) + ".EntryCounter").Distinct().ToList();
+                foreach (var n in entries) I(t, n);
             }
             AddSimulation(t);
             AddHmiLocal(t);
             return p;
         }
+
+        /// <summary>An HMI-to-PLC parameter value or command button click (StationHp / MaintenanceHp).</summary>
+        private static bool IsHpEntry(string name) =>
+            (name.StartsWith("StationHp.", System.StringComparison.Ordinal) || name.StartsWith("MaintenanceHp.", System.StringComparison.Ordinal))
+            && (name.EndsWith(".Value", System.StringComparison.Ordinal) || name.EndsWith(".Click", System.StringComparison.Ordinal));
 
         private static void AddZone(List<TagDefinition> t, int z)
         {

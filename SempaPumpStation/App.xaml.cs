@@ -45,6 +45,7 @@ namespace SempaPumpStation
                 {
                     StationSecurity.DataFolder = Path.Combine(Path.GetTempPath(), "SempaPumpStationSmoke");
                     if (Directory.Exists(StationSecurity.DataFolder)) Directory.Delete(StationSecurity.DataFolder, true);
+                    Screens.TvOutputs.SettingsFile = Path.Combine(StationSecurity.DataFolder, "TvDisplays.xml");
                 }
 
                 // The smoke scenario writes station commands, so it always runs on the simulation
@@ -54,7 +55,15 @@ namespace SempaPumpStation
                 var vm = new ShellViewModel(_context);
                 var shell = new ShellWindow { DataContext = vm };
                 MainWindow = shell;
+                ShutdownMode = ShutdownMode.OnMainWindowClose;   // the TV windows close with the HMI
                 shell.Show();
+
+                // The TV pictures come back on the monitors they were last shown on
+                if (!smoke)
+                {
+                    var tv = System.Linq.Enumerable.FirstOrDefault(vm.MainNav, n => n.Key == "Tv")?.Screen as Screens.TvViewModel;
+                    tv?.Outputs?.OpenSaved();
+                }
 
                 if (Environment.GetEnvironmentVariable("SMOKETEST") == "1")
                     Dispatcher.BeginInvoke(new Action(() => RunSmoke(shell, vm)),
@@ -322,8 +331,8 @@ namespace SempaPumpStation
                 Check(string.Format("live Hm, Nş, Pp and efficiency as the report computes them (Hm {0:0.00} m incl. {1:0.000} m velocity loss, eff {2:0.0} %)", live.Head, live.VelocityHead, live.Efficiency),
                       line.SuctionDn == 200 && line.DischargeDn == 150 && vel > 0
                       && Math.Abs(live.Head - hm) < 0.05 && Math.Abs(live.VelocityHead - vel) < 0.01
-                      && Math.Abs(live.DischargeHead - pd * 10.2) < 0.01 && Math.Abs(live.SuctionHead + ps * 10.2) < 0.01
-                      && Math.Abs(live.DischargeHead + live.SuctionHead + live.VelocityHead + 0.6 - live.Head) < 0.001
+                      && Math.Abs(live.DischargeHead - pd * 10.2) < 0.01 && Math.Abs(live.SuctionHead - ps * 10.2) < 0.01
+                      && Math.Abs(live.DischargeHead - live.SuctionHead + live.VelocityHead + 0.6 - live.Head) < 0.001
                       && Math.Abs(live.ElectricalPower.Value - ns) < 0.05 && Math.Abs(live.PumpPower.Value - np) < 0.05
                       && Math.Abs(live.Efficiency.Value - eta) < 0.5);
                 // The meter's power factor is signed by quadrant: Nş takes its magnitude (400 V, 10 A, cos φ 0.85 → 5.889 kW)
@@ -386,6 +395,15 @@ namespace SempaPumpStation
                   && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"AU1\"[^>]*><v>" + archived.TestNo + "</v>")
                   && torqueSample.ShaftPower.HasValue && Math.Abs(torqueSample.ShaftPower.Value - shaft) < 1e-9
                   && torqueSample.ShaftEfficiency.HasValue && Math.Abs(torqueSample.ShaftEfficiency.Value - torqueSample.HydraulicPower / shaft * 100) < 1e-6);
+            // Hm = Hb − He: F holds the suction pressure as measured (not inverted), and column I subtracts it
+            // (the workbook has more sheets with an F32; the report sheet is the one whose value matches)
+            var fCells = System.Text.RegularExpressions.Regex.Matches(sheetXml, "<c r=\"F32\"[^>]*><v>([^<]+)</v>").Cast<System.Text.RegularExpressions.Match>()
+                .Select(m => double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+            double f32 = fCells.OrderBy(v => Math.Abs(v - archived.Samples[0].SuctionPressure)).DefaultIfEmpty(double.NaN).First();
+            bool fCellOk = fCells.Count > 0;
+            Check(string.Format("report: suction pressure as measured in F ({0:0.000} bar), Hm = Hb − He in I", f32),
+                  fCellOk && Math.Abs(f32 - archived.Samples[0].SuctionPressure) < 1e-6 && archived.Samples[0].SuctionPressure < 0
+                  && sheetXml.Contains(">IFERROR((G32*AN32)-(F32*AN32)+H32+AG32,0)</f>"));
             Check("end test archives the samples", c.Archive.Records.Count == records + 1 && c.Archive.Records[0].Samples.Count == 6);
             Check("samples stay after end test", c.GetInt(Ph(1) + "SampleCount") == 6);
             Check("end test clears the rotation confirmation",
@@ -834,6 +852,51 @@ namespace SempaPumpStation
                 drive.Filter.FilterType = AnalogFilter.None;
                 c.WriteParameter(drive.Filter.AverageWriteTag, drive.Filter.AverageTag, (short)0);
                 Steps(4);
+
+                // A zone on the 630 kW VFD measures with the drive's motor side (FC_Station_DriveElectrical): 400 V, 1000 A and
+                // 600 kW give cos φ 0.866, and Nş is the drive's 600 kW; any other source keeps its meter
+                var motor = PumpCalc.DriveMotorSide(true, true, 400, 1000, 600);
+                var noExtra = PumpCalc.DriveMotorSide(true, false, 400, 1000, 600);
+                var on630 = PumpCalc.ZoneElectrical(c.GetDouble, c.GetBool, Station.DriveSource);
+                var on4 = PumpCalc.ZoneElectrical(c.GetDouble, c.GetBool, 4);
+                Check(string.Format("630 kW VFD: U, I, cos φ from the drive (cos φ {0:0.000}, Nş {1:0.0} kW); the meter while a request is unanswered; other sources their meter",
+                                    motor.PowerFactor, PumpCalc.ElectricalPower(motor.Voltage, motor.Current, motor.PowerFactor)),
+                      Math.Abs(PumpCalc.ElectricalPower(motor.Voltage, motor.Current, motor.PowerFactor) - 600) < 1e-6 && noExtra == null
+                      && on630.FromDrive && on630.Voltage == c.GetDouble(Station.Drive630 + "MotorVoltage")
+                      && !on4.FromDrive && on4.Voltage == c.GetDouble(Station.Meter(4) + "General.Voltage"));
+            }
+
+            // TV screen: the zone's values as tiles, the same as the zone screen's
+            {
+                var tv = (Screens.TvViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "Tv").Screen;
+                tv.Zone = 1;
+                Steps(2);
+                var live = PumpCalc.Live(c, 1);
+                Check(string.Format("TV screen: {0} large and {1} small tiles; zone 1 on {2}, {3}; Q {4}, Hm {5}",
+                                    tv.MainTiles.Count, tv.Tiles.Count, tv.SourceText, tv.StatusText, tv.MainTiles[0].Value, tv.MainTiles[1].Value),
+                      tv.MainTiles.Count == 4 && tv.Tiles.Count == 14 && tv.SourceText == Station.Source(4).Name
+                      && tv.MainTiles[1].Value == live.Head.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+                      && tv.Tiles.All(t => !string.IsNullOrEmpty(t.Value)) && (tv.StatusKind == "run" || tv.StatusKind == "test"));
+
+                // TV outputs: a zone's picture full screen on a chosen monitor, one zone per monitor, remembered
+                var outs = tv.Outputs;
+                var primary = DisplayMonitors.All().First(m => m.IsPrimary);
+                outs.Rows[1].Monitor = primary.DeviceName;   // zone 2
+                DoEvents();
+                var w2 = outs.Window(2);
+                bool shown = w2 != null && w2.IsVisible && w2.ViewModel.IsOutput && w2.ViewModel.Zone == 2 && w2.Monitor.DeviceName == primary.DeviceName;
+                string status2 = outs.Rows[1].Status;
+                outs.Rows[2].Monitor = primary.DeviceName;   // zone 3 takes the same monitor: zone 2 goes off it
+                DoEvents();
+                bool moved = outs.Window(2) == null && outs.Rows[1].Monitor == "" && outs.Window(3) != null;
+                bool saved = File.ReadAllText(Screens.TvOutputs.SettingsFile).Contains("Number=\"3\" Monitor=\"" + primary.DeviceName + "\"");
+                outs.RefreshMonitors();
+                bool kept = outs.Rows[2].Monitor == primary.DeviceName && outs.Window(3) != null;   // refreshing the list changes nothing
+                outs.Rows[2].Monitor = "";
+                DoEvents();
+                Check(string.Format("TV output: {0} monitor(s); zone 2 full screen on {1} ({2}); one zone per monitor; remembered; off again",
+                                    DisplayMonitors.All().Count, primary.Display, status2),
+                      shown && moved && saved && kept && outs.Window(3) == null && outs.Monitors.Count >= 2 && outs.Monitors[0].DeviceName == "");
             }
 
             // Suction vacuummeter (IO list V1.9): zone 2 measures with the one selected, also while it runs; zone 1 has one
