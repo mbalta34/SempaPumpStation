@@ -14,7 +14,7 @@ namespace SempaPumpStation.Infrastructure
         // ---- bump these ----
         public const int Major = 1;
         public const int Minor = 14;
-        public const int Build = 0;
+        public const int Build = 1;
 
         public const string ProductName = "Sempa HMI";
 
@@ -39,6 +39,13 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.14.1", "2026-11-23", new[]
+            {
+                "TV screen: only Q, Hm, Pp and efficiency, as four large tiles (2 × 2), with the header and the state banner; the smaller tiles (pressures, Hb, He, Nş, U, I, speed, torque, temperatures, vibration, sound) are gone.",
+                "Zone screen: a COS φ tile next to Nş, the selected source's cos φ that Nş is computed with (on the 630 kW VFD the drive's motor side).",
+                "Energy meters: the ATV660 card shows the motor side's cos φ, output kW / (√3·U·I), as the zones on the drive take it.",
+            }),
+
             new ChangeLogEntry("1.14.0", "2026-11-23", new[]
             {
                 "HMI parameters and command buttons with the entry counter, as in RailHMI / RailBase 1.9.2: every Hp parameter and button carries an EntryCounter (Byte) after its value, the HMI counts every entry (1 … 255, never 0; TerakkiFramework 169ad6b / cc7da23) and FB_Hmi_* act on a change of the counter, not of the value. An entry that repeats the value, or re-enters one the PLC refused, counts too; the HMI no longer writes the PLC's own value first. 0 only re-syncs (the HMI-to-PLC blocks after a PLC restart).",

@@ -843,6 +843,7 @@ namespace SempaPumpStation
                       drive.CommOk && drive.ExtraCommOk && drive.Status == "Duruyor" && drive.Frequency == zero && drive.Current == zero
                       && Screens.DriveCard.StatusText(0x0637) == "Çalışıyor" && Screens.DriveCard.StatusText(0x0608) == "Arıza"
                       && Screens.DriveCard.StatusText(0x0633) == "Duruyor");
+                Check("ATV660 card cos φ while stopped: " + drive.PowerFactor, drive.PowerFactor == 0.0.ToString("0.00"));
                 drive.Filter.FilterType = AnalogFilter.EmaOutlier;
                 c.WriteParameter(drive.Filter.AverageWriteTag, drive.Filter.AverageTag, (short)10);
                 Steps(4);
@@ -872,11 +873,16 @@ namespace SempaPumpStation
                 tv.Zone = 1;
                 Steps(2);
                 var live = PumpCalc.Live(c, 1);
-                Check(string.Format("TV screen: {0} large and {1} small tiles; zone 1 on {2}, {3}; Q {4}, Hm {5}",
-                                    tv.MainTiles.Count, tv.Tiles.Count, tv.SourceText, tv.StatusText, tv.MainTiles[0].Value, tv.MainTiles[1].Value),
-                      tv.MainTiles.Count == 4 && tv.Tiles.Count == 14 && tv.SourceText == Station.Source(4).Name
+                Check(string.Format("TV screen: {0} large tiles only; zone 1 on {1}, {2}; Q {3}, Hm {4}",
+                                    tv.MainTiles.Count, tv.SourceText, tv.StatusText, tv.MainTiles[0].Value, tv.MainTiles[1].Value),
+                      tv.MainTiles.Count == 4 && tv.SourceText == Station.Source(4).Name
                       && tv.MainTiles[1].Value == live.Head.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
-                      && tv.Tiles.All(t => !string.IsNullOrEmpty(t.Value)) && (tv.StatusKind == "run" || tv.StatusKind == "test"));
+                      && tv.MainTiles.All(t => !string.IsNullOrEmpty(t.Value)) && (tv.StatusKind == "run" || tv.StatusKind == "test"));
+
+                // The zone screen's cos φ: the selected source's, as Nş is computed with
+                var zone1 = (Screens.ZoneViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "Zone1").Screen;
+                Check("zone screen cos φ " + zone1.PowerFactorText + " (meter " + c.GetDouble(Station.Meter(4) + "General.PowerFactor").ToString("0.000") + ")",
+                      live.Source == 4 && live.PowerFactor > 0.5 && live.PowerFactor <= 1.0 && zone1.PowerFactorText == live.PowerFactor.ToString("0.00"));
 
                 // TV outputs: a zone's picture full screen on a chosen monitor, one zone per monitor, remembered
                 var outs = tv.Outputs;

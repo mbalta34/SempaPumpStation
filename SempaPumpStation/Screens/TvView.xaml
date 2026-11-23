@@ -20,14 +20,14 @@
             <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
         </Style>
 
-        <!-- Large tile: Q, Hm, Pp, efficiency -->
+        <!-- Large tile: Q, Hm, Pp, efficiency (2 × 2) -->
         <DataTemplate x:Key="MainTile">
-            <Border Style="{StaticResource TvCard}" Margin="0,0,20,0" Padding="32,24">
+            <Border Style="{StaticResource TvCard}" Margin="0,0,20,20" Padding="36,20">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding Caption}" Style="{StaticResource TvCaption}" FontSize="28"/>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <TextBlock x:Name="value" Text="{Binding Value}" Style="{StaticResource TvValue}" FontSize="124"/>
-                        <TextBlock Text="{Binding Unit}" Style="{StaticResource TvCaption}" FontSize="40" VerticalAlignment="Bottom" Margin="14,0,0,26"/>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding Caption}" Style="{StaticResource TvCaption}" FontSize="34"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="value" Text="{Binding Value}" Style="{StaticResource TvValue}" FontSize="168"/>
+                        <TextBlock Text="{Binding Unit}" Style="{StaticResource TvCaption}" FontSize="52" VerticalAlignment="Bottom" Margin="18,0,0,36" TextTrimming="None"/>
                     </StackPanel>
                 </DockPanel>
             </Border>
@@ -39,19 +39,6 @@
                     <Setter TargetName="value" Property="Foreground" Value="{StaticResource B.Accent}"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
-        </DataTemplate>
-
-        <!-- Smaller tile: every other value of the zone -->
-        <DataTemplate x:Key="SmallTile">
-            <Border Style="{StaticResource TvCard}" Margin="0,0,16,16" Padding="22,16">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding Caption}" Style="{StaticResource TvCaption}" FontSize="21"/>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <TextBlock Text="{Binding Value}" Style="{StaticResource TvValue}" FontSize="52"/>
-                        <TextBlock Text="{Binding Unit}" Style="{StaticResource TvCaption}" FontSize="22" VerticalAlignment="Bottom" Margin="6,0,0,10" TextTrimming="None"/>
-                    </StackPanel>
-                </DockPanel>
-            </Border>
         </DataTemplate>
 
         <!-- A number box of the header: KAYIT NO / DENEY NO -->
@@ -123,7 +110,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- ============ Header: zone, source, numbers, clock ============ -->
@@ -164,26 +150,14 @@
                 </Border>
 
                 <!-- ============ Q, Hm, Pp, efficiency ============ -->
-                <ItemsControl Grid.Row="1" ItemsSource="{Binding MainTiles}" ItemTemplate="{StaticResource MainTile}" Margin="0,0,-20,20">
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding MainTiles}" ItemTemplate="{StaticResource MainTile}" Margin="0,0,-20,0">
                     <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><UniformGrid Rows="2" Columns="2"/></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
-                </ItemsControl>
-
-                <!-- ============ Every other value ============ -->
-                <ItemsControl Grid.Row="2" ItemsSource="{Binding Tiles}" ItemTemplate="{StaticResource SmallTile}" Margin="0,0,-16,4">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Height" Value="170"/>
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
 
                 <!-- ============ State banner ============ -->
-                <Border Grid.Row="3" CornerRadius="16" Padding="30,18" BorderThickness="1.5">
+                <Border Grid.Row="2" CornerRadius="16" Padding="30,18" BorderThickness="1.5">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Background" Value="{StaticResource B.Card}"/>

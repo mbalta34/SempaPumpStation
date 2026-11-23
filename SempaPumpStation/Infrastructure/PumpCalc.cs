@@ -28,6 +28,8 @@ namespace SempaPumpStation.Infrastructure
         /// <summary>U (line to line, V) and I (A) behind <see cref="ElectricalPower"/>.</summary>
         public double Voltage { get; set; }
         public double Current { get; set; }
+        /// <summary>cos φ behind <see cref="ElectricalPower"/>, its magnitude (the meter's sign is the quadrant).</summary>
+        public double PowerFactor { get; set; }
         /// <summary>The values are the 630 kW VFD's motor side, from its ATV660, not its PM5550.</summary>
         public bool ElectricalFromDrive { get; set; }
     }
@@ -236,6 +238,7 @@ namespace SempaPumpStation.Infrastructure
                 Source = electrical.HasValue ? source : 0,
                 Voltage = electrical.HasValue ? e.Voltage : 0.0,
                 Current = electrical.HasValue ? e.Current : 0.0,
+                PowerFactor = electrical.HasValue ? Math.Abs(e.PowerFactor) : 0.0,
                 ElectricalFromDrive = electrical.HasValue && e.FromDrive,
             };
         }

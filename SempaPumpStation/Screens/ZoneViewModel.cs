@@ -101,6 +101,9 @@ namespace SempaPumpStation.Screens
         public string EfficiencyText { get => _efficiencyText; private set => Set(ref _efficiencyText, value); }
         public string VoltageText { get => _voltageText; private set => Set(ref _voltageText, value); }
         public string CurrentText { get => _currentText; private set => Set(ref _currentText, value); }
+        private string _powerFactorText = "—";
+        /// <summary>cos φ of the selected source (on the 630 kW VFD the drive's motor side).</summary>
+        public string PowerFactorText { get => _powerFactorText; private set => Set(ref _powerFactorText, value); }
         private string _dischargeHeadText = "—", _suctionHeadText = "—";
         /// <summary>Hb and He, the discharge and suction heads in m (as the report).</summary>
         public string DischargeHeadText { get => _dischargeHeadText; private set => Set(ref _dischargeHeadText, value); }
@@ -198,6 +201,7 @@ namespace SempaPumpStation.Screens
             EfficiencyText = reading.Efficiency?.ToString("0.0") ?? "—";
             VoltageText = reading.Source > 0 ? reading.Voltage.ToString("0") : "—";
             CurrentText = reading.Source > 0 ? reading.Current.ToString("0.0") : "—";
+            PowerFactorText = reading.Source > 0 ? reading.PowerFactor.ToString("0.00") : "—";
 
             bool active = Ctx.GetBool(Samples.Prefix + "TestActive");
             string started = Ctx.GetDtl(Samples.Prefix + "TestStarted");

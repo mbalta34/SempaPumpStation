@@ -22,8 +22,8 @@ namespace SempaPumpStation.Screens
 
     /// <summary>
     /// The big display above a test zone (the old "TV EKRANI" page), in the application's theme: the zone, its source and
-    /// state, the sample (KAYIT) and test (DENEY) numbers, Q, Hm, pump power and efficiency as large tiles, and every other
-    /// value of the zone screen as smaller tiles, readable from across the hall.
+    /// state, the sample (KAYIT) and test (DENEY) numbers, and Q, Hm, pump power and efficiency as large tiles, readable
+    /// from across the hall.
     /// </summary>
     public sealed class TvViewModel : ScreenBase
     {
@@ -35,12 +35,8 @@ namespace SempaPumpStation.Screens
         public ObservableCollection<ChoiceItem> Zones { get; } = new ObservableCollection<ChoiceItem>();
         /// <summary>Q, Hm, Pp and efficiency.</summary>
         public ObservableCollection<TvTile> MainTiles { get; } = new ObservableCollection<TvTile>();
-        /// <summary>Every other value of the zone screen.</summary>
-        public ObservableCollection<TvTile> Tiles { get; } = new ObservableCollection<TvTile>();
 
         private readonly TvTile _flow, _head, _power, _efficiency;
-        private readonly TvTile _discharge, _suction, _dischargeHead, _suctionHead, _electrical, _voltage, _current,
-                                _speed, _torque, _water, _motor, _ambient, _vibration, _sound;
 
         private int _zone = 1;
         public int Zone
@@ -79,27 +75,11 @@ namespace SempaPumpStation.Screens
             }
 
             TvTile Main(string caption, string unit, string kind = "") { var t = new TvTile { Caption = caption, Unit = unit, Kind = kind }; MainTiles.Add(t); return t; }
-            TvTile Small(string caption, string unit, string kind = "") { var t = new TvTile { Caption = caption, Unit = unit, Kind = kind }; Tiles.Add(t); return t; }
 
             _flow = Main("DEBİ (Q)", "m³/h", "run");
             _head = Main("BASMA YÜKSEKLİĞİ (Hm)", "m", "accent");
             _power = Main("POMPA GÜCÜ (Pp)", "kW", "run");
             _efficiency = Main("VERİM", "%", "accent");
-
-            _discharge = Small("BASMA BASINCI", "bar");
-            _suction = Small("EMME BASINCI", "bar");
-            _dischargeHead = Small("Hb", "m");
-            _suctionHead = Small("He", "m");
-            _electrical = Small("ELEKTRİK GÜCÜ (Nş)", "kW");
-            _voltage = Small("GERİLİM (F-F)", "V");
-            _current = Small("AKIM", "A");
-            _speed = Small("DEVİR", "d/dk");
-            _torque = Small("TORK", "Nm");
-            _water = Small("SU SICAKLIĞI", "°C");
-            _motor = Small("MOTOR SICAKLIĞI", "°C");
-            _ambient = Small("ORTAM SICAKLIĞI", "°C");
-            _vibration = Small("TİTREŞİM", "mm/s");
-            _sound = Small("SES", "dB");
 
             ctx.Scanned += OnScanned;
             Refresh();
@@ -120,7 +100,6 @@ namespace SempaPumpStation.Screens
         {
             string ph = Station.ZonePh(_zone);
             var r = PumpCalc.Live(Ctx, _zone);
-            double Ai(string sensor) => Ctx.GetDouble(Station.AiPh("Zone" + _zone + "_" + sensor) + "Pv");
 
             var source = Station.Source(Ctx.GetInt(ph + "PowerSource.Value"));
             SourceText = source != null ? source.Name : "Güç kaynağı seçilmedi";
@@ -137,21 +116,6 @@ namespace SempaPumpStation.Screens
             _head.Value = Number(r.Head, "0.00");
             _power.Value = Number(r.PumpPower, "0.00");
             _efficiency.Value = Number(r.Efficiency, "0.0");
-
-            _discharge.Value = Number(Ctx.GetDouble(ph + "DischargePressure"), "0.00");
-            _suction.Value = Number(Ctx.GetDouble(ph + "SuctionPressure"), "0.000");
-            _dischargeHead.Value = Number(r.DischargeHead, "0.00");
-            _suctionHead.Value = Number(r.SuctionHead, "0.00");
-            _electrical.Value = Number(r.ElectricalPower, "0.00");
-            _voltage.Value = r.Source > 0 ? Number(r.Voltage, "0") : "—";
-            _current.Value = r.Source > 0 ? Number(r.Current, "0.0") : "—";
-            _speed.Value = Number(Ai("Speed"), "0");
-            _torque.Value = Number(Ai("Torque"), "0.0");
-            _water.Value = Number(Ai("WaterTemperature"), "0.0");
-            _motor.Value = Number(Ai("Temperature"), "0.0");
-            _ambient.Value = Number(Ai("AmbientTemperature"), "0.0");
-            _vibration.Value = Number(Ai("Vibration"), "0.00");
-            _sound.Value = Number(Ai("Sound"), "0.0");
 
             bool running = Ctx.GetBool(ph + "PumpRunning"), test = Ctx.GetBool(ph + "TestActive");
             if (Ctx.GetBool(ph + "EStop")) { StatusText = "ACİL STOP"; StatusKind = "alarm"; }

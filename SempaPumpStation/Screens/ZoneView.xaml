@@ -180,13 +180,15 @@
                                       Value="{Binding VoltageText}"/>
                         <c:MetricTile Caption="AKIM" Unit="A" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding CurrentText}"/>
-                        <c:MetricTile Caption="ORTAM SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
-                                      Value="{Binding Ai[AmbientTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
+                        <c:MetricTile Caption="COS φ" Unit="" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding PowerFactorText}"/>
                         <c:MetricTile Caption="ELEKTRİK GÜCÜ (Nş)" Unit="kW" ValueSize="22" Margin="0,0,0,8"
                                       Value="{Binding ElectricalPowerText}"/>
+                        <c:MetricTile Caption="ORTAM SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding Ai[AmbientTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                     </UniformGrid>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="2,4,0,0"
-                               Text="Rapordaki formüllerle: Hb = Pb × 10,2; He = Pe × 10,2 (ölçüldüğü gibi, vakumda negatif; dalgıç pompada 0); Hm = Hb − He + hız kayıpları + geometrik yükseklik; Nş = √3·U·I·cosφ (seçili kaynağın PM5550 analizörü); Pp = Nş × motor verimi (yük bandına göre, motor reçetesi); verim = Q·Hm/367,2 / Pp (pompa verimi)."/>
+                               Text="Rapordaki formüllerle: Hb = Pb × 10,2; He = Pe × 10,2 (ölçüldüğü gibi, vakumda negatif; dalgıç pompada 0); Hm = Hb − He + hız kayıpları + geometrik yükseklik; Nş = √3·U·I·cosφ (seçili kaynağın PM5550 analizörü; 630 kW VFD'de ATV660 sürücüsünün motor tarafı); Pp = Nş × motor verimi (yük bandına göre, motor reçetesi); verim = Q·Hm/367,2 / Pp (pompa verimi)."/>
                 </StackPanel>
 
                 <!-- ============ Test & samples ============ -->

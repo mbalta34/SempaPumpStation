@@ -113,7 +113,7 @@ namespace SempaPumpStation.Screens
         public FilterSettings Filter { get; set; }
 
         private bool _commOk, _extraCommOk;
-        private string _usage, _status, _frequency, _current, _motorVoltage, _mainsVoltage, _torque, _torqueNm, _power, _mechanicalKw, _electricalKw;
+        private string _usage, _status, _frequency, _current, _motorVoltage, _mainsVoltage, _torque, _torqueNm, _power, _mechanicalKw, _electricalKw, _powerFactor;
         public bool CommOk { get => _commOk; set => Set(ref _commOk, value); }
         /// <summary>The second request (torque in Nm, powers in kW) is answered.</summary>
         public bool ExtraCommOk { get => _extraCommOk; set => Set(ref _extraCommOk, value); }
@@ -128,6 +128,8 @@ namespace SempaPumpStation.Screens
         public string Power { get => _power; set => Set(ref _power, value); }
         public string MechanicalKw { get => _mechanicalKw; set => Set(ref _mechanicalKw, value); }
         public string ElectricalKw { get => _electricalKw; set => Set(ref _electricalKw, value); }
+        /// <summary>The motor side's cos φ, output kW / (√3·U·I), as a zone on the drive measures with (FC_Station_DriveElectrical).</summary>
+        public string PowerFactor { get => _powerFactor; set => Set(ref _powerFactor, value); }
 
         /// <summary>The DRIVECOM state of the status word (ETA): fault, running (operation enabled) or stopped.</summary>
         public static string StatusText(int eta) =>
@@ -214,6 +216,9 @@ namespace SempaPumpStation.Screens
             card.TorqueNm = Value(card.ExtraCommOk, d + "MotorTorqueNm", "0");
             card.MechanicalKw = Value(card.ExtraCommOk, d + "MotorMechanicalPower", "0.0");
             card.ElectricalKw = Value(card.ExtraCommOk, d + "OutputElectricalPower", "0.0");
+            var motor = PumpCalc.DriveMotorSide(card.CommOk, card.ExtraCommOk, Ctx.GetDouble(d + "MotorVoltage"),
+                                                Ctx.GetDouble(d + "MotorCurrent"), Ctx.GetDouble(d + "OutputElectricalPower"));
+            card.PowerFactor = motor != null ? System.Math.Abs(motor.PowerFactor).ToString("0.00") : "—";
             card.Filter.Refresh();
         }
 
