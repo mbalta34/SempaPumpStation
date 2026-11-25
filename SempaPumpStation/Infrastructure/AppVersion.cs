@@ -14,15 +14,15 @@ namespace SempaPumpStation.Infrastructure
         // ---- bump these ----
         public const int Major = 1;
         public const int Minor = 14;
-        public const int Build = 1;
+        public const int Build = 3;
 
         public const string ProductName = "Sempa HMI";
 
         /// <summary>
         /// The MainPLC program this HMI is built for: FB_Station_Main's PLC_VERSION constant, written to
-        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.6.0, PLC_VERSION 1.6.0). Another version in the PLC raises an alarm.
+        /// "StationPh".PlcVersion (project Sempa_Pump_Station_V1.6.1, PLC_VERSION 1.6.1). Another version in the PLC raises an alarm.
         /// </summary>
-        public const string ExpectedPlcVersion = "1.6.0";
+        public const string ExpectedPlcVersion = "1.6.1";
 
         /// <summary>Tooltip of the PLC version in the rail.</summary>
         public static string PlcVersionNote => "Bu HMI, PLC programı " + ExpectedPlcVersion + " için yapıldı.";
@@ -39,6 +39,21 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.14.3", "2026-11-25", new[]
+            {
+                "Zone screen: VERİM HESABI chooses what the pump efficiency is calculated from, per zone: Elektrik (Pp = Nş × motor efficiency, report column O), Tork (Nmil = T × n / 9549 from the torque meter, report column S) or Elektrik + Tork. The choice is kept on this PC and needs an operator login.",
+                "Zone screen: only the chosen basis's tiles are shown: U, I, cos φ, Nş, Pp and VERİM (ELEKTRİK) for the electrical one; TORK, MİL GÜCÜ (Nmil) and VERİM (TORK) for the torque one.",
+                "TV screen: Q, Hm and the chosen basis's power and efficiency (Pp or Nmil) as four tiles, or six tiles (3 × 2) for both.",
+            }),
+
+            new ChangeLogEntry("1.14.2", "2026-11-23", new[]
+            {
+                "PLC 1.6.1, ATV660 of the 630 kW VFD: the second request (torque in Nm, motor and electrical kW) was switched off and still pointed at the old IP address and unit ID, so the zones measured with the meter and the drive card had no kW and no cos φ. It now follows the main request's enable, IP address and unit ID (FB_Communication_Main), so the drive is set up in one place: DB_Communication_DriveDevices.Devices[1].",
+                "PLC 1.6.1: motor current (LCR) in 1 A and the motor and electrical powers (OPRW, EPRW) in 1 kW on this drive's rating (630 A was shown as 63.0, 262 kW as 26.2, so cos φ read 0.08).",
+                "Energy meters: the drive card says when the drive answers but its Nm / kW request does not (then kW and cos φ are unknown and a zone on the drive measures with the PM5550).",
+                "Needs PLC program 1.6.1 (code only; no data is reinitialised).",
+            }),
+
             new ChangeLogEntry("1.14.1", "2026-11-23", new[]
             {
                 "TV screen: only Q, Hm, Pp and efficiency, as four large tiles (2 × 2), with the header and the state banner; the smaller tiles (pressures, Hb, He, Nş, U, I, speed, torque, temperatures, vibration, sound) are gone.",

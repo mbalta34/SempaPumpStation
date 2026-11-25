@@ -33,6 +33,8 @@ namespace SempaPumpStation.Screens
         public ObservableCollection<ChoiceItem> Transmitters { get; } = new ObservableCollection<ChoiceItem>();
         public ObservableCollection<ChoiceItem> Vacuummeters { get; } = new ObservableCollection<ChoiceItem>();
         public ObservableCollection<TestSample> SampleRows { get; } = new ObservableCollection<TestSample>();
+        /// <summary>What the pump efficiency is calculated from: electrical, torque or both (kept per zone on this PC).</summary>
+        public ObservableCollection<ChoiceItem> EfficiencyBases { get; } = new ObservableCollection<ChoiceItem>();
 
         public ICommand ClickCommand { get; }
         public ICommand PendantCommand { get; }
@@ -55,6 +57,17 @@ namespace SempaPumpStation.Screens
             for (int f = 1; f <= Station.FlowmeterCount(zone); f++) Flowmeters.Add(Choice(f, "FM" + f, "Flowmeter"));
             for (int t = 1; t <= Station.TransmitterCount(zone); t++) Transmitters.Add(Choice(t, "Pt" + t, "DischargeTransmitter"));
             for (int v = 1; v <= Station.VacuummeterCount(zone); v++) Vacuummeters.Add(Choice(v, "Vakum" + v, "Vacuummeter"));
+            foreach (EfficiencyBasis b in new[] { EfficiencyBasis.Electrical, EfficiencyBasis.Torque, EfficiencyBasis.Both })
+            {
+                var basis = b;
+                EfficiencyBases.Add(new ChoiceItem
+                {
+                    Value = (int)b,
+                    Title = EfficiencyBasisStore.Text(b),
+                    Subtitle = b == EfficiencyBasis.Electrical ? "Nş × motor verimi" : b == EfficiencyBasis.Torque ? "Tork × devir / 9549" : "İkisi yan yana",
+                    Command = new SyncCommand(() => { EfficiencyBasisStore.Set(_zone, basis); Refresh(); }),
+                });
+            }
 
             ClickCommand = new SyncCommand(p => Ctx.Click(Hp.Prefix + p));
             PendantCommand = new SyncCommand(p => Ctx.Pulse(Sim.Prefix + p));
@@ -108,6 +121,17 @@ namespace SempaPumpStation.Screens
         /// <summary>Hb and He, the discharge and suction heads in m (as the report).</summary>
         public string DischargeHeadText { get => _dischargeHeadText; private set => Set(ref _dischargeHeadText, value); }
         public string SuctionHeadText { get => _suctionHeadText; private set => Set(ref _suctionHeadText, value); }
+
+        private bool _showElectrical = true, _showTorque;
+        /// <summary>The electrical values (U, I, cos φ, Nş, Pp and the efficiency on Pp) are shown: basis Elektrik or both.</summary>
+        public bool ShowElectrical { get => _showElectrical; private set => Set(ref _showElectrical, value); }
+        /// <summary>The torque values (torque, Nmil and the efficiency on Nmil) are shown: basis Tork or both.</summary>
+        public bool ShowTorque { get => _showTorque; private set => Set(ref _showTorque, value); }
+
+        private string _shaftPowerText = "—", _shaftEfficiencyText = "—";
+        /// <summary>Nmil, the shaft power from the torque meter (T × n / 9549), and the pump efficiency on it.</summary>
+        public string ShaftPowerText { get => _shaftPowerText; private set => Set(ref _shaftPowerText, value); }
+        public string ShaftEfficiencyText { get => _shaftEfficiencyText; private set => Set(ref _shaftEfficiencyText, value); }
 
         private string _electricalPowerText = "—";
         /// <summary>Nş, the electrical input from the meter values (√3·U·I·cosφ).</summary>
@@ -202,6 +226,13 @@ namespace SempaPumpStation.Screens
             VoltageText = reading.Source > 0 ? reading.Voltage.ToString("0") : "—";
             CurrentText = reading.Source > 0 ? reading.Current.ToString("0.0") : "—";
             PowerFactorText = reading.Source > 0 ? reading.PowerFactor.ToString("0.00") : "—";
+            ShaftPowerText = reading.ShaftPower?.ToString("0.00") ?? "—";
+            ShaftEfficiencyText = reading.ShaftEfficiency?.ToString("0.0") ?? "—";
+
+            var basisNow = EfficiencyBasisStore.Get(_zone);
+            ShowElectrical = EfficiencyBasisStore.ShowsElectrical(basisNow);
+            ShowTorque = EfficiencyBasisStore.ShowsTorque(basisNow);
+            foreach (var c in EfficiencyBases) c.State = c.Value == (int)basisNow ? "active" : "";
 
             bool active = Ctx.GetBool(Samples.Prefix + "TestActive");
             string started = Ctx.GetDtl(Samples.Prefix + "TestStarted");

@@ -32,6 +32,13 @@ namespace SempaPumpStation.Infrastructure
         public double PowerFactor { get; set; }
         /// <summary>The values are the 630 kW VFD's motor side, from its ATV660, not its PM5550.</summary>
         public bool ElectricalFromDrive { get; set; }
+        /// <summary>Torque meter (Nm) and speed (rpm) of the zone.</summary>
+        public double Torque { get; set; }
+        public double Speed { get; set; }
+        /// <summary>Nmil: shaft power from the torque meter, T × n / 9549, kW (report column R); null without torque or speed.</summary>
+        public double? ShaftPower { get; set; }
+        /// <summary>Pump efficiency on the shaft power, % (report column S); null while the shaft power is unknown.</summary>
+        public double? ShaftEfficiency { get; set; }
     }
 
     /// <summary>U, I and cos φ a zone measures with on a source (FB_Station_Main, FC_Station_DriveElectrical).</summary>
@@ -223,6 +230,8 @@ namespace SempaPumpStation.Infrastructure
             var e = ZoneElectrical(ctx.GetDouble, ctx.GetBool, source);
             double? electrical = e != null && e.Valid ? ElectricalPower(e.Voltage, e.Current, e.PowerFactor) : (double?)null;
             double? pump = electrical.HasValue ? PumpPower(electrical.Value, line) : null;
+            double torque = ctx.GetDouble(Station.AiPh("Zone" + zone + "_Torque") + "Pv"), speed = ctx.GetDouble(Station.AiPh("Zone" + zone + "_Speed") + "Pv");
+            double? shaft = ShaftPower(torque, speed);
 
             return new PumpReading
             {
@@ -240,6 +249,10 @@ namespace SempaPumpStation.Infrastructure
                 Current = electrical.HasValue ? e.Current : 0.0,
                 PowerFactor = electrical.HasValue ? Math.Abs(e.PowerFactor) : 0.0,
                 ElectricalFromDrive = electrical.HasValue && e.FromDrive,
+                Torque = torque,
+                Speed = speed,
+                ShaftPower = shaft,
+                ShaftEfficiency = Efficiency(hydraulic, shaft),
             };
         }
 

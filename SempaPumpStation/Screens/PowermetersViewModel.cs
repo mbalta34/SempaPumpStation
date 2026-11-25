@@ -119,6 +119,9 @@ namespace SempaPumpStation.Screens
         public bool ExtraCommOk { get => _extraCommOk; set => Set(ref _extraCommOk, value); }
         public string Usage { get => _usage; set => Set(ref _usage, value); }
         public string Status { get => _status; set => Set(ref _status, value); }
+        private bool _extraMissing;
+        /// <summary>The drive answers its main request but not the second one (Nm, kW): kW and cos φ are unknown.</summary>
+        public bool ExtraMissing { get => _extraMissing; set => Set(ref _extraMissing, value); }
         public string Frequency { get => _frequency; set => Set(ref _frequency, value); }
         public string Current { get => _current; set => Set(ref _current, value); }
         public string MotorVoltage { get => _motorVoltage; set => Set(ref _motorVoltage, value); }
@@ -204,6 +207,7 @@ namespace SempaPumpStation.Screens
             var card = Drive;
             card.CommOk = Ctx.GetBool(d + "CommOk");
             card.ExtraCommOk = Ctx.GetBool(d + "ExtraCommOk");
+            card.ExtraMissing = card.CommOk && !card.ExtraCommOk;
             int zone = Ctx.FedZone(Station.DriveSource);
             card.Usage = zone > 0 ? "Bölge " + zone + " besleniyor" : "Bağlı bölge yok";
             card.Status = card.CommOk ? DriveCard.StatusText(Ctx.GetInt(d + "StatusWord")) : "—";

@@ -147,48 +147,69 @@
 
                 <!-- ============ Live values ============ -->
                 <StackPanel Grid.Column="2">
-                    <UniformGrid Columns="2">
+                    <!-- What the efficiency is calculated from; the tiles of the other basis are hidden -->
+                    <Border Style="{StaticResource CardTight}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="VERİM HESABI" Style="{StaticResource T.Section}" Margin="0,0,0,6"/>
+                            <ItemsControl ItemsSource="{Binding EfficiencyBases}" ItemTemplate="{StaticResource ChoiceTemplate}" sec:Access.Requires="Station.Operate">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <!-- Every tile has the same margin, so a hidden tile does not shift the others' spacing -->
+                    <UniformGrid Columns="2" Margin="0,0,-8,0">
                         <c:MetricTile Caption="DEBİ" Unit="{Binding FlowUnit}" ValueSize="26" Margin="0,0,8,8" ValueBrush="{StaticResource B.Run}"
                                       Value="{Binding Ph[Flow].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="BASMA YÜKSEKLİĞİ (Hm)" Unit="m" ValueSize="26" Margin="0,0,0,8" ValueBrush="{StaticResource B.Accent}"
+                        <c:MetricTile Caption="BASMA YÜKSEKLİĞİ (Hm)" Unit="m" ValueSize="26" Margin="0,0,8,8" ValueBrush="{StaticResource B.Accent}"
                                       Value="{Binding Head, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                         <c:MetricTile Caption="BASMA BASINCI" Unit="bar" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ph[DischargePressure].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.00}"/>
-                        <c:MetricTile Caption="EMME BASINCI" Unit="bar" ValueSize="22" Margin="0,0,0,8"
+                        <c:MetricTile Caption="EMME BASINCI" Unit="bar" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ph[SuctionPressure].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.000}"/>
                         <c:MetricTile Caption="BASMA YÜKSEKLİĞİ (Hb)" Unit="m" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding DischargeHeadText}"/>
-                        <c:MetricTile Caption="EMME YÜKSEKLİĞİ (He)" Unit="m" ValueSize="22" Margin="0,0,0,8"
+                        <c:MetricTile Caption="EMME YÜKSEKLİĞİ (He)" Unit="m" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding SuctionHeadText}"/>
                         <c:MetricTile Caption="DEVİR" Unit="d/dk" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[Speed.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0}"/>
-                        <c:MetricTile Caption="TORK" Unit="Nm" ValueSize="22" Margin="0,0,0,8"
-                                      Value="{Binding Ai[Torque.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
                         <c:MetricTile Caption="SU SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[WaterTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="MOTOR SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,0,8"
+                        <c:MetricTile Caption="MOTOR SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[Temperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="TİTREŞİM" Unit="mm/s" ValueSize="22" Margin="0,0,8,8"
-                                      Value="{Binding Ai[Vibration.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.00}"/>
-                        <c:MetricTile Caption="SES" Unit="dB" ValueSize="22" Margin="0,0,0,8"
-                                      Value="{Binding Ai[Sound.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
-                        <c:MetricTile Caption="POMPA GÜCÜ (Pp)" Unit="kW" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Run}"
-                                      Value="{Binding PowerText}"/>
-                        <c:MetricTile Caption="VERİM" Unit="%" ValueSize="22" Margin="0,0,0,8" ValueBrush="{StaticResource B.Accent}"
-                                      Value="{Binding EfficiencyText}"/>
-                        <c:MetricTile Caption="GERİLİM (F-F)" Unit="V" ValueSize="22" Margin="0,0,8,8"
-                                      Value="{Binding VoltageText}"/>
-                        <c:MetricTile Caption="AKIM" Unit="A" ValueSize="22" Margin="0,0,0,8"
-                                      Value="{Binding CurrentText}"/>
-                        <c:MetricTile Caption="COS φ" Unit="" ValueSize="22" Margin="0,0,8,8"
-                                      Value="{Binding PowerFactorText}"/>
-                        <c:MetricTile Caption="ELEKTRİK GÜCÜ (Nş)" Unit="kW" ValueSize="22" Margin="0,0,0,8"
-                                      Value="{Binding ElectricalPowerText}"/>
                         <c:MetricTile Caption="ORTAM SICAKLIĞI" Unit="°C" ValueSize="22" Margin="0,0,8,8"
                                       Value="{Binding Ai[AmbientTemperature.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
+                        <c:MetricTile Caption="TİTREŞİM" Unit="mm/s" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding Ai[Vibration.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.00}"/>
+                        <c:MetricTile Caption="SES" Unit="dB" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding Ai[Sound.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"/>
+
+                        <!-- Electrical basis: Nş from U, I, cos φ, Pp = Nş × motor efficiency, efficiency on Pp -->
+                        <c:MetricTile Caption="GERİLİM (F-F)" Unit="V" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding VoltageText}" Visibility="{Binding ShowElectrical, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="AKIM" Unit="A" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding CurrentText}" Visibility="{Binding ShowElectrical, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="COS φ" Unit="" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding PowerFactorText}" Visibility="{Binding ShowElectrical, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="ELEKTRİK GÜCÜ (Nş)" Unit="kW" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding ElectricalPowerText}" Visibility="{Binding ShowElectrical, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="POMPA GÜCÜ (Pp)" Unit="kW" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Run}"
+                                      Value="{Binding PowerText}" Visibility="{Binding ShowElectrical, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="VERİM (ELEKTRİK)" Unit="%" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Accent}"
+                                      Value="{Binding EfficiencyText}" Visibility="{Binding ShowElectrical, Converter={StaticResource BoolVis}}"/>
+
+                        <!-- Torque basis: Nmil = T × n / 9549 from the torque meter, efficiency on Nmil -->
+                        <c:MetricTile Caption="TORK" Unit="Nm" ValueSize="22" Margin="0,0,8,8"
+                                      Value="{Binding Ai[Torque.Pv].TagValue, Converter={StaticResource Fmt}, ConverterParameter=0.0}"
+                                      Visibility="{Binding ShowTorque, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="MİL GÜCÜ (Nmil)" Unit="kW" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Run}"
+                                      Value="{Binding ShaftPowerText}" Visibility="{Binding ShowTorque, Converter={StaticResource BoolVis}}"/>
+                        <c:MetricTile Caption="VERİM (TORK)" Unit="%" ValueSize="22" Margin="0,0,8,8" ValueBrush="{StaticResource B.Accent}"
+                                      Value="{Binding ShaftEfficiencyText}" Visibility="{Binding ShowTorque, Converter={StaticResource BoolVis}}"/>
                     </UniformGrid>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="2,4,0,0"
-                               Text="Rapordaki formüllerle: Hb = Pb × 10,2; He = Pe × 10,2 (ölçüldüğü gibi, vakumda negatif; dalgıç pompada 0); Hm = Hb − He + hız kayıpları + geometrik yükseklik; Nş = √3·U·I·cosφ (seçili kaynağın PM5550 analizörü; 630 kW VFD'de ATV660 sürücüsünün motor tarafı); Pp = Nş × motor verimi (yük bandına göre, motor reçetesi); verim = Q·Hm/367,2 / Pp (pompa verimi)."/>
+                               Text="Rapordaki formüllerle: Hb = Pb × 10,2; He = Pe × 10,2 (ölçüldüğü gibi, vakumda negatif; dalgıç pompada 0); Hm = Hb − He + hız kayıpları + geometrik yükseklik. Elektrik: Nş = √3·U·I·cosφ (seçili kaynağın PM5550 analizörü; 630 kW VFD'de ATV660 sürücüsünün motor tarafı), Pp = Nş × motor verimi (yük bandına göre, motor reçetesi), verim = Q·Hm/367,2 / Pp. Tork: Nmil = T × n / 9549, verim = Q·Hm/367,2 / Nmil."/>
                 </StackPanel>
 
                 <!-- ============ Test & samples ============ -->

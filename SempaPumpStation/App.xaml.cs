@@ -141,6 +141,24 @@ namespace SempaPumpStation
             }
             io.ShowTab(Screens.IoViewModel.DigitalInputsTab);
 
+            // Zone 1 and the TV picture with the other efficiency bases (the loop above shows the electrical one)
+            foreach (var basis in new[] { EfficiencyBasis.Torque, EfficiencyBasis.Both })
+            {
+                EfficiencyBasisStore.Set(1, basis);
+                foreach (var key in new[] { "Zone1", "Tv" })
+                {
+                    var entry = System.Linq.Enumerable.First(vm.MainNav, e => e.Key == key);
+                    if (entry.Screen is Screens.TvViewModel tvScreen) tvScreen.Zone = 1;
+                    vm.NavigateCommand.Execute(entry);
+                    shell.UpdateLayout();
+                    Steps(8);
+                    shell.UpdateLayout();
+                    Capture(shell, Path.Combine(dir, key + "_" + basis + ".png"));
+                    sb.AppendLine("OK   " + key + "_" + basis);
+                }
+            }
+            EfficiencyBasisStore.Set(1, EfficiencyBasis.Electrical);
+
             // IO-Link screen of zone 3 (stopped, so unlocked) with a transmitter port selected
             var ioLinkEntry = System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "IoLink");
             var ioLink = (Screens.IoLinkViewModel)ioLinkEntry.Screen;
@@ -843,7 +861,8 @@ namespace SempaPumpStation
                       drive.CommOk && drive.ExtraCommOk && drive.Status == "Duruyor" && drive.Frequency == zero && drive.Current == zero
                       && Screens.DriveCard.StatusText(0x0637) == "Çalışıyor" && Screens.DriveCard.StatusText(0x0608) == "Arıza"
                       && Screens.DriveCard.StatusText(0x0633) == "Duruyor");
-                Check("ATV660 card cos φ while stopped: " + drive.PowerFactor, drive.PowerFactor == 0.0.ToString("0.00"));
+                Check("ATV660 card cos φ while stopped: " + drive.PowerFactor + "; no warning while both requests answer",
+                      drive.PowerFactor == 0.0.ToString("0.00") && !drive.ExtraMissing);
                 drive.Filter.FilterType = AnalogFilter.EmaOutlier;
                 c.WriteParameter(drive.Filter.AverageWriteTag, drive.Filter.AverageTag, (short)10);
                 Steps(4);
@@ -883,6 +902,37 @@ namespace SempaPumpStation
                 var zone1 = (Screens.ZoneViewModel)System.Linq.Enumerable.First(vm.MainNav, e => e.Key == "Zone1").Screen;
                 Check("zone screen cos φ " + zone1.PowerFactorText + " (meter " + c.GetDouble(Station.Meter(4) + "General.PowerFactor").ToString("0.000") + ")",
                       live.Source == 4 && live.PowerFactor > 0.5 && live.PowerFactor <= 1.0 && zone1.PowerFactorText == live.PowerFactor.ToString("0.00"));
+
+                // Efficiency basis, per zone: electrical (default), torque or both; the zone and TV screens show that basis's values
+                {
+                    var inv = System.Globalization.CultureInfo.InvariantCulture;
+                    string Captions() => string.Join(", ", tv.MainTiles.Select(t => t.Caption));
+                    bool electrical = EfficiencyBasisStore.Get(1) == EfficiencyBasis.Electrical && zone1.ShowElectrical && !zone1.ShowTorque
+                                      && tv.MainTiles.Count == 4 && tv.TileColumns == 2 && tv.MainTiles[2].Caption == "POMPA GÜCÜ (Pp)";
+                    zone1.EfficiencyBases.First(b => b.Value == (int)EfficiencyBasis.Torque).Command.Execute(null);
+                    Steps(2);
+                    var shaftLive = PumpCalc.Live(c, 1);
+                    string torqueTiles = Captions();
+                    bool torque = !zone1.ShowElectrical && zone1.ShowTorque && tv.MainTiles.Count == 4 && tv.TileColumns == 2
+                                  && tv.MainTiles[2].Caption == "MİL GÜCÜ (Nmil)" && shaftLive.ShaftPower > 0 && shaftLive.ShaftEfficiency > 0
+                                  && Math.Abs(shaftLive.ShaftPower.Value - shaftLive.Torque * shaftLive.Speed / 9549.0) < 1e-9
+                                  && tv.MainTiles[2].Value == shaftLive.ShaftPower.Value.ToString("0.00", inv) && tv.MainTiles[3].Value == shaftLive.ShaftEfficiency.Value.ToString("0.0", inv)
+                                  && zone1.ShaftPowerText == shaftLive.ShaftPower.Value.ToString("0.00") && zone1.ShaftEfficiencyText == shaftLive.ShaftEfficiency.Value.ToString("0.0");
+                    zone1.EfficiencyBases.First(b => b.Value == (int)EfficiencyBasis.Both).Command.Execute(null);
+                    Steps(2);
+                    string bothTiles = Captions();
+                    bool both = zone1.ShowElectrical && zone1.ShowTorque && tv.MainTiles.Count == 6 && tv.TileColumns == 3
+                                && bothTiles == "DEBİ (Q), POMPA GÜCÜ (Pp), VERİM (ELEKTRİK), BASMA YÜKSEKLİĞİ (Hm), MİL GÜCÜ (Nmil), VERİM (TORK)"
+                                && zone1.EfficiencyBases.Single(b => b.State == "active").Value == (int)EfficiencyBasis.Both;
+                    // Kept on this PC: the file holds it and a fresh read gets it back; zone 2 is untouched
+                    EfficiencyBasisStore.Reload();
+                    bool remembered = File.ReadAllText(EfficiencyBasisStore.SettingsFile).Contains("Number=\"1\" Basis=\"Both\"")
+                                && EfficiencyBasisStore.Get(1) == EfficiencyBasis.Both && EfficiencyBasisStore.Get(2) == EfficiencyBasis.Electrical;
+                    Check("efficiency basis: electrical [" + electrical + "], torque (" + torqueTiles + ") [" + torque + "], both (" + bothTiles + ") [" + both + "], remembered [" + remembered + "]",
+                          electrical && torque && both && remembered);
+                    zone1.EfficiencyBases.First(b => b.Value == (int)EfficiencyBasis.Electrical).Command.Execute(null);
+                    Steps(2);
+                }
 
                 // TV outputs: a zone's picture full screen on a chosen monitor, one zone per monitor, remembered
                 var outs = tv.Outputs;

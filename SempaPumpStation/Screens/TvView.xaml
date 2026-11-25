@@ -20,15 +20,18 @@
             <Setter Property="Foreground" Value="{StaticResource B.Text}"/>
         </Style>
 
-        <!-- Large tile: Q, Hm, Pp, efficiency (2 × 2) -->
+        <!-- Large tile: Q, Hm, power, efficiency (2 × 2; 3 × 2 with both efficiency bases, a smaller value) -->
         <DataTemplate x:Key="MainTile">
             <Border Style="{StaticResource TvCard}" Margin="0,0,20,20" Padding="36,20">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="{Binding Caption}" Style="{StaticResource TvCaption}" FontSize="34"/>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="value" Text="{Binding Value}" Style="{StaticResource TvValue}" FontSize="168"/>
-                        <TextBlock Text="{Binding Unit}" Style="{StaticResource TvCaption}" FontSize="52" VerticalAlignment="Bottom" Margin="18,0,0,36" TextTrimming="None"/>
-                    </StackPanel>
+                    <!-- A value too wide for its tile is scaled down, never up -->
+                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="value" Text="{Binding Value}" Style="{StaticResource TvValue}" FontSize="168"/>
+                            <TextBlock x:Name="unit" Text="{Binding Unit}" Style="{StaticResource TvCaption}" FontSize="52" VerticalAlignment="Bottom" Margin="18,0,0,36" TextTrimming="None"/>
+                        </StackPanel>
+                    </Viewbox>
                 </DockPanel>
             </Border>
             <DataTemplate.Triggers>
@@ -37,6 +40,11 @@
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Kind}" Value="accent">
                     <Setter TargetName="value" Property="Foreground" Value="{StaticResource B.Accent}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.TileColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="3">
+                    <Setter TargetName="value" Property="FontSize" Value="120"/>
+                    <Setter TargetName="unit" Property="FontSize" Value="40"/>
+                    <Setter TargetName="unit" Property="Margin" Value="14,0,0,26"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
@@ -149,10 +157,10 @@
                     </DockPanel>
                 </Border>
 
-                <!-- ============ Q, Hm, Pp, efficiency ============ -->
+                <!-- ============ Q, Hm, power and efficiency of the zone's efficiency basis ============ -->
                 <ItemsControl Grid.Row="1" ItemsSource="{Binding MainTiles}" ItemTemplate="{StaticResource MainTile}" Margin="0,0,-20,0">
                     <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><UniformGrid Rows="2" Columns="2"/></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><UniformGrid Rows="2" Columns="{Binding DataContext.TileColumns, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
 

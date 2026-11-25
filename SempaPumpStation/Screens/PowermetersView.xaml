@@ -212,6 +212,10 @@
                             </TextBlock>
                         </StackPanel>
                     </UniformGrid>
+                    <!-- The second request (Nm, kW) unanswered: kW and cos φ unknown, a zone on the drive measures with the meter -->
+                    <TextBlock Style="{StaticResource T.Label}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource B.Warn}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Visibility="{Binding ExtraMissing, Converter={StaticResource BoolVis}}"
+                               Text="Sürücünün Nm / kW isteği (3268, 3292-3293) yanıt vermiyor: tork (Nm), kW ve cos φ okunamıyor; bu kaynaktaki bölge PM5550 analizörünün değerleriyle ölçer. PLC'de DB_Communication_DriveDevices.Devices[2].ErrorStatus hatanın nedenini gösterir."/>
                     <!-- The drive's filter: one setting for all of its values (FB_Communication_DriveFilter) -->
                     <ContentControl Content="{Binding Filter}" ContentTemplate="{StaticResource FilterStripTemplate}"/>
                 </StackPanel>
@@ -229,7 +233,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20,20,6,6">
         <StackPanel>
             <TextBlock Style="{StaticResource T.Label}" TextWrapping="Wrap" Margin="0,0,14,12"
-                       Text="Her güç kaynağında bir Schneider PM5550 enerji analizörü; PLC değerleri Modbus TCP ile okur. Sistem 3 telli (nötr yok, analizörler 3PH3W): fazlarda faz-faz gerilim (L1 satırında L1-L2, L2'de L2-L3, L3'te L3-L1) ve faz akımı, toplamda faz-faz ortalama gerilim, ortalama akım, toplam güçler ve cos φ gösterilir. Her analizörün ve sürücünün filtresi tüm değerlerine uygulanır (enerji sayaçları hariç): Yok, EMA veya EMA + aykırı değer; EMA α yeni değerin ağırlığı; aykırı değer, filtrelenmiş değerden maks. sıçrama yüzdesinden fazla uzaklaşan değerdir ve art arda red adedi kadar gelirse yeni seviye kabul edilir; ortalama son n değerin hareketli ortalaması (100 ms'de bir değer; 0 veya 1 = kapalı, en çok 100 = 10 s). IP adresleri ve iletişim izni PLC'de DB_Communication_ModbusDevices'ta ayarlanır. 630 kW VFD'nin ATV660 sürücüsü de Modbus TCP ile okunur (yalnızca okuma; IP adresi DB_Communication_DriveDevices'ta)."/>
+                       Text="Her güç kaynağında bir Schneider PM5550 enerji analizörü; PLC değerleri Modbus TCP ile okur. Sistem 3 telli (nötr yok, analizörler 3PH3W): fazlarda faz-faz gerilim (L1 satırında L1-L2, L2'de L2-L3, L3'te L3-L1) ve faz akımı, toplamda faz-faz ortalama gerilim, ortalama akım, toplam güçler ve cos φ gösterilir. Her analizörün ve sürücünün filtresi tüm değerlerine uygulanır (enerji sayaçları hariç): Yok, EMA veya EMA + aykırı değer; EMA α yeni değerin ağırlığı; aykırı değer, filtrelenmiş değerden maks. sıçrama yüzdesinden fazla uzaklaşan değerdir ve art arda red adedi kadar gelirse yeni seviye kabul edilir; ortalama son n değerin hareketli ortalaması (100 ms'de bir değer; 0 veya 1 = kapalı, en çok 100 = 10 s). IP adresleri ve iletişim izni PLC'de DB_Communication_ModbusDevices'ta ayarlanır. 630 kW VFD'nin ATV660 sürücüsü de Modbus TCP ile okunur (yalnızca okuma; IP adresi ve unit ID DB_Communication_DriveDevices.Devices[1]'de, ikinci istek bunları izler)."/>
             <!-- The ATV660 of the 630 kW VFD: motor values read over Modbus TCP (read only) -->
             <ContentControl Content="{Binding Drive}" ContentTemplate="{StaticResource DriveTemplate}"/>
 

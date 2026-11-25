@@ -10,7 +10,8 @@ namespace SempaPumpStation.Screens
     /// <summary>One value tile of the TV screen: caption, value and unit; <see cref="Kind"/> colours the value.</summary>
     public sealed class TvTile : ViewModelBase
     {
-        public string Caption { get; set; }
+        private string _caption;
+        public string Caption { get => _caption; set => Set(ref _caption, value); }
         private string _unit;
         public string Unit { get => _unit; set => Set(ref _unit, value); }
         /// <summary>"run" (green), "accent" (blue) or "" (text colour).</summary>
@@ -33,10 +34,15 @@ namespace SempaPumpStation.Screens
         public override string Title => "TV Ekranı";
 
         public ObservableCollection<ChoiceItem> Zones { get; } = new ObservableCollection<ChoiceItem>();
-        /// <summary>Q, Hm, Pp and efficiency.</summary>
+        /// <summary>Q, Hm and the power and efficiency of the zone's <see cref="EfficiencyBasis"/>: 4 tiles (2 × 2), or 6 (3 × 2) for both bases.</summary>
         public ObservableCollection<TvTile> MainTiles { get; } = new ObservableCollection<TvTile>();
 
-        private readonly TvTile _flow, _head, _power, _efficiency;
+        private readonly TvTile _flow, _head, _power, _efficiency, _shaftPower, _shaftEfficiency;
+        private EfficiencyBasis? _basis;
+
+        private int _tileColumns = 2;
+        /// <summary>Columns of the tile grid: 2, or 3 with both bases.</summary>
+        public int TileColumns { get => _tileColumns; private set => Set(ref _tileColumns, value); }
 
         private int _zone = 1;
         public int Zone
@@ -74,12 +80,12 @@ namespace SempaPumpStation.Screens
                 Zones.Add(new ChoiceItem { Value = z, Title = "Bölge " + z, State = z == zone ? "active" : "", Command = new SyncCommand(() => Zone = choice) });
             }
 
-            TvTile Main(string caption, string unit, string kind = "") { var t = new TvTile { Caption = caption, Unit = unit, Kind = kind }; MainTiles.Add(t); return t; }
-
-            _flow = Main("DEBİ (Q)", "m³/h", "run");
-            _head = Main("BASMA YÜKSEKLİĞİ (Hm)", "m", "accent");
-            _power = Main("POMPA GÜCÜ (Pp)", "kW", "run");
-            _efficiency = Main("VERİM", "%", "accent");
+            _flow = new TvTile { Caption = "DEBİ (Q)", Unit = "m³/h", Kind = "run" };
+            _head = new TvTile { Caption = "BASMA YÜKSEKLİĞİ (Hm)", Unit = "m", Kind = "accent" };
+            _power = new TvTile { Caption = "POMPA GÜCÜ (Pp)", Unit = "kW", Kind = "run" };
+            _efficiency = new TvTile { Caption = "VERİM", Unit = "%", Kind = "accent" };
+            _shaftPower = new TvTile { Caption = "MİL GÜCÜ (Nmil)", Unit = "kW", Kind = "run" };
+            _shaftEfficiency = new TvTile { Caption = "VERİM", Unit = "%", Kind = "accent" };
 
             ctx.Scanned += OnScanned;
             Refresh();
@@ -116,6 +122,9 @@ namespace SempaPumpStation.Screens
             _head.Value = Number(r.Head, "0.00");
             _power.Value = Number(r.PumpPower, "0.00");
             _efficiency.Value = Number(r.Efficiency, "0.0");
+            _shaftPower.Value = Number(r.ShaftPower, "0.00");
+            _shaftEfficiency.Value = Number(r.ShaftEfficiency, "0.0");
+            Arrange(EfficiencyBasisStore.Get(_zone));
 
             bool running = Ctx.GetBool(ph + "PumpRunning"), test = Ctx.GetBool(ph + "TestActive");
             if (Ctx.GetBool(ph + "EStop")) { StatusText = "ACİL STOP"; StatusKind = "alarm"; }
@@ -124,6 +133,25 @@ namespace SempaPumpStation.Screens
             else if (test) { StatusText = running ? "TEST SÜRÜYOR · POMPA ÇALIŞIYOR" : "TEST SÜRÜYOR · POMPA DURUYOR"; StatusKind = "test"; }
             else if (running) { StatusText = "POMPA ÇALIŞIYOR"; StatusKind = "run"; }
             else { StatusText = "TEST BEKLENİYOR"; StatusKind = "idle"; }
+        }
+
+        /// <summary>
+        /// The tiles of the zone's basis: Q, Hm, Pp and its efficiency (electrical); Q, Hm, Nmil and its efficiency (torque);
+        /// both, in rows (Q, Pp, efficiency on Pp / Hm, Nmil, efficiency on Nmil). Rebuilt only when the basis changes.
+        /// </summary>
+        private void Arrange(EfficiencyBasis basis)
+        {
+            if (_basis == basis) return;
+            _basis = basis;
+            bool both = basis == EfficiencyBasis.Both;
+            _efficiency.Caption = both ? "VERİM (ELEKTRİK)" : "VERİM";
+            _shaftEfficiency.Caption = both ? "VERİM (TORK)" : "VERİM";
+            MainTiles.Clear();
+            var tiles = basis == EfficiencyBasis.Torque ? new[] { _flow, _head, _shaftPower, _shaftEfficiency }
+                      : both ? new[] { _flow, _power, _efficiency, _head, _shaftPower, _shaftEfficiency }
+                      : new[] { _flow, _head, _power, _efficiency };
+            foreach (var t in tiles) MainTiles.Add(t);
+            TileColumns = both ? 3 : 2;
         }
 
         /// <summary>The value in the given format; a value the station cannot measure yet shows a dash.</summary>
