@@ -116,8 +116,8 @@ namespace SempaPumpStation.Screens
             var data = RecipeStore.Load(Category, name);
             foreach (var d in Defs)
             {
-                if (!data.TryGetValue(d.TagName, out var text)) continue;
-                Apply(d.TagName, text);
+                // A field the recipe was saved without (added later) loads empty, not the previous recipe's value
+                Apply(d.TagName, data.TryGetValue(d.TagName, out var text) ? text : "");
             }
         }
 
@@ -149,7 +149,8 @@ namespace SempaPumpStation.Screens
             if (t == null) return;
             if (IsNumeric(t.DataType))
             {
-                if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out double d))
+                if (string.IsNullOrWhiteSpace(text)) Ctx.SetFromDevice(tagName, 0.0);
+                else if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out double d))
                     Ctx.SetFromDevice(tagName, d);
             }
             else Ctx.SetFromDevice(tagName, text);

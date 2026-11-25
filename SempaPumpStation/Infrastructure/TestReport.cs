@@ -95,6 +95,10 @@ namespace SempaPumpStation.Infrastructure
             if (dischargeLine > 0) w.Number("M14", dischargeLine);
             else if (dischargeDn > 0) w.Number("M14", dischargeDn);
             w.Value("M15", h["GEO_YUKSEKLIK"]);
+            // Mechanical efficiency (AB = M11): a factor of Np (column N) and, here, of the shaft power the torque meter
+            // efficiency divides by. S32 is the master of the template's shared formula S32:S51, so every row follows it
+            w.Number("M11", PumpCalc.EfficiencyFactor(h["WRT_PMP_MEKANIK_VERIM"]));
+            w.Formula("S" + FirstRow, "IFERROR(((C32*I32/102)/(R32*AB32))*100,0)");
 
             // Pump
             w.Text("D18", h["WRT_POMPA_TIPI"]);
@@ -245,6 +249,18 @@ namespace SempaPumpStation.Infrastructure
                 if (string.IsNullOrEmpty(text)) return;
                 c.SetAttributeValue("t", "inlineStr");
                 c.Add(new XElement(Main + "is", new XElement(Main + "t", new XAttribute(XNamespace.Xml + "space", "preserve"), text)));
+            }
+
+            /// <summary>Replaces the formula of a cell that has one (a shared formula's master changes the whole range); the
+            /// workbook recalculates on open, so the cached value is dropped.</summary>
+            public void Formula(string address, string formula)
+            {
+                var c = Cell(address);
+                var f = c.Element(Main + "f");
+                if (f == null) { f = new XElement(Main + "f"); c.AddFirst(f); }
+                f.Value = formula;
+                c.Elements(Main + "v").Remove();
+                c.SetAttributeValue("t", null);
             }
 
             /// <summary>A number when the text is one (the archive stores numbers invariant), otherwise the text.</summary>

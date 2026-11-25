@@ -209,7 +209,7 @@
                                       Value="{Binding ShaftEfficiencyText}" Visibility="{Binding ShowTorque, Converter={StaticResource BoolVis}}"/>
                     </UniformGrid>
                     <TextBlock Style="{StaticResource T.Label}" FontSize="11" TextWrapping="Wrap" Margin="2,4,0,0"
-                               Text="Rapordaki formüllerle: Hb = Pb × 10,2; He = Pe × 10,2 (ölçüldüğü gibi, vakumda negatif; dalgıç pompada 0); Hm = Hb − He + hız kayıpları + geometrik yükseklik. Elektrik: Nş = √3·U·I·cosφ (seçili kaynağın PM5550 analizörü; 630 kW VFD'de ATV660 sürücüsünün motor tarafı), Pp = Nş × motor verimi (yük bandına göre, motor reçetesi), verim = Q·Hm/367,2 / Pp. Tork: Nmil = T × n / 9549, verim = Q·Hm/367,2 / Nmil."/>
+                               Text="Rapordaki formüllerle: Hb = Pb × 10,2; He = Pe × 10,2 (ölçüldüğü gibi, vakumda negatif; dalgıç pompada 0); Hm = Hb − He + hız kayıpları + geometrik yükseklik. Elektrik: Nş = √3·U·I·cosφ (seçili kaynağın PM5550 analizörü; 630 kW VFD'de ATV660 sürücüsünün motor tarafı), Pp = Nş × motor verimi (yük bandına göre, motor reçetesi) × mekanik verim (pompa reçetesi), verim = Q·Hm/367,2 / Pp. Tork: Nmil = T × n / 9549, verim = Q·Hm/367,2 / (Nmil × mekanik verim)."/>
                 </StackPanel>
 
                 <!-- ============ Test & samples ============ -->

@@ -14,7 +14,7 @@ namespace SempaPumpStation.Infrastructure
         // ---- bump these ----
         public const int Major = 1;
         public const int Minor = 14;
-        public const int Build = 3;
+        public const int Build = 4;
 
         public const string ProductName = "Sempa HMI";
 
@@ -39,6 +39,14 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.14.4", "2026-11-25", new[]
+            {
+                "Pump recipe: Mekanik Verim (%), the losses between the motor or torque meter and the pump. Selected into the report, it is M11 (empty or 0 = 100 %; 0.95 is taken as 95 %).",
+                "Efficiency: the electrical one uses it in Pp = Nş × motor efficiency × mechanical efficiency (report column N), the torque one in η = Q·Hm / (Nmil × mechanical efficiency) (report column S, now R × AB); zone and TV screens, archive and report alike.",
+                "Recipes: a field a recipe was saved without (such as Mekanik Verim in older pump recipes) loads empty instead of keeping the previous recipe's value.",
+                "config.xml: the default PLC address is 192.168.17.100 (MainPLC).",
+            }),
+
             new ChangeLogEntry("1.14.3", "2026-11-25", new[]
             {
                 "Zone screen: VERİM HESABI chooses what the pump efficiency is calculated from, per zone: Elektrik (Pp = Nş × motor efficiency, report column O), Tork (Nmil = T × n / 9549 from the torque meter, report column S) or Elektrik + Tork. The choice is kept on this PC and needs an operator login.",

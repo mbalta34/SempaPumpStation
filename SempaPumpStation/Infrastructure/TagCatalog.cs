@@ -173,6 +173,7 @@ namespace SempaPumpStation.Infrastructure
             S(t, "WRT_POMPA_TIPI"); S(t, "WRT_PMP_SERI_NO"); S(t, "WRT_PMP_EMME_CAP");
             S(t, "WRT_PMP_BAS_CAP"); S(t, "WRT_PMP_MIL_MALZ"); S(t, "WRT_PMP_MONTAJ_TIP");
             S(t, "WRT_CARK_MALZ"); S(t, "WRT_CARK_CAPI"); S(t, "WRT_SALMAST_TIPI"); S(t, "WRT_SALYANGOZ_MALZ");
+            R(t, "WRT_PMP_MEKANIK_VERIM");   // %, report M11 as a factor
             S(t, "WRT_MOTOR_MARKA"); S(t, "WRT_MOTOR_SERI_NO"); S(t, "WRT_MOTOR_FRAME");
             S(t, "WRT_MOTOR_HP"); S(t, "WRT_MOTOR_TIPI"); S(t, "WRT_MOTOR_VERIM_SIN");
             R(t, "WRT_MOTOR_GUCU"); R(t, "WRT_MOTOR_DEVRI"); R(t, "WRT_MOTOR_AKIMI"); R(t, "WRT_MOTOR_COSPHI");
@@ -186,6 +187,7 @@ namespace SempaPumpStation.Infrastructure
             S(t, "POMPA_TIPI"); S(t, "PMP_SERI_NO"); S(t, "PMP_EMME_CAP"); S(t, "PMP_BAS_CAP");
             S(t, "PMP_MIL_MALZ"); S(t, "PMP_MONTAJ_TIP"); S(t, "PMP_SASE_DRM");
             S(t, "CARK_MALZ"); S(t, "CARK_CAPI"); S(t, "SALMAST_TIPI"); S(t, "SALYANGOZ_MALZ");
+            R(t, "PMP_MEKANIK_VERIM");
 
             // ---- Motor recipe edit buffers ----
             S(t, "MOTOR_TIPI"); S(t, "MOTOR_MARKA"); S(t, "MOTOR_SERI_NO"); S(t, "MOTOR_FRAME");
@@ -221,6 +223,7 @@ namespace SempaPumpStation.Infrastructure
                 { "WRT_CARK_CAPI", "252 mm" },
                 { "WRT_SALMAST_TIPI", "Mekanik" },
                 { "WRT_SALYANGOZ_MALZ", "GG25" },
+                { "WRT_PMP_MEKANIK_VERIM", 100.0f },
                 { "WRT_MOTOR_MARKA", "Volt Motor" },
                 { "WRT_MOTOR_SERI_NO", "M-77120" },
                 { "WRT_MOTOR_FRAME", "225 M" },

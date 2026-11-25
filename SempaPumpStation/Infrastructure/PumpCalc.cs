@@ -37,7 +37,7 @@ namespace SempaPumpStation.Infrastructure
         public double Speed { get; set; }
         /// <summary>Nmil: shaft power from the torque meter, T × n / 9549, kW (report column R); null without torque or speed.</summary>
         public double? ShaftPower { get; set; }
-        /// <summary>Pump efficiency on the shaft power, % (report column S); null while the shaft power is unknown.</summary>
+        /// <summary>Pump efficiency on the shaft power × the mechanical efficiency, % (report column S); null while the shaft power is unknown.</summary>
         public double? ShaftEfficiency { get; set; }
     }
 
@@ -63,8 +63,10 @@ namespace SempaPumpStation.Infrastructure
         public bool Submersible;      // no suction gauge: suction is ignored
         public double RatedKw;        // motor rated power (report D10)
         public double[] MotorEfficiency = new double[5];   // % at 1/4..4/4 load, index 1..4 (report G8, F8, E8, D8)
-        /// <summary>Plant and mechanical efficiency factors (report M10, M11): 1 in the template.</summary>
-        public double PlantEfficiency = 1.0, MechanicalEfficiency = 1.0;
+        /// <summary>Plant efficiency factor (report M10): 1 as in the template.</summary>
+        public double PlantEfficiency = 1.0;
+        /// <summary>Mechanical efficiency factor (report M11), from the pump recipe's Mekanik Verim (%); 1 without one.</summary>
+        public double MechanicalEfficiency = 1.0;
 
         /// <summary>From recipe / report header values by key (the keys of <see cref="TestArchive.HeaderKeys"/>).</summary>
         public static PumpLine From(Func<string, string> get)
@@ -80,6 +82,7 @@ namespace SempaPumpStation.Infrastructure
                 RatedKw = PumpCalc.FirstNumber(get("WRT_MOTOR_GUCU")),
             };
             for (int q = 1; q <= 4; q++) l.MotorEfficiency[q] = PumpCalc.FirstNumber(get("WRT_MOTOR_VERIM_" + q + "_4"));
+            l.MechanicalEfficiency = PumpCalc.EfficiencyFactor(get("WRT_PMP_MEKANIK_VERIM"));
             return l;
         }
     }
@@ -204,6 +207,13 @@ namespace SempaPumpStation.Infrastructure
         public static double? ShaftPower(double torque, double speed)
             => torque > 0 && speed > 0 ? torque * speed / 9549.0 : (double?)null;
 
+        /// <summary>
+        /// The power the pump gets from the torque meter's shaft power: Nmil × the mechanical efficiency (report R × AB), the
+        /// losses between the meter and the pump taken off as Np takes them off the motor's output.
+        /// </summary>
+        public static double? PumpShaftPower(double? shaftPower, PumpLine line)
+            => shaftPower.HasValue ? shaftPower.Value * line.MechanicalEfficiency : (double?)null;
+
         /// <summary>Pump efficiency in % (report column O): hydraulic power over pump power; null when that is unknown or zero.
         /// With the shaft power (report column S) it is the efficiency on the torque meter.</summary>
         public static double? Efficiency(double hydraulicPower, double? pumpPower)
@@ -252,8 +262,18 @@ namespace SempaPumpStation.Infrastructure
                 Torque = torque,
                 Speed = speed,
                 ShaftPower = shaft,
-                ShaftEfficiency = Efficiency(hydraulic, shaft),
+                ShaftEfficiency = Efficiency(hydraulic, PumpShaftPower(shaft, line)),
             };
+        }
+
+        /// <summary>
+        /// An efficiency entered in % (95) as a factor (0.95). A value up to 1 is taken as a factor already (0.95, as the
+        /// report holds it), and an empty, zero or over-100 entry counts as no loss (1).
+        /// </summary>
+        public static double EfficiencyFactor(string text)
+        {
+            double v = FirstNumber(text);
+            return v <= 0 || v > 100 ? 1.0 : v > 1 ? v / 100.0 : v;
         }
 
         /// <summary>The first number in a text such as "DN200" or "200 mm"; 0 when there is none.</summary>

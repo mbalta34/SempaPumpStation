@@ -45,6 +45,7 @@ namespace SempaPumpStation.Screens
             new RecipeFieldDef("Çark Çapı", "CARK_CAPI"),
             new RecipeFieldDef("Salmastra Tipi", "SALMAST_TIPI"),
             new RecipeFieldDef("Gövde/Salyangoz Malz.", "SALYANGOZ_MALZ"),
+            new RecipeFieldDef("Mekanik Verim (%)", "PMP_MEKANIK_VERIM", "0.0"),
         };
         protected override IReadOnlyDictionary<string, string> ReportMap => new Dictionary<string, string>
         {
@@ -53,6 +54,7 @@ namespace SempaPumpStation.Screens
             { "PMP_MIL_MALZ", "WRT_PMP_MIL_MALZ" }, { "PMP_MONTAJ_TIP", "WRT_PMP_MONTAJ_TIP" },
             { "CARK_MALZ", "WRT_CARK_MALZ" }, { "CARK_CAPI", "WRT_CARK_CAPI" },
             { "SALMAST_TIPI", "WRT_SALMAST_TIPI" }, { "SALYANGOZ_MALZ", "WRT_SALYANGOZ_MALZ" },
+            { "PMP_MEKANIK_VERIM", "WRT_PMP_MEKANIK_VERIM" },
         };
     }
 

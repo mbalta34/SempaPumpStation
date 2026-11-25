@@ -353,6 +353,22 @@ namespace SempaPumpStation
                       && Math.Abs(live.DischargeHead - live.SuctionHead + live.VelocityHead + 0.6 - live.Head) < 0.001
                       && Math.Abs(live.ElectricalPower.Value - ns) < 0.05 && Math.Abs(live.PumpPower.Value - np) < 0.05
                       && Math.Abs(live.Efficiency.Value - eta) < 0.5);
+                // Mekanik Verim of the pump recipe (report M11): Pp = Nş × motor efficiency × mechanical efficiency
+                c.SetFromDevice("WRT_PMP_MEKANIK_VERIM", 100.0);
+                var fullMech = PumpCalc.Live(c, 1);
+                c.SetFromDevice("WRT_PMP_MEKANIK_VERIM", 95.0);
+                var lowMech = PumpCalc.Live(c, 1);
+                double mechFactor = PumpCalc.LiveLine(c).MechanicalEfficiency;
+                c.SetFromDevice("WRT_PMP_MEKANIK_VERIM", 100.0);
+                Check(string.Format("Mekanik Verim 95 % scales Pp ({0:0.00} → {1:0.00} kW) and both efficiencies; 95 and 0.95 are 0.95, empty and 0 count as 100 %",
+                                    fullMech.PumpPower ?? 0, lowMech.PumpPower ?? 0),
+                      Math.Abs(mechFactor - 0.95) < 1e-9 && fullMech.PumpPower > 0
+                      && Math.Abs(lowMech.PumpPower.Value - fullMech.PumpPower.Value * 0.95) < 1e-6
+                      && Math.Abs(lowMech.Efficiency.Value - fullMech.Efficiency.Value / 0.95) < 1e-6
+                      && fullMech.ShaftEfficiency > 0 && Math.Abs(lowMech.ShaftEfficiency.Value - fullMech.ShaftEfficiency.Value / 0.95) < 1e-6
+                      && PumpCalc.EfficiencyFactor("95") == 0.95 && PumpCalc.EfficiencyFactor("0.95") == 0.95
+                      && PumpCalc.EfficiencyFactor("") == 1.0 && PumpCalc.EfficiencyFactor("0") == 1.0);
+
                 // The meter's power factor is signed by quadrant: Nş takes its magnitude (400 V, 10 A, cos φ 0.85 → 5.889 kW)
                 Check("Nş = 1.732 × |cos φ| × U × I / 1000, also for a negative meter power factor",
                       Math.Abs(PumpCalc.ElectricalPower(400, 10, -0.85) - 5.8888) < 0.001 && Math.Abs(PumpCalc.ElectricalPower(400, 10, 0.85) - 5.8888) < 0.001);
@@ -407,9 +423,11 @@ namespace SempaPumpStation
             // The torque meter's shaft power and the efficiency on it: formulas in R and S, and the same on the report screen
             var torqueSample = archived.Samples[5];
             double shaft = torqueSample.Torque * torqueSample.Speed / 9549.0;
+            Check("report: the pump recipe's Mekanik Verim (" + archived.Header["WRT_PMP_MEKANIK_VERIM"] + " %) in M11 as a factor",
+                  archived.Header["WRT_PMP_MEKANIK_VERIM"] == "100" && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"M11\"[^>]*><v>1</v>"));
             Check(string.Format("report: Nmil = T × n / 9549 ({0:0.00} kW) and the efficiency on it ({1:0.0} %); test number at AU1",
                                 torqueSample.ShaftPower ?? 0, torqueSample.ShaftEfficiency ?? 0),
-                  sheetXml.Contains(">IFERROR(P32*Q32/9549,0)</f>") && sheetXml.Contains("IFERROR(((C32*I32/102)/R32)*100,0)")
+                  sheetXml.Contains(">IFERROR(P32*Q32/9549,0)</f>") && sheetXml.Contains(">IFERROR(((C32*I32/102)/(R32*AB32))*100,0)</f>")
                   && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"AU1\"[^>]*><v>" + archived.TestNo + "</v>")
                   && torqueSample.ShaftPower.HasValue && Math.Abs(torqueSample.ShaftPower.Value - shaft) < 1e-9
                   && torqueSample.ShaftEfficiency.HasValue && Math.Abs(torqueSample.ShaftEfficiency.Value - torqueSample.HydraulicPower / shaft * 100) < 1e-6);

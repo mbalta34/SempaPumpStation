@@ -90,7 +90,7 @@ namespace SempaPumpStation.Infrastructure
         {
             "WRT_FIRMA_ADI", "WRT_ADRES",
             "WRT_POMPA_TIPI", "WRT_PMP_SERI_NO", "WRT_PMP_EMME_CAP", "WRT_PMP_BAS_CAP", "WRT_PMP_MIL_MALZ", "WRT_PMP_MONTAJ_TIP",
-            "WRT_CARK_MALZ", "WRT_CARK_CAPI", "WRT_SALMAST_TIPI", "WRT_SALYANGOZ_MALZ",
+            "WRT_CARK_MALZ", "WRT_CARK_CAPI", "WRT_SALMAST_TIPI", "WRT_SALYANGOZ_MALZ", "WRT_PMP_MEKANIK_VERIM",
             "WRT_MOTOR_MARKA", "WRT_MOTOR_SERI_NO", "WRT_MOTOR_FRAME", "WRT_MOTOR_HP", "WRT_MOTOR_TIPI", "WRT_MOTOR_VERIM_SIN",
             "WRT_MOTOR_GUCU", "WRT_MOTOR_DEVRI", "WRT_MOTOR_AKIMI", "WRT_MOTOR_COSPHI",
             "WRT_MOTOR_VERIM_1_4", "WRT_MOTOR_VERIM_2_4", "WRT_MOTOR_VERIM_3_4", "WRT_MOTOR_VERIM_4_4",
@@ -211,7 +211,7 @@ namespace SempaPumpStation.Infrastructure
                 s.PumpPower = PumpCalc.PumpPower(s.ElectricalPower, line);
                 s.Efficiency = PumpCalc.Efficiency(s.HydraulicPower, s.PumpPower);
                 s.ShaftPower = PumpCalc.ShaftPower(s.Torque, s.Speed);
-                s.ShaftEfficiency = PumpCalc.Efficiency(s.HydraulicPower, s.ShaftPower);
+                s.ShaftEfficiency = PumpCalc.Efficiency(s.HydraulicPower, PumpCalc.PumpShaftPower(s.ShaftPower, line));
             }
         }
 
