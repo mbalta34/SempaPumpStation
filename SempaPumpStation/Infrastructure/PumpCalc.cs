@@ -37,7 +37,7 @@ namespace SempaPumpStation.Infrastructure
         public double Speed { get; set; }
         /// <summary>Nmil: shaft power from the torque meter, T × n / 9549, kW (report column R); null without torque or speed.</summary>
         public double? ShaftPower { get; set; }
-        /// <summary>Pump efficiency on the shaft power × the mechanical efficiency, % (report column S); null while the shaft power is unknown.</summary>
+        /// <summary>Pump efficiency on the measured shaft power, without the mechanical efficiency, % (report column S); null while the shaft power is unknown.</summary>
         public double? ShaftEfficiency { get; set; }
     }
 
@@ -207,13 +207,6 @@ namespace SempaPumpStation.Infrastructure
         public static double? ShaftPower(double torque, double speed)
             => torque > 0 && speed > 0 ? torque * speed / 9549.0 : (double?)null;
 
-        /// <summary>
-        /// The power the pump gets from the torque meter's shaft power: Nmil × the mechanical efficiency (report R × AB), the
-        /// losses between the meter and the pump taken off as Np takes them off the motor's output.
-        /// </summary>
-        public static double? PumpShaftPower(double? shaftPower, PumpLine line)
-            => shaftPower.HasValue ? shaftPower.Value * line.MechanicalEfficiency : (double?)null;
-
         /// <summary>Pump efficiency in % (report column O): hydraulic power over pump power; null when that is unknown or zero.
         /// With the shaft power (report column S) it is the efficiency on the torque meter.</summary>
         public static double? Efficiency(double hydraulicPower, double? pumpPower)
@@ -262,7 +255,7 @@ namespace SempaPumpStation.Infrastructure
                 Torque = torque,
                 Speed = speed,
                 ShaftPower = shaft,
-                ShaftEfficiency = Efficiency(hydraulic, PumpShaftPower(shaft, line)),
+                ShaftEfficiency = Efficiency(hydraulic, shaft),
             };
         }
 

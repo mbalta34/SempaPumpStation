@@ -14,7 +14,7 @@ namespace SempaPumpStation.Infrastructure
         // ---- bump these ----
         public const int Major = 1;
         public const int Minor = 14;
-        public const int Build = 4;
+        public const int Build = 5;
 
         public const string ProductName = "Sempa HMI";
 
@@ -39,6 +39,11 @@ namespace SempaPumpStation.Infrastructure
         /// </summary>
         public static readonly IReadOnlyList<ChangeLogEntry> ChangeLog = new[]
         {
+            new ChangeLogEntry("1.14.5", "2026-11-27", new[]
+            {
+                "Efficiency from the torque meter no longer includes Mekanik Verim: η = Q·Hm / Nmil, as measured (report column S back to the template's formula). The electrical efficiency still uses it (Pp = Nş × motor efficiency × mechanical efficiency).",
+            }),
+
             new ChangeLogEntry("1.14.4", "2026-11-25", new[]
             {
                 "Pump recipe: Mekanik Verim (%), the losses between the motor or torque meter and the pump. Selected into the report, it is M11 (empty or 0 = 100 %; 0.95 is taken as 95 %).",

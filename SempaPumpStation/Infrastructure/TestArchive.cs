@@ -211,7 +211,7 @@ namespace SempaPumpStation.Infrastructure
                 s.PumpPower = PumpCalc.PumpPower(s.ElectricalPower, line);
                 s.Efficiency = PumpCalc.Efficiency(s.HydraulicPower, s.PumpPower);
                 s.ShaftPower = PumpCalc.ShaftPower(s.Torque, s.Speed);
-                s.ShaftEfficiency = PumpCalc.Efficiency(s.HydraulicPower, PumpCalc.PumpShaftPower(s.ShaftPower, line));
+                s.ShaftEfficiency = PumpCalc.Efficiency(s.HydraulicPower, s.ShaftPower);
             }
         }
 

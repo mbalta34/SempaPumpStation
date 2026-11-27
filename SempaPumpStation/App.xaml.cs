@@ -360,12 +360,12 @@ namespace SempaPumpStation
                 var lowMech = PumpCalc.Live(c, 1);
                 double mechFactor = PumpCalc.LiveLine(c).MechanicalEfficiency;
                 c.SetFromDevice("WRT_PMP_MEKANIK_VERIM", 100.0);
-                Check(string.Format("Mekanik Verim 95 % scales Pp ({0:0.00} → {1:0.00} kW) and both efficiencies; 95 and 0.95 are 0.95, empty and 0 count as 100 %",
+                Check(string.Format("Mekanik Verim 95 % scales Pp ({0:0.00} → {1:0.00} kW) and the electrical efficiency, not the torque one; 95 and 0.95 are 0.95, empty and 0 count as 100 %",
                                     fullMech.PumpPower ?? 0, lowMech.PumpPower ?? 0),
                       Math.Abs(mechFactor - 0.95) < 1e-9 && fullMech.PumpPower > 0
                       && Math.Abs(lowMech.PumpPower.Value - fullMech.PumpPower.Value * 0.95) < 1e-6
                       && Math.Abs(lowMech.Efficiency.Value - fullMech.Efficiency.Value / 0.95) < 1e-6
-                      && fullMech.ShaftEfficiency > 0 && Math.Abs(lowMech.ShaftEfficiency.Value - fullMech.ShaftEfficiency.Value / 0.95) < 1e-6
+                      && fullMech.ShaftEfficiency > 0 && Math.Abs(lowMech.ShaftEfficiency.Value - fullMech.ShaftEfficiency.Value) < 1e-9
                       && PumpCalc.EfficiencyFactor("95") == 0.95 && PumpCalc.EfficiencyFactor("0.95") == 0.95
                       && PumpCalc.EfficiencyFactor("") == 1.0 && PumpCalc.EfficiencyFactor("0") == 1.0);
 
@@ -427,7 +427,7 @@ namespace SempaPumpStation
                   archived.Header["WRT_PMP_MEKANIK_VERIM"] == "100" && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"M11\"[^>]*><v>1</v>"));
             Check(string.Format("report: Nmil = T × n / 9549 ({0:0.00} kW) and the efficiency on it ({1:0.0} %); test number at AU1",
                                 torqueSample.ShaftPower ?? 0, torqueSample.ShaftEfficiency ?? 0),
-                  sheetXml.Contains(">IFERROR(P32*Q32/9549,0)</f>") && sheetXml.Contains(">IFERROR(((C32*I32/102)/(R32*AB32))*100,0)</f>")
+                  sheetXml.Contains(">IFERROR(P32*Q32/9549,0)</f>") && sheetXml.Contains(">IFERROR(((C32*I32/102)/R32)*100,0)</f>")
                   && System.Text.RegularExpressions.Regex.IsMatch(sheetXml, "<c r=\"AU1\"[^>]*><v>" + archived.TestNo + "</v>")
                   && torqueSample.ShaftPower.HasValue && Math.Abs(torqueSample.ShaftPower.Value - shaft) < 1e-9
                   && torqueSample.ShaftEfficiency.HasValue && Math.Abs(torqueSample.ShaftEfficiency.Value - torqueSample.HydraulicPower / shaft * 100) < 1e-6);
